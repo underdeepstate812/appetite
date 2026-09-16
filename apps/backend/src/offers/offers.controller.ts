@@ -4,6 +4,7 @@ import { OffersService } from "./offers.service";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { UpdateOfferDto } from "./dto/update-offer.dto";
 import { ListOffersQueryDto } from "./dto/list-offers.query";
+import { NearbyOffersQueryDto } from "./dto/nearby-offers.query";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -17,6 +18,11 @@ export class OffersController {
   @Get()
   findAll(@Query() query: ListOffersQueryDto) {
     return this.offersService.findAll(query);
+  }
+
+  @Get("nearby")
+  findNearby(@Query() query: NearbyOffersQueryDto) {
+    return this.offersService.findNearby(query);
   }
 
   @Get(":id")

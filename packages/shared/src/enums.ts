@@ -47,6 +47,14 @@ export enum NotificationType {
   NEARBY_OFFERS = "NEARBY_OFFERS",
   PICKUP_REMINDER = "PICKUP_REMINDER",
   ORDER_CONFIRMED = "ORDER_CONFIRMED",
+  ORDER_COMPLETED = "ORDER_COMPLETED",
   ORDER_EXPIRED = "ORDER_EXPIRED",
   ORDER_CANCELLED = "ORDER_CANCELLED",
+}
+
+/** Статус mock-платежа (ШАГ 5) — форма совместима со Stripe/СБП для будущей замены. */
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  SUCCEEDED = "SUCCEEDED",
+  FAILED = "FAILED",
 }

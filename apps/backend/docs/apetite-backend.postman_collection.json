@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Apetite Backend — ШАГ 4",
-    "description": "Auth, Business/Offer/Order CRUD. Импортируй в Postman, выполняй по порядку сверху вниз — тесты каждого запроса сохраняют id/токены в переменные коллекции для следующих запросов.",
+    "name": "Apetite Backend — ШАГ 4+5",
+    "description": "Auth, Business/Offer/Order CRUD (ШАГ 4) + гео-поиск, mock-оплата/QR/эко-баллы, шедулер скидок, вебхук платежей (ШАГ 5). Импортируй в Postman, выполняй по порядку сверху вниз — тесты каждого запроса сохраняют id/токены в переменные коллекции для следующих запросов.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,7 +13,9 @@
     { "key": "businessId", "value": "" },
     { "key": "offerId", "value": "" },
     { "key": "orderId", "value": "" },
-    { "key": "pickupCode", "value": "" }
+    { "key": "pickupCode", "value": "" },
+    { "key": "webhookSecret", "value": "change-me-webhook-secret" },
+    { "key": "paymentExternalId", "value": "" }
   ],
   "item": [
     {
@@ -248,6 +250,25 @@
           "description": "Замени businessId на id своего заведения из шага 'My business', если запускаешь не по порядку. pickupStart/pickupEnd поставь на будущее."
         },
         {
+          "name": "Nearby offers (гео-поиск, публично)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/offers/nearby?lat=55.751244&lng=37.618423&radiusKm=10&category=FOOD&minDiscount=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "nearby"],
+              "query": [
+                { "key": "lat", "value": "55.751244" },
+                { "key": "lng", "value": "37.618423" },
+                { "key": "radiusKm", "value": "10" },
+                { "key": "category", "value": "FOOD" },
+                { "key": "minDiscount", "value": "0" }
+              ]
+            },
+            "description": "Haversine-поиск (ШАГ 5). category/minDiscount необязательны. Координаты по умолчанию — центр Москвы."
+          }
+        },
+        {
           "name": "Get offer",
           "request": {
             "method": "GET",
@@ -290,9 +311,10 @@
                   "const data = pm.response.json();",
                   "pm.collectionVariables.set('orderId', data.id);",
                   "pm.collectionVariables.set('pickupCode', data.pickupCode);",
-                  "pm.test('201 Created, статус CONFIRMED', () => {",
+                  "pm.test('201 Created, статус CONFIRMED, mock-оплата и QR приложены', () => {",
                   "  pm.response.to.have.status(201);",
                   "  pm.expect(data.status).to.eql('CONFIRMED');",
+                  "  pm.expect(data.qrCodeDataUrl).to.match(/^data:image\\/png;base64,/);",
                   "});"
                 ]
               }
@@ -322,6 +344,19 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
             "url": { "raw": "{{baseUrl}}/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Get QR code (повторно)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/qrcode",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}", "qrcode"]
+            },
+            "description": "QR кодирует {orderId, pickupCode} — тем же кодом, что вернул Create order."
           }
         },
         {
@@ -363,6 +398,72 @@
             },
             "description": "Сработает только если заказ ещё CONFIRMED — если перед этим выполнил Complete pickup выше, создай новый Order и подставь его id."
           }
+        }
+      ]
+    },
+    {
+      "name": "Scheduler (ШАГ 5)",
+      "item": [
+        {
+          "name": "Run discount recalculation (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK со сводкой', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const d = pm.response.json();",
+                  "  pm.expect(d).to.have.property('offersRecalculated');",
+                  "  pm.expect(d).to.have.property('ordersExpired');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/scheduler/run-discounts", "host": ["{{baseUrl}}"], "path": ["scheduler", "run-discounts"] }
+          },
+          "description": "Ручной запуск того же кода, что выполняется по крону каждые 15 минут (DISCOUNT_CRON_EXPRESSION): пересчёт скидок ACTIVE-офферов + перевод CONFIRMED-заказов с истёкшим pickupEnd в EXPIRED."
+        }
+      ]
+    },
+    {
+      "name": "Payments (ШАГ 5)",
+      "item": [
+        {
+          "name": "Webhook — simulate provider callback",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Подпись = HMAC-SHA256('{externalId}.{status}', PAYMENT_WEBHOOK_SECRET) — тот же",
+                  "// контракт, что потребуется для настоящего Stripe/СБП-вебхука при замене провайдера.",
+                  "const externalId = pm.collectionVariables.get('paymentExternalId');",
+                  "const status = 'SUCCEEDED';",
+                  "const secret = pm.collectionVariables.get('webhookSecret');",
+                  "const signature = CryptoJS.HmacSHA256(`${externalId}.${status}`, secret).toString();",
+                  "pm.collectionVariables.set('_webhookSignature', signature);",
+                  "pm.request.body.update(JSON.stringify({ externalId, status }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-webhook-signature", "value": "{{_webhookSignature}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"externalId\": \"{{paymentExternalId}}\",\n  \"status\": \"SUCCEEDED\"\n}" },
+            "url": { "raw": "{{baseUrl}}/payments/webhook", "host": ["{{baseUrl}}"], "path": ["payments", "webhook"] }
+          },
+          "description": "У mock-провайдера оплата уже синхронно успешна при создании заказа — этот запрос лишь демонстрирует контракт вебхука. Перед запуском вручную подставь переменную paymentExternalId (достань из таблицы payments: SELECT \"externalId\" FROM payments ORDER BY \"createdAt\" DESC LIMIT 1) — API его не возвращает."
         }
       ]
     }

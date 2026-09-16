@@ -82,7 +82,7 @@ pnpm db:studio                  # Prisma Studio — визуальный про�
 ```
 
 Схема — [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma) (User, Business,
-Offer, Order, EcoTransaction, Notification). После `db:seed` в базе:
+Offer, Order, EcoTransaction, Notification, + `Payment` добавлен в ШАГ 5). После `db:seed` в базе:
 - `admin@apetite.ru` / `password123` — платформенный админ;
 - `user@apetite.ru` / `password123` — обычный пользователь, с одним завершённым
   заказом (есть EcoTransaction) и одним активным (CONFIRMED, ждёт самовывоза);
@@ -115,20 +115,48 @@ pnpm dev:backend   # NestJS с hot-reload (ts-node-dev), нужны живые p
   (список по роли: свои / заказы своего заведения / все), `PATCH /api/v1/orders/:id/cancel`,
   `PATCH /api/v1/orders/:id/complete` (BUSINESS/ADMIN, сверяет `pickupCode`).
 
-**Проверка** (curl-коллекция + Postman):
-```bash
-pnpm dev:backend &                          # или docker compose up -d
-bash apps/backend/docs/smoke-test.sh        # 15 сценариев, включая права доступа и оверселл
-```
-Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collection.json](apps/backend/docs/apetite-backend.postman_collection.json)
-(импортировать и прогонять запросы по порядку сверху вниз, токены/id сохраняются
-в переменные коллекции автоматически).
-
 ⚠️ Известное упрощение: контейнер backend запускает `ts-node` напрямую (не
 компилирует в `dist/`), т.к. `@apetite/shared` подключён как TS-исходники —
 компилируемая прод-сборка (`pnpm build`) осталась для более поздней оптимизации
-(ШАГ 12–13). Эко-баллы после самовывоза, mock-платежи, генерация QR-картинки,
-`/offers/nearby` с гео и cron пересчёта скидок — бизнес-логика ШАГ 5.
+(ШАГ 12–13).
+
+### Backend: бизнес-логика (ШАГ 5)
+
+Добавлено поверх ШАГ 4:
+- `GET /api/v1/offers/nearby?lat&lng&radiusKm&category&minDiscount` — гео-поиск,
+  Haversine на raw SQL (задел на PostGIS при росте нагрузки, см. ШАГ 0).
+- Полный сценарий покупки в `POST /api/v1/orders`: атомарная резервация
+  `quantityLeft` → mock-оплата через `PaymentsService` (интерфейс `PaymentProvider`,
+  готов к замене на Stripe/СБП одним классом + DI-биндингом) → запись `Payment` →
+  заказ в ответе уже содержит `qrCodeDataUrl` (`data:image/png;base64,...`,
+  кодирует `{orderId, pickupCode}`); повторно — `GET /api/v1/orders/:id/qrcode`.
+- `POST /api/v1/payments/webhook` — вебхук провайдера с HMAC-подписью
+  (`x-webhook-signature`, секрет `PAYMENT_WEBHOOK_SECRET`), идемпотентно обновляет
+  статус `Payment` по `externalId`. У mock-провайдера оплата уже синхронно
+  успешна при создании заказа, так что в обычном сценарии вебхук не требуется —
+  эндпоинт демонстрирует контракт, который понадобится реальному провайдеру.
+- `PATCH /api/v1/orders/:id/complete` теперь также начисляет `EcoTransaction`
+  (баллы = `weightSavedKg * ECO_POINTS_PER_KG`) и создаёт `Notification`.
+- Шедулер (`@nestjs/schedule`, `DISCOUNT_CRON_EXPRESSION` — каждые 15 минут):
+  пересчитывает `discountPercent`/`discountedPrice` активных офферов по правилу
+  из ШАГ 0 (>2ч — 50%, 1–2ч — 60%, <1ч — 70%), архивирует офферы с истёкшим
+  `pickupEnd`, переводит `CONFIRMED`-заказы с истёкшим `pickupEnd` в `EXPIRED`
+  (без возврата `quantityLeft` — допущение ШАГ 0). Ручной запуск для
+  отладки/демо: `POST /api/v1/scheduler/run-discounts` (ADMIN).
+
+**Проверка** (curl-коллекция + Postman):
+```bash
+pnpm dev:backend &                          # или docker compose up -d
+bash apps/backend/docs/smoke-test.sh        # 26 сценариев: ШАГ 4 + ШАГ 5
+```
+Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collection.json](apps/backend/docs/apetite-backend.postman_collection.json)
+(импортировать и прогонять запросы по порядку сверху вниз, токены/id сохраняются
+в переменные коллекции автоматически; папки Scheduler/Payments — для ШАГ 5).
+
+⚠️ Модель `Payment` — дополнение сверх исходного списка сущностей (User, Business,
+Offer, Order, EcoTransaction, Notification): без неё вебхук нечего было бы
+идемпотентно обновлять по `externalId`. Если это лишнее для беты — скажи, уберём
+и оставим оплату полностью эфемерной (без персистентного audit trail).
 
 Дальше (появится в следующих шагах):
 - `pnpm dev:admin` / `pnpm dev:mobile` — запуск admin/mobile в dev-режиме (ШАГ 7/10).

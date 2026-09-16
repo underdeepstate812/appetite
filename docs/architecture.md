@@ -48,28 +48,34 @@ Backend выдаёт `accessToken` (короткоживущий) + `refreshToke
 `→ Backend считает расстояние (Haversine, задел на PostGIS) → PostgreSQL(Offer join Business)`
 `→ отсортированный список по расстоянию/скидке`.
 
-### 3. Покупка → QR → самовывоз
+### 3. Покупка → QR → самовывоз (реализовано в ШАГ 4–5)
 ```
 Mobile: POST /orders {offerId, quantity}
-  → Backend: транзакция — decrement Offer.quantityLeft, mock-оплата,
-             генерация pickupCode (PIN), создание Order(status=CONFIRMED)
-  → Mobile получает Order + QR (кодирует pickupCode)
+  → Backend: атомарная резервация Offer.quantityLeft (условный updateMany)
+  → Backend: PaymentsService.charge() — mock-провайдер, синхронно SUCCEEDED
+             (интерфейс PaymentProvider готов к замене на Stripe/СБП)
+  → Backend: создание Order(status=CONFIRMED) + Payment(status=SUCCEEDED) в транзакции
+  → Mobile получает Order с qrCodeDataUrl (кодирует {orderId, pickupCode})
 
-Business (Admin): POST /orders/:id/complete {pickupCode}
+Business (Admin): PATCH /orders/:id/complete {pickupCode}
   → Backend: сверяет код, Order.status=COMPLETED, completedAt=now()
   → Backend: создаёт EcoTransaction (points, weightSavedKg = Offer.weightKg * quantity)
-  → Push пользователю "Заказ забран, +N эко-баллов"
+             + Notification(ORDER_COMPLETED) в той же транзакции
+  → Push пользователю "Заказ забран, +N эко-баллов" (реальная отправка — ШАГ 6)
 ```
 
-### 4. Пересчёт скидок (cron, каждые 15 минут)
+### 4. Пересчёт скидок (cron, каждые 15 минут — реализовано в ШАГ 5)
 ```
-Scheduler → SELECT Offer WHERE status=ACTIVE
+Scheduler (@nestjs/schedule, DISCOUNT_CRON_EXPRESSION) → SELECT Offer WHERE status=ACTIVE
   для каждого: часы_до(pickupEnd)
+    <=0  → status = ARCHIVED (окно самовывоза закрылось)
     >2ч  → discountPercent = 50 (база)
     1–2ч → discountPercent = 60
     <1ч  → discountPercent = 70 (максимум)
   UPDATE discountedPrice, discountPercent
-  → параллельно: Order с истёкшим pickupEnd и status=CONFIRMED → status=EXPIRED
+  → параллельно: Order с истёкшим Offer.pickupEnd и status=CONFIRMED → status=EXPIRED
+    (quantityLeft НЕ возвращается — допущение ШАГ 0)
+Ручной запуск для отладки: POST /scheduler/run-discounts (ADMIN).
 Mobile получает обновлённые цены при следующем запросе списка/деталей оффера
 (в бете — по pull, WebSocket/SSE push обновлений — вне скоупа).
 ```
@@ -88,6 +94,7 @@ Push "через 30 минут закрывается самовывоз" — н
 - **Admin — одно Vite-приложение с двумя ролевыми зонами** (`/business/*`,
   `/platform/*`), а не два отдельных фронтенда — меньше дублирования кода для беты,
   разделение по role-guard на роутере.
-- **Redis** используется для кэша `nearby`-запросов и очереди push-уведомлений;
-  в бете допустимо без Redis (backend должен работать и без него, кэш — опционален),
-  но Docker Compose поднимает его сразу, т.к. он нужен с ШАГ 5–6.
+- **Redis** зарезервирован под кэш `nearby`-запросов и очередь push-уведомлений
+  (ШАГ 6) — поднимается в Docker Compose с ШАГ 2, но backend его ещё не использует:
+  `/offers/nearby` в ШАГ 5 читает Haversine-запрос напрямую из PostgreSQL, этого
+  достаточно на масштабе беты. Подключим, когда появится реальная нагрузка/push-очередь.

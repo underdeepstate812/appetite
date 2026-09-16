@@ -31,6 +31,11 @@ export class OrdersController {
     return this.ordersService.findOne(id, user);
   }
 
+  @Get(":id/qrcode")
+  getQrCode(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return this.ordersService.getQrCode(id, user);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(Role.USER, Role.ADMIN)
   @Patch(":id/cancel")

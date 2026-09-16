@@ -1,13 +1,39 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { OfferStatus, Role } from "@prisma/client";
+import { OfferStatus, Prisma, Role } from "@prisma/client";
 import { DISCOUNT_RULES, Paginated } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { UpdateOfferDto } from "./dto/update-offer.dto";
 import { ListOffersQueryDto } from "./dto/list-offers.query";
+import { NearbyOffersQueryDto } from "./dto/nearby-offers.query";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
 
 const DEFAULT_PAGE_SIZE = 20;
+const NEARBY_RESULTS_LIMIT = 100;
+
+interface NearbyOfferRow {
+  id: string;
+  businessId: string;
+  title: string;
+  description: string | null;
+  category: string;
+  originalPrice: number;
+  discountedPrice: number;
+  discountPercent: number;
+  quantityTotal: number;
+  quantityLeft: number;
+  weightKg: number;
+  pickupStart: Date;
+  pickupEnd: Date;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  businessName: string;
+  businessAddress: string;
+  businessLat: number;
+  businessLng: number;
+  distanceKm: number;
+}
 
 @Injectable()
 export class OffersService {
@@ -68,6 +94,47 @@ export class OffersService {
     const offer = await this.prisma.offer.findUnique({ where: { id } });
     if (!offer) throw new NotFoundException("Оффер не найден");
     return offer;
+  }
+
+  /**
+   * Haversine-поиск активных офферов в радиусе от точки. MVP на raw SQL — для
+   * реального масштаба заменяется на PostGIS (ST_DWithin + GiST-индекс), см. ШАГ 0.
+   */
+  async findNearby(query: NearbyOffersQueryDto): Promise<NearbyOfferRow[]> {
+    const categoryFilter = query.category
+      ? Prisma.sql`AND o."category" = ${query.category}::"OfferCategory"`
+      : Prisma.empty;
+    const minDiscountFilter =
+      query.minDiscount !== undefined
+        ? Prisma.sql`AND o."discountPercent" >= ${query.minDiscount}`
+        : Prisma.empty;
+
+    return this.prisma.$queryRaw<NearbyOfferRow[]>(Prisma.sql`
+      SELECT * FROM (
+        SELECT
+          o.*,
+          b."name" AS "businessName",
+          b."address" AS "businessAddress",
+          b."lat" AS "businessLat",
+          b."lng" AS "businessLng",
+          (
+            6371 * acos(
+              LEAST(1, GREATEST(-1,
+                cos(radians(${query.lat})) * cos(radians(b."lat")) * cos(radians(b."lng") - radians(${query.lng}))
+                + sin(radians(${query.lat})) * sin(radians(b."lat"))
+              ))
+            )
+          ) AS "distanceKm"
+        FROM "offers" o
+        JOIN "businesses" b ON b."id" = o."businessId"
+        WHERE o."status" = 'ACTIVE'
+          ${categoryFilter}
+          ${minDiscountFilter}
+      ) nearby
+      WHERE nearby."distanceKm" <= ${query.radiusKm}
+      ORDER BY nearby."distanceKm" ASC
+      LIMIT ${NEARBY_RESULTS_LIMIT}
+    `);
   }
 
   async update(id: string, dto: UpdateOfferDto, requester: RequestUser) {

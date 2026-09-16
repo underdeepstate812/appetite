@@ -11,6 +11,9 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_TTL: Joi.string().default("30d"),
   PLATFORM_COMMISSION_PERCENT: Joi.number().default(25),
   PICKUP_CODE_LENGTH: Joi.number().default(6),
+  PAYMENT_PROVIDER: Joi.string().default("mock"),
+  PAYMENT_WEBHOOK_SECRET: Joi.string().min(8).required(),
+  DISCOUNT_CRON_EXPRESSION: Joi.string().default("*/15 * * * *"),
 })
   // Остальные переменные (Redis, платежи, push и т.д.) появятся в ШАГ 5/6 — не валидируем их здесь заранее.
   .unknown(true);

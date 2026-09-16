@@ -4,6 +4,7 @@ import {
   OfferCategory,
   OfferStatus,
   OrderStatus,
+  PaymentStatus,
   Role,
 } from "./enums";
 
@@ -100,5 +101,17 @@ export interface Notification {
   body: string;
   data?: Record<string, string> | null;
   read: boolean;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  orderId: string;
+  provider: string;
+  externalId: string;
+  /** Минорные единицы валюты (копейки). */
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
   createdAt: string;
 }

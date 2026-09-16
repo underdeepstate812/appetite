@@ -156,6 +156,7 @@ async function main() {
   // Порядок важен из-за внешних ключей: сначала зависимые таблицы.
   await prisma.notification.deleteMany();
   await prisma.ecoTransaction.deleteMany();
+  await prisma.payment.deleteMany();
   await prisma.order.deleteMany();
   await prisma.offer.deleteMany();
   await prisma.business.deleteMany();
@@ -270,6 +271,17 @@ async function main() {
     },
   });
 
+  await prisma.payment.create({
+    data: {
+      orderId: completedOrder.id,
+      provider: "mock",
+      externalId: `mock_seed_${completedOrder.id}`,
+      amount: completedTotal,
+      currency: "RUB",
+      status: "SUCCEEDED",
+    },
+  });
+
   const weightSavedKg = completedOfferSeed.weightKg * completedQuantity;
   await prisma.ecoTransaction.create({
     data: {
@@ -283,7 +295,7 @@ async function main() {
   await prisma.notification.create({
     data: {
       userId: demoUser.id,
-      type: "ORDER_CONFIRMED",
+      type: "ORDER_COMPLETED",
       title: "Заказ забран",
       body: `Спасибо! Ты спас(-ла) ${weightSavedKg.toFixed(1)} кг еды от выброса.`,
       data: { orderId: completedOrder.id },
@@ -310,6 +322,17 @@ async function main() {
       platformFee: pendingFee,
       status: OrderStatus.CONFIRMED,
       pickupCode: generatePickupCode(),
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      orderId: pendingOrder.id,
+      provider: "mock",
+      externalId: `mock_seed_${pendingOrder.id}`,
+      amount: pendingTotal,
+      currency: "RUB",
+      status: "SUCCEEDED",
     },
   });
 

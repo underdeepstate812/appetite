@@ -48,8 +48,15 @@ enum NotificationType {
   NEARBY_OFFERS
   PICKUP_REMINDER
   ORDER_CONFIRMED
+  ORDER_COMPLETED
   ORDER_EXPIRED
   ORDER_CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
 }
 
 model User {
@@ -147,11 +154,31 @@ model Order {
   completedAt DateTime?
 
   ecoTransaction EcoTransaction?
+  payment        Payment?
 
   @@index([userId])
   @@index([businessId])
   @@index([status, createdAt])
   @@map("orders")
+}
+
+/// Mock-платёж (ШАГ 5) за интерфейсом, совместимым по форме со Stripe/СБП —
+/// провайдер меняется через DI-токен PAYMENT_PROVIDER, эта модель не завязана на mock.
+model Payment {
+  id         String        @id @default(uuid())
+  orderId    String        @unique
+  order      Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider   String
+  /// id платежа во внешней системе (у mock — сгенерированный, у Stripe/СБП — их id).
+  externalId String        @unique
+  amount     Int
+  currency   String        @default("RUB")
+  status     PaymentStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([status])
+  @@map("payments")
 }
 
 model EcoTransaction {

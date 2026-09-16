@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { LoggerModule } from "nestjs-pino";
 import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -7,6 +8,8 @@ import { AuthModule } from "./auth/auth.module";
 import { BusinessesModule } from "./businesses/businesses.module";
 import { OffersModule } from "./offers/offers.module";
 import { OrdersModule } from "./orders/orders.module";
+import { PaymentsModule } from "./payments/payments.module";
+import { SchedulerModule } from "./scheduler/scheduler.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -15,6 +18,7 @@ import { AppController } from "./app.controller";
       isGlobal: true,
       validationSchema: envValidationSchema,
     }),
+    ScheduleModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === "production" ? "info" : "debug",
@@ -30,6 +34,8 @@ import { AppController } from "./app.controller";
     BusinessesModule,
     OffersModule,
     OrdersModule,
+    PaymentsModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
 })
