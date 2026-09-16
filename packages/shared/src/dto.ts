@@ -35,8 +35,8 @@ export interface CreateOrderRequest {
   quantity: number;
 }
 
+/** orderId передаётся в URL (PATCH /orders/:id/complete), не в теле. */
 export interface CompletePickupRequest {
-  orderId: string;
   pickupCode: string;
 }
 

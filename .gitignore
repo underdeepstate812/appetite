@@ -24,6 +24,10 @@ apps/admin/dist/
 apps/mobile/.expo/
 apps/mobile/dist/
 apps/mobile/web-build/
+apps/mobile/expo-env.d.ts
+apps/mobile/.kotlin/
+apps/mobile/ios/
+apps/mobile/android/
 apps/mobile/*.orig.*
 apps/mobile/*.jks
 apps/mobile/*.p8

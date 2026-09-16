@@ -183,8 +183,30 @@ Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collec
 в переменные коллекции автоматически; папки Scheduler/Payments/Notifications & Geo —
 для ШАГ 5–6).
 
+### Mobile: каркас (ШАГ 7)
+
+```bash
+cd apps/mobile && cp .env.example .env   # своя копия — Metro не читает корневой .env
+pnpm dev:mobile                          # интерактивный Expo CLI (w/i/a — web/iOS/Android)
+```
+
+Expo SDK 57 + React Navigation v7 (native-stack + bottom-tabs), Zustand (`authStore`),
+react-i18next (RU/EN, автоопределение локали устройства), собственная светлая/тёмная
+тема (прокинута и в навигацию). Подробности и что именно уже реально работает против
+backend vs что осталось заглушкой до ШАГ 8 — в [apps/mobile/README.md](apps/mobile/README.md).
+
+⚠️ По пути добавил `app.enableCors()` в backend (`apps/backend/src/main.ts`) — без
+этого любой веб-клиент (mobile web сейчас, admin-панель в ШАГ 10) получает "Failed to
+fetch" из браузера. Не мобильно-специфичный фикс, но обнаружился именно здесь.
+
+⚠️ Заодно поправил дрейф между `@apetite/shared` (писался в ШАГ 1 "на будущее") и
+реальными ответами backend из ШАГ 4–6: `Business.location: GeoPoint` → `lat`/`lng`
+плоскими полями (как реально отдаёт API), `User` донёс `expoPushToken`/`lastLat`/
+`lastLng`/`notifyRadiusKm` (ШАГ 6), `CompletePickupRequest` лишился лишнего `orderId`
+(он в URL, не в body), добавлен `NearbyOffer` под реальный ответ `/offers/nearby`.
+
 Дальше (появится в следующих шагах):
-- `pnpm dev:admin` / `pnpm dev:mobile` — запуск admin/mobile в dev-режиме (ШАГ 7/10).
+- `pnpm dev:admin` — запуск admin в dev-режиме (ШАГ 10).
 
 Полный гайд по запуску, переменным окружения, сидам и тестам будет собран в
 **ШАГ 13** — сейчас справочно смотри [.env.example](.env.example).

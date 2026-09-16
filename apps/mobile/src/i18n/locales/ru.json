@@ -1,0 +1,66 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "retry": "Повторить",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "error": "Что-то пошло не так",
+    "comingInStep8": "Появится в следующем шаге (ШАГ 8)"
+  },
+  "auth": {
+    "loginTitle": "Вход",
+    "registerTitle": "Регистрация",
+    "email": "Email",
+    "password": "Пароль",
+    "name": "Имя",
+    "phone": "Телефон (необязательно)",
+    "loginButton": "Войти",
+    "registerButton": "Зарегистрироваться",
+    "noAccount": "Нет аккаунта? Зарегистрироваться",
+    "haveAccount": "Уже есть аккаунт? Войти",
+    "demoHint": "Демо-доступ: user@apetite.ru / password123"
+  },
+  "nav": {
+    "home": "Сейчас",
+    "map": "Карта",
+    "orders": "Заказы",
+    "eco": "Эко",
+    "profile": "Профиль"
+  },
+  "home": {
+    "title": "Предложения рядом",
+    "empty": "Пока нет активных предложений",
+    "discount": "-{{percent}}%",
+    "priceFrom": "от {{price}} ₽"
+  },
+  "offerDetail": {
+    "title": "Оффер",
+    "buy": "Купить",
+    "pickupWindow": "Самовывоз",
+    "left": "Осталось: {{count}}",
+    "notFound": "Оффер не найден"
+  },
+  "checkout": {
+    "title": "Оформление заказа"
+  },
+  "orders": {
+    "title": "Мои заказы",
+    "empty": "Заказов пока нет",
+    "status": {
+      "CONFIRMED": "Ожидает самовывоза",
+      "COMPLETED": "Забран",
+      "CANCELLED": "Отменён",
+      "EXPIRED": "Просрочен"
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "logout": "Выйти"
+  },
+  "eco": {
+    "title": "Эко-профиль"
+  },
+  "map": {
+    "title": "Карта"
+  }
+}

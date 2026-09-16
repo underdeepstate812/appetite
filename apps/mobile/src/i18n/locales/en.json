@@ -1,0 +1,66 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "error": "Something went wrong",
+    "comingInStep8": "Coming in the next step (Step 8)"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registerTitle": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "phone": "Phone (optional)",
+    "loginButton": "Sign in",
+    "registerButton": "Sign up",
+    "noAccount": "No account? Sign up",
+    "haveAccount": "Already have an account? Sign in",
+    "demoHint": "Demo login: user@apetite.ru / password123"
+  },
+  "nav": {
+    "home": "Now",
+    "map": "Map",
+    "orders": "Orders",
+    "eco": "Eco",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Deals near you",
+    "empty": "No active offers right now",
+    "discount": "-{{percent}}%",
+    "priceFrom": "from {{price}} ₽"
+  },
+  "offerDetail": {
+    "title": "Offer",
+    "buy": "Buy",
+    "pickupWindow": "Pickup window",
+    "left": "Left: {{count}}",
+    "notFound": "Offer not found"
+  },
+  "checkout": {
+    "title": "Checkout"
+  },
+  "orders": {
+    "title": "My orders",
+    "empty": "No orders yet",
+    "status": {
+      "CONFIRMED": "Awaiting pickup",
+      "COMPLETED": "Picked up",
+      "CANCELLED": "Cancelled",
+      "EXPIRED": "Expired"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "logout": "Log out"
+  },
+  "eco": {
+    "title": "Eco profile"
+  },
+  "map": {
+    "title": "Map"
+  }
+}

@@ -11,6 +11,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
 
+  // Бета без продовой отдельной инфры: web-клиенты (mobile web, ШАГ 10 admin) обращаются
+  // с других портов/хостов — открываем CORS широко, токены передаются заголовком, не cookie.
+  app.enableCors();
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

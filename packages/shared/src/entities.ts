@@ -25,7 +25,14 @@ export interface User {
   phone?: string | null;
   name: string;
   role: Role;
+  /** Expo push-токен устройства (ШАГ 6/9) — одно устройство на аккаунт. */
+  expoPushToken?: string | null;
+  /** Последняя известная геопозиция — основа гео-триггера NEARBY_OFFERS (ШАГ 6). */
+  lastLat?: number | null;
+  lastLng?: number | null;
+  notifyRadiusKm: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Business {
@@ -35,11 +42,13 @@ export interface Business {
   description?: string | null;
   category: OfferCategory;
   address: string;
-  location: GeoPoint;
+  lat: number;
+  lng: number;
   status: BusinessStatus;
   /** Комиссия платформы для заведения, % (по умолчанию — платформенная константа). */
   commissionPercent: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Offer {
@@ -80,6 +89,17 @@ export interface Order {
   pickupCode: string;
   createdAt: string;
   completedAt?: string | null;
+  /** Когда отправлено напоминание "забери за 30 минут" (ШАГ 6). */
+  pickupReminderSentAt?: string | null;
+}
+
+/** Ответ GET /offers/nearby — Offer с расстоянием и плоскими полями заведения (raw SQL, ШАГ 5). */
+export interface NearbyOffer extends Offer {
+  businessName: string;
+  businessAddress: string;
+  businessLat: number;
+  businessLng: number;
+  distanceKm: number;
 }
 
 export interface EcoTransaction {

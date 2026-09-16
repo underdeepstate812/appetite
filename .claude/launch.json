@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "/Users/kingston/Desktop/Claude/appetite/apps/mobile/node_modules/.bin/expo",
+      "runtimeArgs": ["start", "--web"],
+      "port": 8081
+    }
+  ]
+}
