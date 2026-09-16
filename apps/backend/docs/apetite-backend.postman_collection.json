@@ -1,0 +1,370 @@
+{
+  "info": {
+    "name": "Apetite Backend — ШАГ 4",
+    "description": "Auth, Business/Offer/Order CRUD. Импортируй в Postman, выполняй по порядку сверху вниз — тесты каждого запроса сохраняют id/токены в переменные коллекции для следующих запросов.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "userAccessToken", "value": "" },
+    { "key": "userRefreshToken", "value": "" },
+    { "key": "businessAccessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "businessId", "value": "" },
+    { "key": "offerId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "pickupCode", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as demo user (user@apetite.ru)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('userAccessToken', data.accessToken);",
+                  "pm.collectionVariables.set('userRefreshToken', data.refreshToken);",
+                  "pm.test('200 OK с токенами', () => { pm.response.to.have.status(200); pm.expect(data.accessToken).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@apetite.ru\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login as business owner (cafe.pushkin@apetite.ru)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('businessAccessToken', data.accessToken);",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"cafe.pushkin@apetite.ru\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login as admin (admin@apetite.ru)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('adminAccessToken', data.accessToken);",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@apetite.ru\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Register new user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman-demo@apetite.ru\",\n  \"password\": \"password123\",\n  \"name\": \"Postman Demo\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Refresh tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('userAccessToken', data.accessToken);",
+                  "pm.collectionVariables.set('userRefreshToken', data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userRefreshToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Businesses",
+      "item": [
+        {
+          "name": "List businesses (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/businesses", "host": ["{{baseUrl}}"], "path": ["businesses"] }
+          }
+        },
+        {
+          "name": "Create business (ADMIN — ручной онбординг)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('businessId', data.id);",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerEmail\": \"postman-owner@apetite.ru\",\n  \"ownerPassword\": \"password123\",\n  \"ownerName\": \"Postman Owner\",\n  \"name\": \"Postman Test Cafe\",\n  \"category\": \"FOOD\",\n  \"address\": \"ул. Примерная, 1\",\n  \"lat\": 55.75,\n  \"lng\": 37.62\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/businesses", "host": ["{{baseUrl}}"], "path": ["businesses"] }
+          }
+        },
+        {
+          "name": "My business (BUSINESS)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{businessAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/businesses/mine", "host": ["{{baseUrl}}"], "path": ["businesses", "mine"] }
+          }
+        },
+        {
+          "name": "Update business (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Обновлено через Postman\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["businesses", "{{businessId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offers",
+      "item": [
+        {
+          "name": "List offers (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/offers?page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["offers"], "query": [
+              { "key": "page", "value": "1" },
+              { "key": "pageSize", "value": "20" }
+            ] }
+          }
+        },
+        {
+          "name": "Create offer (BUSINESS, под своим заведением)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('offerId', data.id);",
+                  "pm.test('201 Created, скидка 50% посчитана', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(data.discountPercent).to.eql(50);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{businessAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessId\": \"{{businessId}}\",\n  \"title\": \"Postman тест-оффер\",\n  \"category\": \"FOOD\",\n  \"originalPriceRub\": 500,\n  \"weightKg\": 0.5,\n  \"quantityTotal\": 5,\n  \"pickupStart\": \"2026-01-01T10:00:00.000Z\",\n  \"pickupEnd\": \"2026-01-01T20:00:00.000Z\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/offers", "host": ["{{baseUrl}}"], "path": ["offers"] }
+          },
+          "description": "Замени businessId на id своего заведения из шага 'My business', если запускаешь не по порядку. pickupStart/pickupEnd поставь на будущее."
+        },
+        {
+          "name": "Get offer",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "{{offerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update offer price (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{businessAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"originalPriceRub\": 450\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "{{offerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order (USER покупает offerId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('orderId', data.id);",
+                  "pm.collectionVariables.set('pickupCode', data.pickupCode);",
+                  "pm.test('201 Created, статус CONFIRMED', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(data.status).to.eql('CONFIRMED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"offerId\": \"{{offerId}}\",\n  \"quantity\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+          }
+        },
+        {
+          "name": "List my orders (USER)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+          }
+        },
+        {
+          "name": "Get order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Complete pickup (BUSINESS, по pickupCode)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус COMPLETED', () => pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{businessAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"pickupCode\": \"{{pickupCode}}\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Cancel order (USER, пример на новый заказ)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}", "cancel"]
+            },
+            "description": "Сработает только если заказ ещё CONFIRMED — если перед этим выполнил Complete pickup выше, создай новый Order и подставь его id."
+          }
+        }
+      ]
+    }
+  ]
+}

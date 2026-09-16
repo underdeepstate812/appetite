@@ -31,16 +31,23 @@ services:
       timeout: 5s
       retries: 10
 
-  # Плейсхолдер до ШАГ 4 — см. apps/backend/Dockerfile.
   backend:
     build:
-      context: ./apps/backend
+      context: .
+      dockerfile: apps/backend/Dockerfile
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       BACKEND_PORT: ${BACKEND_PORT:-3000}
+      API_PREFIX: ${API_PREFIX:-api/v1}
       DATABASE_URL: postgresql://${POSTGRES_USER:-apetite}:${POSTGRES_PASSWORD:-apetite}@postgres:5432/${POSTGRES_DB:-apetite}?schema=public
       REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      PLATFORM_COMMISSION_PERCENT: ${PLATFORM_COMMISSION_PERCENT:-25}
+      PICKUP_CODE_LENGTH: ${PICKUP_CODE_LENGTH:-6}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:
