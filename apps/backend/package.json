@@ -5,7 +5,7 @@
   "description": "NestJS API — ядро (ШАГ 4): конфиг, логирование, auth, CRUD Business/Offer/Order. Бизнес-логика — ШАГ 5+.",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "ts-node src/main.ts",
+    "start": "node dist/main.js",
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "lint": "tsc --noEmit",
     "prisma:generate": "prisma generate",

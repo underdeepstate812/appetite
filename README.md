@@ -115,10 +115,8 @@ pnpm dev:backend   # NestJS с hot-reload (ts-node-dev), нужны живые p
   (список по роли: свои / заказы своего заведения / все), `PATCH /api/v1/orders/:id/cancel`,
   `PATCH /api/v1/orders/:id/complete` (BUSINESS/ADMIN, сверяет `pickupCode`).
 
-⚠️ Известное упрощение: контейнер backend запускает `ts-node` напрямую (не
-компилирует в `dist/`), т.к. `@apetite/shared` подключён как TS-исходники —
-компилируемая прод-сборка (`pnpm build`) осталась для более поздней оптимизации
-(ШАГ 12–13).
+~~⚠️ Известное упрощение: контейнер backend запускает `ts-node` напрямую~~ —
+исправлено в ШАГ 12, см. ниже.
 
 ### Backend: бизнес-логика (ШАГ 5)
 
@@ -280,6 +278,56 @@ backend молча игнорирует его для не-ADMIN — та же �
 Подробности и что проверено вживую (включая кросс-проверку: GMV платформы
 совпал с суммой per-business аналитики единственного заведения с реальными
 заказами) — в [apps/admin/README.md](apps/admin/README.md).
+
+### Прод-сборка backend (ШАГ 12)
+
+`apps/backend/Dockerfile` больше не запускает `ts-node` в контейнере — теперь
+настоящая multi-stage сборка: `tsc` компилирует и `@apetite/shared`, и сам
+backend в `dist/`, затем `pnpm deploy --prod` собирает самодостаточную папку
+только с прод-зависимостями (workspace-протокол резолвится из уже собранного
+`dist`, а не symlink на исходники монорепо — штатный механизм pnpm для именно
+этого сценария), и финальный слой — `node:22-alpine` с `CMD ["node", "dist/main.js"]`.
+`apps/backend/package.json`'s `start` script теперь и означает именно это
+(раньше — по имени "start", а по факту `ts-node src/main.ts`).
+
+⚠️ По пути нашёл и исправил три реальных проблемы, не выдуманные — каждая
+воспроизводилась при живой сборке `docker build`, не в теории:
+- **`@apetite/shared` собирался как CommonJS-only**, и Vite/Rollup (production
+  `vite build` для admin, ШАГ 10) не мог статически определить именованные
+  экспорты через паттерн `export * from` в CJS-барреле (особенно ломался на
+  TS `enum`, компилирующемся в самоссылающийся IIFE) — `vite build` падал с
+  "OfferCategory is not exported". Собираю `@apetite/shared` в двух форматах
+  (`dist/cjs` и `dist/esm`, `package.json` → `exports` с условиями
+  `require`/`import`) — backend требует CJS через `require`, Vite/Metro берут
+  ESM с настоящими статическими экспортами.
+- **`pnpm deploy --prod` переустанавливает `node_modules` с нуля**, и
+  `@prisma/client`'s postinstall срабатывает без Prisma CLI (devDependency, в
+  `--prod` не попадает) — тихо создаёт generic-клиент без наших моделей/enum'ов
+  вместо настоящего. Перегенерирую явно (`pnpm dlx prisma@<версия> generate`,
+  версия закреплена — иначе `dlx` берёт `latest`, а это на момент написания
+  нестабильный `8.0.0-rc` с другим CLI, без команды `generate`).
+- **`docker-compose.yml` по умолчанию ставил `NODE_ENV=development`** для
+  backend-контейнера — с реальной прод-сборкой это крашилось: `pino-pretty`
+  (dev-логи) корректно исключён из prod-зависимостей, но код всё ещё пытался
+  его подключить при `NODE_ENV !== "production"`. Контейнер теперь по
+  умолчанию `production` независимо от общего `.env` (который остаётся
+  `development` для локальных `pnpm dev:*` вне Docker) — см. `.env.example`.
+- **`apps/admin/Dockerfile`'s HEALTHCHECK был сломан с самого ШАГ 10**, просто
+  никто не проверял полный `docker compose up` до этого шага: busybox `wget`
+  внутри образа резолвит `localhost` в IPv6 (`::1`) первым, а nginx слушает
+  только IPv4 — контейнер стабильно отвечал на реальные запросы, но healthcheck
+  всегда падал с "connection refused" и Docker помечал его `unhealthy`.
+  Заменил на явный `http://127.0.0.1/`.
+
+Заодно удалил `apps/backend/server.js` — забытая nginx-эпохи заглушка из
+ШАГ 2, ничем не используемая с ШАГ 4.
+
+`docker compose build` для admin тоже обновлён (явный шаг сборки
+`@apetite/shared` перед `vite build` — раньше резолвился напрямую в исходники,
+теперь только через `dist/`). Полный стек (`postgres`+`redis`+`backend`+`admin`
+все в Docker, все четыре контейнера `healthy`) проверен вживую с нуля — чистая
+пересборка, 53/53 smoke-тестов, живой вход в admin через браузер и работающий
+mobile-web поверх того же контейнеризированного backend.
 
 Полный гайд по запуску, переменным окружения, сидам и тестам будет собран в
 **ШАГ 13** — сейчас справочно смотри [.env.example](.env.example).

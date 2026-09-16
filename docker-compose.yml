@@ -37,7 +37,11 @@ services:
       dockerfile: apps/backend/Dockerfile
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      # Контейнер теперь запускает настоящую прод-сборку (ШАГ 12: node dist/main.js,
+      # не ts-node) — pino-pretty (dev-логи) там намеренно отсутствует (devDependency,
+      # не попадает в prod-деплой), поэтому по умолчанию именно "production", не
+      # "development" из общего .env монорепо (тот default — для dev-серверов вне Docker).
+      NODE_ENV: ${BACKEND_NODE_ENV:-production}
       BACKEND_PORT: ${BACKEND_PORT:-3000}
       API_PREFIX: ${API_PREFIX:-api/v1}
       DATABASE_URL: postgresql://${POSTGRES_USER:-apetite}:${POSTGRES_PASSWORD:-apetite}@postgres:5432/${POSTGRES_DB:-apetite}?schema=public
