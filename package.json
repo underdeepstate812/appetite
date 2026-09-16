@@ -1,0 +1,19 @@
+{
+  "name": "apetite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Apetite — витрина горячих послеобеденных предложений со скидками 50–70% на еду, цветы и товары из кафе, ресторанов и магазинов.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev:backend": "pnpm --filter @apetite/backend dev",
+    "dev:admin": "pnpm --filter @apetite/admin dev",
+    "dev:mobile": "pnpm --filter @apetite/mobile start",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}
