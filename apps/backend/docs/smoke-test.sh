@@ -69,6 +69,15 @@ check "GET /businesses публично отдаёт список" "true" "$([ "
 
 MY_BIZ_ID=$(curl -s "$BASE/businesses/mine" -H "Authorization: Bearer $BUSINESS_TOKEN" | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['id'])")
 
+# Сид уже кладёт офферы/заказы на это же заведение — сверяем ШАГ 10 статистику
+# дельтой между "до" и "после", а не абсолютными числами.
+STATS_BEFORE=$(curl -s "$BASE/businesses/$MY_BIZ_ID/stats" -H "Authorization: Bearer $BUSINESS_TOKEN")
+STATS_BEFORE_ACTIVE=$(echo "$STATS_BEFORE" | json_field "['activeOffersCount']")
+STATS_BEFORE_COMPLETED=$(echo "$STATS_BEFORE" | json_field "['completedOrders']")
+STATS_BEFORE_REVENUE=$(echo "$STATS_BEFORE" | json_field "['revenue']")
+STATS_BEFORE_FEE=$(echo "$STATS_BEFORE" | json_field "['platformFee']")
+STATS_BEFORE_KG=$(echo "$STATS_BEFORE" | json_field "['weightSavedKg']")
+
 echo "== offers =="
 PICKUP_START=$(python3 -c "import datetime;print(datetime.datetime.utcnow().isoformat()+'Z')")
 PICKUP_END=$(python3 -c "import datetime;print((datetime.datetime.utcnow()+datetime.timedelta(hours=3)).isoformat()+'Z')")
@@ -108,6 +117,22 @@ COMPLETE=$(curl -s -X PATCH "$BASE/orders/$ORDER_ID/complete" \
   -d "{\"pickupCode\":\"$PICKUP_CODE\"}")
 COMPLETE_STATUS=$(echo "$COMPLETE" | json_field "['status']")
 check "верный pickupCode -> статус COMPLETED" "COMPLETED" "$COMPLETE_STATUS"
+
+echo "== ШАГ 10: сводка по заведению (GET /businesses/:id/stats) =="
+STATS_FORBIDDEN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/businesses/$MY_BIZ_ID/stats" -H "Authorization: Bearer $USER_TOKEN")
+check "USER не может смотреть статистику чужого заведения -> 403" 403 "$STATS_FORBIDDEN_STATUS"
+
+STATS=$(curl -s "$BASE/businesses/$MY_BIZ_ID/stats" -H "Authorization: Bearer $BUSINESS_TOKEN")
+STATS_ACTIVE_DELTA=$(python3 -c "print($(echo "$STATS" | json_field "['activeOffersCount']") - $STATS_BEFORE_ACTIVE)")
+check "статистика: распроданный смоук-оффер не входит в активные (+0)" 0 "$STATS_ACTIVE_DELTA"
+STATS_COMPLETED_DELTA=$(python3 -c "print($(echo "$STATS" | json_field "['completedOrders']") - $STATS_BEFORE_COMPLETED)")
+check "статистика: +1 выданный заказ от смоук-теста" 1 "$STATS_COMPLETED_DELTA"
+STATS_REVENUE_DELTA=$(python3 -c "print($(echo "$STATS" | json_field "['revenue']") - $STATS_BEFORE_REVENUE)")
+check "статистика: +50000 копеек выручки (2 x 25000)" 50000 "$STATS_REVENUE_DELTA"
+STATS_FEE_DELTA=$(python3 -c "print($(echo "$STATS" | json_field "['platformFee']") - $STATS_BEFORE_FEE)")
+check "статистика: +12500 копеек комиссии (25% от выручки)" 12500 "$STATS_FEE_DELTA"
+STATS_KG_DELTA=$(python3 -c "print(round(float($(echo "$STATS" | json_field "['weightSavedKg']")) - float($STATS_BEFORE_KG), 4))")
+check "статистика: +1 кг спасено (0.5 кг x 2)" "1.0" "$STATS_KG_DELTA"
 
 echo "== ШАГ 5: гео-поиск /offers/nearby =="
 NEARBY_COUNT=$(curl -s "$BASE/offers/nearby?lat=55.751244&lng=37.618423&radiusKm=20" | python3 -c "import json,sys;print(len(json.load(sys.stdin)))")

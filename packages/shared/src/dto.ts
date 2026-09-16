@@ -46,3 +46,22 @@ export interface Paginated<T> {
   page: number;
   pageSize: number;
 }
+
+/**
+ * Сводка по заведению для панели бизнеса (ШАГ 10) — GET /businesses/:id/stats.
+ * Кросс-заведенческий GMV/комиссия платформы — отдельная платформенная сводка ШАГ 11,
+ * не здесь: это только цифры одного конкретного заведения.
+ */
+export interface BusinessStats {
+  activeOffersCount: number;
+  totalOrders: number;
+  confirmedOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  expiredOrders: number;
+  /** Минорные единицы валюты (копейки), только по COMPLETED-заказам. */
+  revenue: number;
+  /** Комиссия платформы, копейки, только по COMPLETED-заказам. */
+  platformFee: number;
+  weightSavedKg: number;
+}

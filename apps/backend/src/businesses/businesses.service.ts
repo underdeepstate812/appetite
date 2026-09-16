@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
-import { Business, BusinessStatus, OfferCategory, Role } from "@prisma/client";
+import { Business, BusinessStatus, OfferCategory, OfferStatus, OrderStatus, Role } from "@prisma/client";
+import type { BusinessStats } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateBusinessDto } from "./dto/create-business.dto";
 import { UpdateBusinessDto } from "./dto/update-business.dto";
@@ -82,6 +83,40 @@ export class BusinessesService {
     await this.findOne(id);
     await this.prisma.business.delete({ where: { id } });
     return { success: true };
+  }
+
+  async getStats(id: string, requester: RequestUser): Promise<BusinessStats> {
+    const business = await this.findOne(id);
+    this.assertOwnerOrAdmin(business.ownerUserId, requester);
+
+    const [activeOffersCount, ordersByStatus, revenueAgg, ecoAgg] = await Promise.all([
+      this.prisma.offer.count({ where: { businessId: id, status: OfferStatus.ACTIVE } }),
+      this.prisma.order.groupBy({ by: ["status"], where: { businessId: id }, _count: { _all: true } }),
+      this.prisma.order.aggregate({
+        where: { businessId: id, status: OrderStatus.COMPLETED },
+        _sum: { totalPrice: true, platformFee: true },
+      }),
+      // EcoTransaction не хранит businessId напрямую — только связь через Order (ШАГ 5/8).
+      this.prisma.ecoTransaction.aggregate({
+        where: { order: { businessId: id } },
+        _sum: { weightSavedKg: true },
+      }),
+    ]);
+
+    const countByStatus = (status: OrderStatus) =>
+      ordersByStatus.find((group) => group.status === status)?._count._all ?? 0;
+
+    return {
+      activeOffersCount,
+      totalOrders: ordersByStatus.reduce((sum, group) => sum + group._count._all, 0),
+      confirmedOrders: countByStatus(OrderStatus.CONFIRMED),
+      completedOrders: countByStatus(OrderStatus.COMPLETED),
+      cancelledOrders: countByStatus(OrderStatus.CANCELLED),
+      expiredOrders: countByStatus(OrderStatus.EXPIRED),
+      revenue: revenueAgg._sum.totalPrice ?? 0,
+      platformFee: revenueAgg._sum.platformFee ?? 0,
+      weightSavedKg: ecoAgg._sum.weightSavedKg ?? 0,
+    };
   }
 
   private assertOwnerOrAdmin(ownerUserId: string, requester: RequestUser) {

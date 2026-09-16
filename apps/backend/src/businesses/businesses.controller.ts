@@ -32,6 +32,13 @@ export class BusinessesController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.BUSINESS, Role.ADMIN)
+  @Get(":id/stats")
+  getStats(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return this.businessesService.getStats(id, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
   create(@Body() dto: CreateBusinessDto) {
