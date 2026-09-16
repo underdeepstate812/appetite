@@ -144,19 +144,44 @@ pnpm dev:backend   # NestJS с hot-reload (ts-node-dev), нужны живые p
   (без возврата `quantityLeft` — допущение ШАГ 0). Ручной запуск для
   отладки/демо: `POST /api/v1/scheduler/run-discounts` (ADMIN).
 
-**Проверка** (curl-коллекция + Postman):
-```bash
-pnpm dev:backend &                          # или docker compose up -d
-bash apps/backend/docs/smoke-test.sh        # 26 сценариев: ШАГ 4 + ШАГ 5
-```
-Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collection.json](apps/backend/docs/apetite-backend.postman_collection.json)
-(импортировать и прогонять запросы по порядку сверху вниз, токены/id сохраняются
-в переменные коллекции автоматически; папки Scheduler/Payments — для ШАГ 5).
-
 ⚠️ Модель `Payment` — дополнение сверх исходного списка сущностей (User, Business,
 Offer, Order, EcoTransaction, Notification): без неё вебхук нечего было бы
 идемпотентно обновлять по `externalId`. Если это лишнее для беты — скажи, уберём
 и оставим оплату полностью эфемерной (без персистентного audit trail).
+
+### Backend: уведомления (ШАГ 6)
+
+Добавлено поверх ШАГ 5:
+- `POST /api/v1/notifications/push-token` (любая роль) — регистрирует Expo push-токен
+  устройства (`User.expoPushToken`, одно устройство на аккаунт — упрощение для беты).
+- `PATCH /api/v1/users/me/location` — сохраняет последнюю геопозицию (`lastLat`/`lastLng`);
+  то, что вызовет мобильное приложение при выдаче геопермишена (ШАГ 9).
+- Гео-триггер «рядом с тобой N предложений»: шедулер считает для каждого
+  пользователя с известной геопозицией число `ACTIVE`-офферов в радиусе
+  `notifyRadiusKm` (Haversine, один SQL-запрос по всем пользователям сразу, без
+  N+1) и шлёт дайджест — не чаще раза в `NEARBY_DIGEST_THROTTLE_HOURS` (3 часа)
+  на пользователя, чтобы не спамить при каждом новом оффере.
+- Напоминание за `PICKUP_REMINDER_WINDOW_MINUTES` (30 минут) до `pickupEnd`:
+  поле `Order.pickupReminderSentAt` гарантирует, что уведомление уходит один раз.
+- Оба джоба используют тот же крон, что и пересчёт скидок (ШАГ 5, `DISCOUNT_CRON_EXPRESSION`,
+  каждые 15 минут) — один общий "пульс" вместо нескольких параллельных расписаний.
+  Ручной запуск для отладки/демо: `POST /api/v1/notifications/run-digest` (ADMIN).
+- `GET /api/v1/notifications` (свои, фильтр `unreadOnly`, пагинация),
+  `PATCH /api/v1/notifications/:id/read`.
+- Push — за интерфейсом `PushProvider` (как и `PaymentProvider` в ШАГ 5): сейчас
+  единственная реализация — мок (пишет в лог вместо реального Expo Push API,
+  `EXPO_PUSH_MODE=mock`), настоящий `expo-server-sdk` подключается тем же
+  DI-биндингом без изменений в `NotificationsService`.
+
+**Проверка** (curl-коллекция + Postman):
+```bash
+pnpm dev:backend &                          # или docker compose up -d
+bash apps/backend/docs/smoke-test.sh        # 36 сценариев: ШАГ 4 + ШАГ 5 + ШАГ 6
+```
+Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collection.json](apps/backend/docs/apetite-backend.postman_collection.json)
+(импортировать и прогонять запросы по порядку сверху вниз, токены/id сохраняются
+в переменные коллекции автоматически; папки Scheduler/Payments/Notifications & Geo —
+для ШАГ 5–6).
 
 Дальше (появится в следующих шагах):
 - `pnpm dev:admin` / `pnpm dev:mobile` — запуск admin/mobile в dev-режиме (ШАГ 7/10).

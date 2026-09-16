@@ -80,11 +80,24 @@ Mobile получает обновлённые цены при следующе�
 (в бете — по pull, WebSocket/SSE push обновлений — вне скоупа).
 ```
 
-### 5. Уведомления
+### 5. Уведомления (реализовано в ШАГ 6, тот же 15-минутный крон, что и скидки)
 ```
-Push "рядом с тобой N предложений" — geo-триггер по региону пользователя (ШАГ 6).
-Push "через 30 минут закрывается самовывоз" — напоминание по pickupEnd - 30m (ШАГ 6).
-Каналы: Expo Notifications, mock-режим в dev (лог вместо реальной отправки).
+Mobile: PATCH /users/me/location {lat, lng} → User.lastLat/lastLng
+Mobile: POST /notifications/push-token {token} → User.expoPushToken
+
+Scheduler (раз в 15 минут):
+  Nearby-дайджест:
+    SELECT users × businesses × ACTIVE offers, Haversine <= User.notifyRadiusKm,
+    WHERE не было NEARBY_OFFERS за последние NEARBY_DIGEST_THROTTLE_HOURS (3ч)
+    → Notification(NEARBY_OFFERS) + push "рядом с тобой N предложений" на пользователя
+  Pickup-напоминания:
+    SELECT Order WHERE status=CONFIRMED AND pickupReminderSentAt IS NULL
+      AND Offer.pickupEnd в ближайшие PICKUP_REMINDER_WINDOW_MINUTES (30 мин)
+    → Order.pickupReminderSentAt=now(), Notification(PICKUP_REMINDER) + push
+
+Каналы: Expo Notifications за интерфейсом PushProvider — сейчас mock (лог вместо
+реальной отправки, EXPO_PUSH_MODE=mock), тот же DI-паттерн, что PaymentProvider (ШАГ 5).
+Ручной запуск для отладки: POST /notifications/run-digest (ADMIN).
 ```
 
 ## Почему так

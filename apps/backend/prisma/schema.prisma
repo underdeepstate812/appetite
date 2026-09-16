@@ -67,6 +67,14 @@ model User {
   name             String
   role             Role     @default(USER)
   refreshTokenHash String?
+  /// Expo push-токен устройства (ШАГ 6/9) — одно устройство на аккаунт, достаточно для беты.
+  expoPushToken    String?
+  /// Последняя известная геопозиция — обновляется мобильным приложением (ШАГ 9),
+  /// используется гео-триггером "рядом с тобой N предложений".
+  lastLat          Float?
+  lastLng          Float?
+  /// Радиус в км, в котором пользователь хочет получать гео-уведомления.
+  notifyRadiusKm   Float    @default(5)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -76,6 +84,7 @@ model User {
   notifications   Notification[]
 
   @@index([role])
+  @@index([lastLat, lastLng])
   @@map("users")
 }
 
@@ -136,22 +145,24 @@ model Offer {
 }
 
 model Order {
-  id          String      @id @default(uuid())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  offerId     String
-  offer       Offer       @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  id                   String      @id @default(uuid())
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  offerId              String
+  offer                Offer       @relation(fields: [offerId], references: [id], onDelete: Restrict)
   /// Денормализовано из Offer.businessId — упрощает выборки "заказы моего заведения" без join через Offer.
-  businessId  String
-  business    Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  quantity    Int
-  totalPrice  Int
-  platformFee Int
-  status      OrderStatus @default(CONFIRMED)
+  businessId           String
+  business             Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  quantity             Int
+  totalPrice           Int
+  platformFee          Int
+  status               OrderStatus @default(CONFIRMED)
   /// PIN самовывоза — показывается пользователю, сверяется заведением при выдаче.
-  pickupCode  String      @unique
-  createdAt   DateTime    @default(now())
-  completedAt DateTime?
+  pickupCode           String      @unique
+  createdAt            DateTime    @default(now())
+  completedAt          DateTime?
+  /// Когда отправлено напоминание "забери за 30 минут" — чтобы шедулер не слал повторно.
+  pickupReminderSentAt DateTime?
 
   ecoTransaction EcoTransaction?
   payment        Payment?

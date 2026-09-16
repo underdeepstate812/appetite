@@ -180,6 +180,11 @@ async function main() {
       passwordHash,
       name: "Тестовый пользователь",
       role: Role.USER,
+      // Рядом с центром Москвы — чтобы гео-дайджест "рядом с тобой N предложений" (ШАГ 6)
+      // сразу находил сидовые заведения, а не требовал ручного PATCH /users/me/location.
+      lastLat: MOSCOW_CENTER.lat,
+      lastLng: MOSCOW_CENTER.lng,
+      expoPushToken: "ExponentPushToken[demo-seed-token]",
     },
   });
 

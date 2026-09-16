@@ -14,6 +14,7 @@ export const envValidationSchema = Joi.object({
   PAYMENT_PROVIDER: Joi.string().default("mock"),
   PAYMENT_WEBHOOK_SECRET: Joi.string().min(8).required(),
   DISCOUNT_CRON_EXPRESSION: Joi.string().default("*/15 * * * *"),
+  EXPO_PUSH_MODE: Joi.string().default("mock"),
 })
-  // Остальные переменные (Redis, платежи, push и т.д.) появятся в ШАГ 5/6 — не валидируем их здесь заранее.
+  // Остальные переменные (Redis и т.д.) появятся в ШАГ 6+ — не валидируем их здесь заранее.
   .unknown(true);

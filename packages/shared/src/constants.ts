@@ -24,3 +24,12 @@ export const ECO_POINTS_PER_KG = 10;
 export const DEFAULT_CURRENCY = "RUB";
 
 export const DEFAULT_LOCALE = "ru";
+
+/** Радиус по умолчанию для гео-уведомлений "рядом с тобой N предложений" (ШАГ 6), км. */
+export const DEFAULT_NOTIFY_RADIUS_KM = 5;
+
+/** Не слать повторный NEARBY_OFFERS-дайджест пользователю чаще, чем раз в это число часов. */
+export const NEARBY_DIGEST_THROTTLE_HOURS = 3;
+
+/** За сколько минут до pickupEnd слать PICKUP_REMINDER. */
+export const PICKUP_REMINDER_WINDOW_MINUTES = 30;

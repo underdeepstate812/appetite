@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
 import { Role, User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { toPublicUser } from "../common/utils/public-user";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 
@@ -12,11 +13,6 @@ const PASSWORD_SALT_ROUNDS = 10;
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
-}
-
-function toPublicUser(user: User) {
-  const { passwordHash: _passwordHash, refreshTokenHash: _refreshTokenHash, ...publicUser } = user;
-  return publicUser;
 }
 
 @Injectable()

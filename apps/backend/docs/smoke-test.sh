@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Смоук-тест backend ШАГ 4+5 поверх сидов из ШАГ 3 (admin@apetite.ru, user@apetite.ru,
+# Смоук-тест backend ШАГ 4+5+6 поверх сидов из ШАГ 3 (admin@apetite.ru, user@apetite.ru,
 # cafe.pushkin@apetite.ru, market.svezhest@apetite.ru — все password123). Требует
 # поднятый backend (docker compose up или `pnpm dev:backend`) и применённые
 # миграции+сиды (`pnpm db:migrate && pnpm db:seed`).
@@ -184,6 +184,57 @@ print(hmac.new('$WEBHOOK_SECRET'.encode(), '$EXTERNAL_ID.SUCCEEDED'.encode(), ha
 else
   echo "SKIP вебхук: не нашли payments напрямую в БД (нет доступа к контейнеру?) — не критично для API"
 fi
+
+echo "== ШАГ 6: push-токен, геопозиция, уведомления =="
+PUSH_TOKEN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/notifications/push-token" \
+  -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"token":"ExponentPushToken[smoke-test-token]"}')
+check "регистрация push-токена -> 201" 201 "$PUSH_TOKEN_STATUS"
+
+LOCATION_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE/users/me/location" \
+  -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"lat":55.751244,"lng":37.618423}')
+check "обновление геопозиции -> 200" 200 "$LOCATION_STATUS"
+
+FORBIDDEN_DIGEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $USER_TOKEN")
+check "USER не может запустить дайджест уведомлений -> 403" 403 "$FORBIDDEN_DIGEST_STATUS"
+
+DIGEST_RESULT=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN")
+NEARBY_SENT=$(echo "$DIGEST_RESULT" | json_field "['nearbyDigestsSent']")
+check "гео-дайджест находит офферы рядом (nearbyDigestsSent >= 1)" "true" "$([ "$NEARBY_SENT" -ge 1 ] && echo true || echo false)"
+
+NOTIF_LIST=$(curl -s "$BASE/notifications" -H "Authorization: Bearer $USER_TOKEN")
+NEARBY_TYPE_PRESENT=$(echo "$NOTIF_LIST" | python3 -c "import json,sys;d=json.load(sys.stdin);print(any(i['type']=='NEARBY_OFFERS' for i in d['items']))")
+check "NEARBY_OFFERS-уведомление появилось в GET /notifications" "True" "$NEARBY_TYPE_PRESENT"
+
+DIGEST_AGAIN=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN" | json_field "['nearbyDigestsSent']")
+check "повторный дайджест не дублирует (throttle 3ч)" 0 "$DIGEST_AGAIN"
+
+NOTIF_ID=$(echo "$NOTIF_LIST" | python3 -c "import json,sys;print(json.load(sys.stdin)['items'][0]['id'])")
+MARK_READ_STATUS=$(curl -s -X PATCH "$BASE/notifications/$NOTIF_ID/read" -H "Authorization: Bearer $USER_TOKEN" | json_field "['read']")
+check "PATCH /notifications/:id/read помечает прочитанным" "True" "$MARK_READ_STATUS"
+
+FOREIGN_READ_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$BASE/notifications/$NOTIF_ID/read" -H "Authorization: Bearer $BUSINESS_TOKEN")
+check "чужое уведомление читать нельзя -> 403" 403 "$FOREIGN_READ_STATUS"
+
+echo "== ШАГ 6: напоминание за 30 минут до pickupEnd =="
+SOON_PICKUP_END=$(python3 -c "import datetime;print((datetime.datetime.utcnow()+datetime.timedelta(minutes=20)).isoformat()+'Z')")
+REMINDER_OFFER=$(curl -s -X POST "$BASE/offers" -H "Authorization: Bearer $BUSINESS_TOKEN" -H "Content-Type: application/json" -d "{
+  \"businessId\":\"$MY_BIZ_ID\",\"title\":\"Reminder smoke offer\",\"category\":\"FOOD\",
+  \"originalPriceRub\":300,\"weightKg\":0.3,\"quantityTotal\":2,
+  \"pickupStart\":\"$PICKUP_START\",\"pickupEnd\":\"$SOON_PICKUP_END\"
+}")
+REMINDER_OFFER_ID=$(echo "$REMINDER_OFFER" | json_field "['id']")
+REMINDER_ORDER=$(curl -s -X POST "$BASE/orders" -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"offerId\":\"$REMINDER_OFFER_ID\",\"quantity\":1}")
+REMINDER_ORDER_ID=$(echo "$REMINDER_ORDER" | json_field "['id']")
+
+REMINDER_RESULT=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN")
+REMINDERS_SENT=$(echo "$REMINDER_RESULT" | json_field "['pickupRemindersSent']")
+check "напоминание отправлено для заказа с pickupEnd через 20 минут" "true" "$([ "$REMINDERS_SENT" -ge 1 ] && echo true || echo false)"
+
+REMINDER_AGAIN=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN" | json_field "['pickupRemindersSent']")
+check "повторный запуск не дублирует напоминание" 0 "$REMINDER_AGAIN"
 
 echo
 echo "Итого: $PASS ок, $FAIL провалено"

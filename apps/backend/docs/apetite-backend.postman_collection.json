@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Apetite Backend — ШАГ 4+5",
-    "description": "Auth, Business/Offer/Order CRUD (ШАГ 4) + гео-поиск, mock-оплата/QR/эко-баллы, шедулер скидок, вебхук платежей (ШАГ 5). Импортируй в Postman, выполняй по порядку сверху вниз — тесты каждого запроса сохраняют id/токены в переменные коллекции для следующих запросов.",
+    "name": "Apetite Backend — ШАГ 4+5+6",
+    "description": "Auth, Business/Offer/Order CRUD (ШАГ 4) + гео-поиск, mock-оплата/QR/эко-баллы, шедулер скидок, вебхук платежей (ШАГ 5) + push-токен, геопозиция, гео-дайджест и напоминания о самовывозе (ШАГ 6). Импортируй в Postman, выполняй по порядку сверху вниз — тесты каждого запроса сохраняют id/токены в переменные коллекции для следующих запросов.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,7 +15,8 @@
     { "key": "orderId", "value": "" },
     { "key": "pickupCode", "value": "" },
     { "key": "webhookSecret", "value": "change-me-webhook-secret" },
-    { "key": "paymentExternalId", "value": "" }
+    { "key": "paymentExternalId", "value": "" },
+    { "key": "notificationId", "value": "" }
   ],
   "item": [
     {
@@ -464,6 +465,104 @@
             "url": { "raw": "{{baseUrl}}/payments/webhook", "host": ["{{baseUrl}}"], "path": ["payments", "webhook"] }
           },
           "description": "У mock-провайдера оплата уже синхронно успешна при создании заказа — этот запрос лишь демонстрирует контракт вебхука. Перед запуском вручную подставь переменную paymentExternalId (достань из таблицы payments: SELECT \"externalId\" FROM payments ORDER BY \"createdAt\" DESC LIMIT 1) — API его не возвращает."
+        }
+      ]
+    },
+    {
+      "name": "Notifications & Geo (ШАГ 6)",
+      "item": [
+        {
+          "name": "Register push token (USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"ExponentPushToken[postman-demo-token]\"\n}" },
+            "url": { "raw": "{{baseUrl}}/notifications/push-token", "host": ["{{baseUrl}}"], "path": ["notifications", "push-token"] }
+          }
+        },
+        {
+          "name": "Update my location (USER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userAccessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"lat\": 55.751244,\n  \"lng\": 37.618423\n}" },
+            "url": { "raw": "{{baseUrl}}/users/me/location", "host": ["{{baseUrl}}"], "path": ["users", "me", "location"] }
+          },
+          "description": "То, что вызовет мобильное приложение при выдаче геопермишена (ШАГ 9) — центр Москвы, чтобы гео-дайджест сразу нашёл сидовые заведения."
+        },
+        {
+          "name": "Run notifications digest (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK со сводкой', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const d = pm.response.json();",
+                  "  pm.expect(d).to.have.property('nearbyDigestsSent');",
+                  "  pm.expect(d).to.have.property('pickupRemindersSent');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/notifications/run-digest", "host": ["{{baseUrl}}"], "path": ["notifications", "run-digest"] }
+          },
+          "description": "Ручной запуск того же кода, что выполняется по крону: гео-дайджест 'рядом с тобой N предложений' (throttle 3ч на пользователя) + напоминания за 30 минут до pickupEnd (по одному на заказ)."
+        },
+        {
+          "name": "List my notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.items && data.items.length > 0) {",
+                  "  pm.collectionVariables.set('notificationId', data.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?unreadOnly=false&page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "unreadOnly", "value": "false" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark notification read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userAccessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "{{notificationId}}", "read"]
+            }
+          }
         }
       ]
     }

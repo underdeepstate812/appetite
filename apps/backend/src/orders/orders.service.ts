@@ -1,10 +1,11 @@
 import { randomInt } from "node:crypto";
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as QRCode from "qrcode";
-import { Business, Offer, OfferStatus, OrderStatus, PaymentStatus, Prisma, Role } from "@prisma/client";
+import { Business, NotificationType, Offer, OfferStatus, OrderStatus, PaymentStatus, Prisma, Role } from "@prisma/client";
 import { ECO_POINTS_PER_KG, PICKUP_CODE_LENGTH } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { PaymentsService } from "../payments/payments.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CompleteOrderDto } from "./dto/complete-order.dto";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
@@ -20,7 +21,8 @@ function generatePickupCode(): string {
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly payments: PaymentsService
+    private readonly payments: PaymentsService,
+    private readonly notifications: NotificationsService
   ) {}
 
   /**
@@ -166,9 +168,11 @@ export class OrdersService {
 
     const weightSavedKg = order.offer.weightKg * order.quantity;
     const points = Math.round(weightSavedKg * ECO_POINTS_PER_KG);
+    const title = "Заказ забран";
+    const body = `Спасибо! Ты спас(-ла) ${weightSavedKg.toFixed(1)} кг еды от выброса — +${points} эко-баллов.`;
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: OrderStatus.COMPLETED, completedAt: new Date() },
       });
@@ -178,14 +182,18 @@ export class OrdersService {
       await tx.notification.create({
         data: {
           userId: order.userId,
-          type: "ORDER_COMPLETED",
-          title: "Заказ забран",
-          body: `Спасибо! Ты спас(-ла) ${weightSavedKg.toFixed(1)} кг еды от выброса — +${points} эко-баллов.`,
+          type: NotificationType.ORDER_COMPLETED,
+          title,
+          body,
           data: { orderId: order.id },
         },
       });
-      return updated;
+      return updatedOrder;
     });
+
+    // Push — best-effort сетевой вызов, вне транзакции (та же логика, что и с оплатой в ШАГ 5).
+    await this.notifications.dispatchPush(order.userId, { title, body, data: { orderId: order.id } });
+    return updated;
   }
 
   /** Атомарная резервация: decrement проходит, только если quantityLeft всё ещё достаточен. */

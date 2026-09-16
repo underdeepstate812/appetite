@@ -51,6 +51,7 @@ services:
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change-me-webhook-secret}
       DISCOUNT_CRON_EXPRESSION: ${DISCOUNT_CRON_EXPRESSION:-*/15 * * * *}
+      EXPO_PUSH_MODE: ${EXPO_PUSH_MODE:-mock}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:

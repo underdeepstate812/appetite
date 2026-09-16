@@ -10,6 +10,8 @@ import { OffersModule } from "./offers/offers.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
+import { UsersModule } from "./users/users.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -36,6 +38,8 @@ import { AppController } from "./app.controller";
     OrdersModule,
     PaymentsModule,
     SchedulerModule,
+    UsersModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
 })
