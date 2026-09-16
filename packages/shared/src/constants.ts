@@ -18,6 +18,9 @@ export const DISCOUNT_CRON_EXPRESSION = "*/15 * * * *";
 
 export const PICKUP_CODE_LENGTH = 6;
 
+/** Эко-баллы за 1 кг спасённого веса (EcoTransaction.points = weightSavedKg * ECO_POINTS_PER_KG). */
+export const ECO_POINTS_PER_KG = 10;
+
 export const DEFAULT_CURRENCY = "RUB";
 
 export const DEFAULT_LOCALE = "ru";

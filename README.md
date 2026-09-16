@@ -73,10 +73,29 @@ pnpm docker:down    # остановить
 - Проверка: `curl http://localhost:3000/health` → `{"status":"ok",...}`,
   `http://localhost:5173` → страница-плейсхолдер admin.
 
+### База данных: Prisma (ШАГ 3)
+
+```bash
+docker compose up -d postgres   # нужен живой Postgres
+pnpm db:migrate                 # применить миграции (создаёт БД со схемой)
+pnpm db:seed                    # наполнить тестовыми заведениями/офферами/заказами
+pnpm db:studio                  # Prisma Studio — визуальный просмотр БД
+```
+
+Схема — [apps/backend/prisma/schema.prisma](apps/backend/prisma/schema.prisma) (User, Business,
+Offer, Order, EcoTransaction, Notification). После `db:seed` в базе:
+- `admin@apetite.ru` / `password123` — платформенный админ;
+- `user@apetite.ru` / `password123` — обычный пользователь, с одним завершённым
+  заказом (есть EcoTransaction) и одним активным (CONFIRMED, ждёт самовывоза);
+- 4 тестовых заведения (по одному на категорию) с владельцами `*@apetite.ru` / `password123`,
+  5 активных офферов с разным временем до `pickupEnd` (демонстрируют все уровни скидки).
+
+⚠️ Используется Prisma 6.19.3 (не последняя мажорная 7/8 — та ломает классический
+`datasource.url` в schema.prisma и требует driver-адаптеров, см. `prisma.config.ts`
+в комментарии) — сознательный выбор в пользу стабильности задокументированного API.
+
 Дальше (появится в следующих шагах):
-- `pnpm db:migrate` + `pnpm db:seed` — миграции и сиды Prisma (ШАГ 3, сейчас упадут:
-  `@apetite/backend` ещё не существует как пакет).
-- `pnpm dev:backend` / `pnpm dev:admin` / `pnpm dev:mobile` — запуск приложений в dev-режиме.
+- `pnpm dev:backend` / `pnpm dev:admin` / `pnpm dev:mobile` — запуск приложений в dev-режиме (ШАГ 4/7/10).
 
 Полный гайд по запуску, переменным окружения, сидам и тестам будет собран в
 **ШАГ 13** — сейчас справочно смотри [.env.example](.env.example).

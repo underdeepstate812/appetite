@@ -19,7 +19,9 @@
     "docker:down": "docker compose down",
     "docker:build": "docker compose build",
     "docker:logs": "docker compose logs -f",
-    "db:migrate": "pnpm --filter @apetite/backend prisma migrate dev",
-    "db:seed": "pnpm --filter @apetite/backend prisma db seed"
+    "db:migrate": "pnpm --filter @apetite/backend prisma:migrate",
+    "db:deploy": "pnpm --filter @apetite/backend prisma:deploy",
+    "db:seed": "pnpm --filter @apetite/backend prisma:seed",
+    "db:studio": "pnpm --filter @apetite/backend prisma:studio"
   }
 }

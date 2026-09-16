@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  BUSINESS
+  ADMIN
+}
+
+enum OfferCategory {
+  FOOD
+  BAKERY
+  FLOWERS
+  GROCERIES
+}
+
+enum OfferStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  ARCHIVED
+}
+
+/// CONFIRMED — оплачен (mock), ожидает самовывоза.
+/// COMPLETED — забран пользователем, начислены эко-баллы.
+/// CANCELLED — отменён пользователем до окончания pickup-окна, quantityLeft возвращается.
+/// EXPIRED — не выкуплен до pickupEnd, переводится шедулером, quantityLeft не возвращается.
+enum OrderStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum NotificationType {
+  NEARBY_OFFERS
+  PICKUP_REMINDER
+  ORDER_CONFIRMED
+  ORDER_EXPIRED
+  ORDER_CANCELLED
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  phone            String?  @unique
+  name             String
+  role             Role     @default(USER)
+  refreshTokenHash String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  businesses      Business[]
+  orders          Order[]
+  ecoTransactions EcoTransaction[]
+  notifications   Notification[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Business {
+  id                String         @id @default(uuid())
+  ownerUserId       String
+  owner             User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  /// Основная категория заведения — для витрины/фильтров; офферы могут иметь свою category.
+  category          OfferCategory
+  address           String
+  lat               Float
+  lng               Float
+  status            BusinessStatus @default(PENDING)
+  /// % комиссии платформы для этого заведения (по умолчанию — платформенная константа).
+  commissionPercent Int            @default(25)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  offers Offer[]
+  orders Order[]
+
+  @@index([ownerUserId])
+  @@index([status])
+  @@index([lat, lng])
+  @@map("businesses")
+}
+
+model Offer {
+  id              String        @id @default(uuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  category        OfferCategory
+  /// Минорные единицы валюты (копейки), Int — без ошибок округления float.
+  originalPrice   Int
+  /// Пересчитывается шедулером каждые 15 минут (ШАГ 5).
+  discountedPrice Int
+  discountPercent Int           @default(50)
+  quantityTotal   Int
+  quantityLeft    Int
+  /// Вес одной единицы товара, кг — основа для эко-баллов и "спасённых кг".
+  weightKg        Float
+  pickupStart     DateTime
+  pickupEnd       DateTime
+  status          OfferStatus   @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  orders Order[]
+
+  @@index([businessId])
+  @@index([status, pickupEnd])
+  @@index([category])
+  @@map("offers")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  offerId     String
+  offer       Offer       @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  /// Денормализовано из Offer.businessId — упрощает выборки "заказы моего заведения" без join через Offer.
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  quantity    Int
+  totalPrice  Int
+  platformFee Int
+  status      OrderStatus @default(CONFIRMED)
+  /// PIN самовывоза — показывается пользователю, сверяется заведением при выдаче.
+  pickupCode  String      @unique
+  createdAt   DateTime    @default(now())
+  completedAt DateTime?
+
+  ecoTransaction EcoTransaction?
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model EcoTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  points        Int
+  /// Offer.weightKg * Order.quantity
+  weightSavedKg Float
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("eco_transactions")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
