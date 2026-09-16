@@ -176,7 +176,7 @@ Offer, Order, EcoTransaction, Notification): без неё вебхук нече
 **Проверка** (curl-коллекция + Postman):
 ```bash
 pnpm dev:backend &                          # или docker compose up -d
-bash apps/backend/docs/smoke-test.sh        # 36 сценариев: ШАГ 4 + ШАГ 5 + ШАГ 6
+bash apps/backend/docs/smoke-test.sh        # 38 сценариев: ШАГ 4 + ШАГ 5 + ШАГ 6 + ШАГ 8
 ```
 Postman-коллекция — [apps/backend/docs/apetite-backend.postman_collection.json](apps/backend/docs/apetite-backend.postman_collection.json)
 (импортировать и прогонять запросы по порядку сверху вниз, токены/id сохраняются
@@ -192,8 +192,7 @@ pnpm dev:mobile                          # интерактивный Expo CLI (
 
 Expo SDK 57 + React Navigation v7 (native-stack + bottom-tabs), Zustand (`authStore`),
 react-i18next (RU/EN, автоопределение локали устройства), собственная светлая/тёмная
-тема (прокинута и в навигацию). Подробности и что именно уже реально работает против
-backend vs что осталось заглушкой до ШАГ 8 — в [apps/mobile/README.md](apps/mobile/README.md).
+тема (прокинута и в навигацию).
 
 ⚠️ По пути добавил `app.enableCors()` в backend (`apps/backend/src/main.ts`) — без
 этого любой веб-клиент (mobile web сейчас, admin-панель в ШАГ 10) получает "Failed to
@@ -204,6 +203,17 @@ fetch" из браузера. Не мобильно-специфичный фи�
 плоскими полями (как реально отдаёт API), `User` донёс `expoPushToken`/`lastLat`/
 `lastLng`/`notifyRadiusKm` (ШАГ 6), `CompletePickupRequest` лишился лишнего `orderId`
 (он в URL, не в body), добавлен `NearbyOffer` под реальный ответ `/offers/nearby`.
+
+### Mobile: основной сценарий (ШАГ 8)
+
+Главный экран (Сейчас/Вечерние + фильтр категории + реальный гео-поиск), карточка с
+countdown-таймером и остатком, Checkout → mock-оплата → экран с QR и pickup-кодом,
+«Мои заказы» со статусами и деталью (QR повторно, отмена), эко-профиль (баллы/кг/уровень).
+Карта — `react-native-maps` на native, честный список-фолбэк на web (библиотека не
+реализует web). Новый backend-эндпоинт `GET /eco/me` (см. выше, добавлен в ШАГ 5/6
+блок кода — фактически ШАГ 8, т.к. понадобился мобильному экрану). Подробности,
+известные упрощения (fixed quantity=1, `Alert.alert` не работает в react-native-web) и
+что именно проверено вживую — в [apps/mobile/README.md](apps/mobile/README.md).
 
 Дальше (появится в следующих шагах):
 - `pnpm dev:admin` — запуск admin в dev-режиме (ШАГ 10).

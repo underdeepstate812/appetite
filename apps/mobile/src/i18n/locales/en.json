@@ -5,7 +5,7 @@
     "cancel": "Cancel",
     "save": "Save",
     "error": "Something went wrong",
-    "comingInStep8": "Coming in the next step (Step 8)"
+    "km": "km"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -29,9 +29,23 @@
   },
   "home": {
     "title": "Deals near you",
-    "empty": "No active offers right now",
-    "discount": "-{{percent}}%",
-    "priceFrom": "from {{price}} ₽"
+    "now": "Now",
+    "evening": "Evening",
+    "allCategories": "All",
+    "categories": {
+      "FOOD": "Food",
+      "BAKERY": "Bakery",
+      "FLOWERS": "Flowers",
+      "GROCERIES": "Groceries"
+    },
+    "emptyNow": "No deals available right now",
+    "emptyEvening": "No evening deals yet",
+    "usingDefaultLocation": "Showing deals near central Moscow — location unavailable"
+  },
+  "offerCard": {
+    "pickupClosed": "Pickup closed",
+    "timeLeftHours": "{{hours}}h {{minutes}}m",
+    "timeLeftMinutes": "{{minutes}}m"
   },
   "offerDetail": {
     "title": "Offer",
@@ -41,7 +55,20 @@
     "notFound": "Offer not found"
   },
   "checkout": {
-    "title": "Checkout"
+    "title": "Checkout",
+    "summary": "Order summary",
+    "quantityLabel": "Quantity",
+    "totalLabel": "Total",
+    "payButton": "Pay (mock)",
+    "processing": "Processing...",
+    "errorGeneric": "Could not place the order"
+  },
+  "orderConfirmation": {
+    "title": "Order placed!",
+    "subtitle": "Show this code at pickup",
+    "pickupCodeLabel": "Pickup code",
+    "pickupWindowLabel": "Pick up by",
+    "doneButton": "Go to my orders"
   },
   "orders": {
     "title": "My orders",
@@ -53,14 +80,50 @@
       "EXPIRED": "Expired"
     }
   },
+  "orderStatus": {
+    "confirmed": "Paid",
+    "preparing": "Preparing",
+    "ready": "Ready to collect",
+    "preparingHint": "Starts in {{hours}}h {{minutes}}m",
+    "preparingHintMinutes": "Starts in {{minutes}}m",
+    "readyHint": "Pick up by {{time}}"
+  },
+  "orderDetail": {
+    "title": "Order",
+    "pickupCodeLabel": "Pickup code",
+    "cancelButton": "Cancel order",
+    "cancelConfirmTitle": "Cancel this order?",
+    "cancelConfirmMessage": "The item will become available to other buyers again.",
+    "cancelConfirmYes": "Yes, cancel",
+    "cancelConfirmNo": "No",
+    "statusCompletedNote": "Order picked up, thank you! 🎉",
+    "statusExpiredNote": "Pickup window has closed",
+    "statusCancelledNote": "Order cancelled"
+  },
   "profile": {
     "title": "Profile",
-    "logout": "Log out"
+    "logout": "Log out",
+    "themeLabel": "Appearance",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "eco": {
-    "title": "Eco profile"
+    "title": "Eco profile",
+    "totalPointsLabel": "Points",
+    "totalWeightLabel": "Saved, kg",
+    "ordersLabel": "Orders picked up",
+    "nextLevelProgress": "To next level: {{points}} points",
+    "maxLevelReached": "You've reached the top level!",
+    "levelNames": {
+      "1": "Newbie",
+      "2": "Food Rescuer",
+      "3": "Planet Hero",
+      "4": "Apetite Legend"
+    }
   },
   "map": {
-    "title": "Map"
+    "title": "Map",
+    "webFallbackNote": "Interactive map is available in the mobile app — here's a list sorted by distance"
   }
 }

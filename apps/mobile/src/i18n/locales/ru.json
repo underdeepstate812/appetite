@@ -5,7 +5,7 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "error": "Что-то пошло не так",
-    "comingInStep8": "Появится в следующем шаге (ШАГ 8)"
+    "km": "км"
   },
   "auth": {
     "loginTitle": "Вход",
@@ -29,9 +29,23 @@
   },
   "home": {
     "title": "Предложения рядом",
-    "empty": "Пока нет активных предложений",
-    "discount": "-{{percent}}%",
-    "priceFrom": "от {{price}} ₽"
+    "now": "Сейчас",
+    "evening": "Вечерние",
+    "allCategories": "Все",
+    "categories": {
+      "FOOD": "Еда",
+      "BAKERY": "Выпечка",
+      "FLOWERS": "Цветы",
+      "GROCERIES": "Продукты"
+    },
+    "emptyNow": "Пока нет доступных прямо сейчас предложений",
+    "emptyEvening": "Пока нет предложений на вечер",
+    "usingDefaultLocation": "Показываем предложения у центра Москвы — геолокация недоступна"
+  },
+  "offerCard": {
+    "pickupClosed": "Забор завершён",
+    "timeLeftHours": "{{hours}} ч {{minutes}} мин",
+    "timeLeftMinutes": "{{minutes}} мин"
   },
   "offerDetail": {
     "title": "Оффер",
@@ -41,7 +55,20 @@
     "notFound": "Оффер не найден"
   },
   "checkout": {
-    "title": "Оформление заказа"
+    "title": "Оформление заказа",
+    "summary": "Сводка заказа",
+    "quantityLabel": "Количество",
+    "totalLabel": "Итого",
+    "payButton": "Оплатить (мок)",
+    "processing": "Оформляем...",
+    "errorGeneric": "Не удалось оформить заказ"
+  },
+  "orderConfirmation": {
+    "title": "Заказ оформлен!",
+    "subtitle": "Покажи этот код на кассе",
+    "pickupCodeLabel": "Код самовывоза",
+    "pickupWindowLabel": "Забрать до",
+    "doneButton": "К моим заказам"
   },
   "orders": {
     "title": "Мои заказы",
@@ -53,14 +80,50 @@
       "EXPIRED": "Просрочен"
     }
   },
+  "orderStatus": {
+    "confirmed": "Оплачено",
+    "preparing": "Готовится",
+    "ready": "Можно забирать",
+    "preparingHint": "Начало через {{hours}} ч {{minutes}} мин",
+    "preparingHintMinutes": "Начало через {{minutes}} мин",
+    "readyHint": "Заберите до {{time}}"
+  },
+  "orderDetail": {
+    "title": "Заказ",
+    "pickupCodeLabel": "Код самовывоза",
+    "cancelButton": "Отменить заказ",
+    "cancelConfirmTitle": "Отменить заказ?",
+    "cancelConfirmMessage": "Место снова станет доступно другим покупателям.",
+    "cancelConfirmYes": "Да, отменить",
+    "cancelConfirmNo": "Нет",
+    "statusCompletedNote": "Заказ выдан, спасибо! 🎉",
+    "statusExpiredNote": "Время самовывоза истекло",
+    "statusCancelledNote": "Заказ отменён"
+  },
   "profile": {
     "title": "Профиль",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "themeLabel": "Тема оформления",
+    "themeSystem": "Системная",
+    "themeLight": "Светлая",
+    "themeDark": "Тёмная"
   },
   "eco": {
-    "title": "Эко-профиль"
+    "title": "Эко-профиль",
+    "totalPointsLabel": "Баллы",
+    "totalWeightLabel": "Спасено, кг",
+    "ordersLabel": "Заказов забрано",
+    "nextLevelProgress": "До следующего уровня: {{points}} баллов",
+    "maxLevelReached": "Ты достиг(-ла) максимального уровня!",
+    "levelNames": {
+      "1": "Новичок",
+      "2": "Спасатель еды",
+      "3": "Герой планеты",
+      "4": "Легенда Apetite"
+    }
   },
   "map": {
-    "title": "Карта"
+    "title": "Карта",
+    "webFallbackNote": "Интерактивная карта доступна в мобильном приложении — здесь список, отсортированный по расстоянию"
   }
 }

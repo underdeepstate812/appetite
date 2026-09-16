@@ -1,12 +1,22 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
 import { useColorScheme } from "react-native";
 import { buildTheme, Theme } from "./tokens";
+import { useThemeModeStore } from "../store/themeStore";
 
 const ThemeContext = createContext<Theme | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
-  const theme = useMemo(() => buildTheme(colorScheme === "dark" ? "dark" : "light"), [colorScheme]);
+  const systemScheme = useColorScheme();
+  const override = useThemeModeStore((state) => state.override);
+  const hydrate = useThemeModeStore((state) => state.hydrate);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
+
+  const resolvedMode = override === "system" ? (systemScheme === "dark" ? "dark" : "light") : override;
+  const theme = useMemo(() => buildTheme(resolvedMode), [resolvedMode]);
+
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
 

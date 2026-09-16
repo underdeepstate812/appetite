@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Смоук-тест backend ШАГ 4+5+6 поверх сидов из ШАГ 3 (admin@apetite.ru, user@apetite.ru,
+# Смоук-тест backend ШАГ 4+5+6+8 поверх сидов из ШАГ 3 (admin@apetite.ru, user@apetite.ru,
 # cafe.pushkin@apetite.ru, market.svezhest@apetite.ru — все password123). Требует
 # поднятый backend (docker compose up или `pnpm dev:backend`) и применённые
 # миграции+сиды (`pnpm db:migrate && pnpm db:seed`).
@@ -235,6 +235,28 @@ check "напоминание отправлено для заказа с pickup
 
 REMINDER_AGAIN=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN" | json_field "['pickupRemindersSent']")
 check "повторный запуск не дублирует напоминание" 0 "$REMINDER_AGAIN"
+
+echo "== ШАГ 8: эко-профиль (GET /eco/me) =="
+ECO_BEFORE=$(curl -s "$BASE/eco/me" -H "Authorization: Bearer $USER_TOKEN")
+POINTS_BEFORE=$(echo "$ECO_BEFORE" | json_field "['totalPoints']")
+LEVEL_ID_BEFORE=$(echo "$ECO_BEFORE" | json_field "['level']['id']")
+check "GET /eco/me отдаёт уровень для сидового пользователя" 1 "$LEVEL_ID_BEFORE"
+
+ECO_OFFER=$(curl -s -X POST "$BASE/offers" -H "Authorization: Bearer $BUSINESS_TOKEN" -H "Content-Type: application/json" -d "{
+  \"businessId\":\"$MY_BIZ_ID\",\"title\":\"Eco smoke offer\",\"category\":\"FOOD\",
+  \"originalPriceRub\":200,\"weightKg\":2.0,\"quantityTotal\":1,
+  \"pickupStart\":\"$PICKUP_START\",\"pickupEnd\":\"$PICKUP_END\"
+}")
+ECO_OFFER_ID=$(echo "$ECO_OFFER" | json_field "['id']")
+ECO_ORDER_ID=$(curl -s -X POST "$BASE/orders" -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"offerId\":\"$ECO_OFFER_ID\",\"quantity\":1}" | json_field "['id']")
+ECO_PICKUP_CODE=$(curl -s "$BASE/orders/$ECO_ORDER_ID" -H "Authorization: Bearer $USER_TOKEN" | json_field "['pickupCode']")
+curl -s -X PATCH "$BASE/orders/$ECO_ORDER_ID/complete" -H "Authorization: Bearer $BUSINESS_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"pickupCode\":\"$ECO_PICKUP_CODE\"}" > /dev/null
+
+ECO_AFTER=$(curl -s "$BASE/eco/me" -H "Authorization: Bearer $USER_TOKEN")
+POINTS_AFTER=$(echo "$ECO_AFTER" | json_field "['totalPoints']")
+check "баллы выросли ровно на 20 (2 кг * 10)" $((POINTS_BEFORE + 20)) "$POINTS_AFTER"
 
 echo
 echo "Итого: $PASS ок, $FAIL провалено"

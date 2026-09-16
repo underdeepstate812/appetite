@@ -2,9 +2,11 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
+import { useThemeModeStore, ThemeModeOverride } from "../../store/themeStore";
 import { useAuthStore } from "../../store/authStore";
 import { Screen } from "../../components/Screen";
 import { Button } from "../../components/Button";
+import { SegmentedControl } from "../../components/SegmentedControl";
 import type { MainTabScreenProps } from "../../navigation/types";
 
 type Props = MainTabScreenProps<"Profile">;
@@ -14,6 +16,14 @@ export function ProfileScreen(_props: Props) {
   const theme = useTheme();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const themeOverride = useThemeModeStore((state) => state.override);
+  const setThemeOverride = useThemeModeStore((state) => state.setOverride);
+
+  const themeOptions: { value: ThemeModeOverride; label: string }[] = [
+    { value: "system", label: t("profile.themeSystem") },
+    { value: "light", label: t("profile.themeLight") },
+    { value: "dark", label: t("profile.themeDark") },
+  ];
 
   return (
     <Screen>
@@ -30,6 +40,16 @@ export function ProfileScreen(_props: Props) {
           </Text>
         ) : null}
       </View>
+
+      <Text
+        style={[
+          theme.typography.caption,
+          { color: theme.colors.textMuted, marginTop: theme.spacing.xl, marginBottom: theme.spacing.xs },
+        ]}
+      >
+        {t("profile.themeLabel")}
+      </Text>
+      <SegmentedControl value={themeOverride} onChange={(mode) => void setThemeOverride(mode)} options={themeOptions} />
 
       <View style={{ marginTop: theme.spacing.xl }}>
         <Button title={t("profile.logout")} variant="secondary" onPress={() => void logout()} />

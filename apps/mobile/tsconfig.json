@@ -1,6 +1,10 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // tsc (в отличие от Metro) не резолвит .native/.web-расширения сам по себе —
+    // moduleSuffixes включает ту же логику для type-check. Резолвит .native-вариант
+    // (react-native-maps) — .web-файлы проще, вручную сверены при ревью.
+    "moduleSuffixes": [".native", ""]
   }
 }

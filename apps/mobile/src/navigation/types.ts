@@ -1,4 +1,4 @@
-import type { CompositeScreenProps } from "@react-navigation/native";
+import type { CompositeScreenProps, NavigatorScreenParams } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -16,9 +16,13 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
-  Main: undefined;
+  // params опциональны — позволяет и navigation.navigate("Main"), и переход сразу
+  // на конкретную вкладку через reset({ routes: [{ name: "Main", params: { screen: "Orders" } }] }).
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   OfferDetail: { offerId: string };
   Checkout: { offerId: string };
+  OrderConfirmation: { orderId: string };
+  OrderDetail: { orderId: string };
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<AuthStackParamList, T>;

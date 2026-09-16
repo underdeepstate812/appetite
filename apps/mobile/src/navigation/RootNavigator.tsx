@@ -6,6 +6,8 @@ import { AuthNavigator } from "./AuthNavigator";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { OfferDetailScreen } from "../screens/offer-detail/OfferDetailScreen";
 import { CheckoutScreen } from "../screens/checkout/CheckoutScreen";
+import { OrderConfirmationScreen } from "../screens/order-confirmation/OrderConfirmationScreen";
+import { OrderDetailScreen } from "../screens/order-detail/OrderDetailScreen";
 import { LoadingView } from "../components/StateViews";
 import type { RootStackParamList } from "./types";
 
@@ -29,6 +31,12 @@ export function RootNavigator() {
       <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="OfferDetail" component={OfferDetailScreen} options={{ title: t("offerDetail.title") }} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: t("checkout.title") }} />
+      <Stack.Screen
+        name="OrderConfirmation"
+        component={OrderConfirmationScreen}
+        options={{ title: t("orderConfirmation.title"), headerBackVisible: false, gestureEnabled: false }}
+      />
+      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: t("orderDetail.title") }} />
     </Stack.Navigator>
   );
 }
