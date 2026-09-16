@@ -207,6 +207,11 @@ NOTIF_LIST=$(curl -s "$BASE/notifications" -H "Authorization: Bearer $USER_TOKEN
 NEARBY_TYPE_PRESENT=$(echo "$NOTIF_LIST" | python3 -c "import json,sys;d=json.load(sys.stdin);print(any(i['type']=='NEARBY_OFFERS' for i in d['items']))")
 check "NEARBY_OFFERS-уведомление появилось в GET /notifications" "True" "$NEARBY_TYPE_PRESENT"
 
+# Регрессия ШАГ 9: unreadOnly=false явной строкой в query — @Type(() => Boolean) коверкал
+# её в true (JS Boolean("false") === true), из-за чего "все" фильтровались как "непрочитанные".
+NOTIF_ALL_EXPLICIT_FALSE=$(curl -s "$BASE/notifications?unreadOnly=false" -H "Authorization: Bearer $USER_TOKEN" | json_field "['total']")
+check "unreadOnly=false строкой отдаёт все уведомления, не пустой список" "true" "$([ "$NOTIF_ALL_EXPLICIT_FALSE" -ge 1 ] && echo true || echo false)"
+
 DIGEST_AGAIN=$(curl -s -X POST "$BASE/notifications/run-digest" -H "Authorization: Bearer $ADMIN_TOKEN" | json_field "['nearbyDigestsSent']")
 check "повторный дайджест не дублирует (throttle 3ч)" 0 "$DIGEST_AGAIN"
 

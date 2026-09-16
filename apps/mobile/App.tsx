@@ -1,18 +1,24 @@
 import "./src/i18n";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, type NavigationContainerRef } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeProvider";
 import { buildNavigationTheme } from "./src/theme/navigationTheme";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/store/authStore";
+import { usePushNotifications } from "./src/hooks/usePushNotifications";
+import type { RootStackParamList } from "./src/navigation/types";
 
 function AppContent() {
   const theme = useTheme();
+  const user = useAuthStore((state) => state.user);
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  usePushNotifications(navigationRef, !!user);
+
   return (
-    <NavigationContainer theme={buildNavigationTheme(theme)}>
+    <NavigationContainer ref={navigationRef} theme={buildNavigationTheme(theme)}>
       <RootNavigator />
     </NavigationContainer>
   );

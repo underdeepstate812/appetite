@@ -6,6 +6,7 @@ import { useLocation } from "../../hooks/useLocation";
 import { useNearbyOffers, DEFAULT_RADIUS_KM } from "../../hooks/useNearbyOffers";
 import { Screen } from "../../components/Screen";
 import { OfferCard } from "../../components/OfferCard";
+import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
 import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
 import type { MainTabScreenProps } from "../../navigation/types";
 
@@ -19,7 +20,8 @@ type Props = MainTabScreenProps<"Map">;
 export function MapScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { location, loading: locationLoading } = useLocation();
+  const { location, loading: locationLoading, status: locationStatus, requestPermission, openSettings } =
+    useLocation();
   const { offers, error, refreshing, refresh } = useNearbyOffers(location, { radiusKm: DEFAULT_RADIUS_KM });
 
   if (locationLoading || (offers === null && !error)) {
@@ -40,6 +42,7 @@ export function MapScreen({ navigation }: Props) {
       <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginBottom: theme.spacing.sm }]}>
         {t("map.webFallbackNote")}
       </Text>
+      <LocationPermissionBanner status={locationStatus} onRequest={requestPermission} onOpenSettings={openSettings} />
       {error ? (
         <ErrorView label={error} />
       ) : (

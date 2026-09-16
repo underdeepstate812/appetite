@@ -1,6 +1,7 @@
 # @apetite/mobile
 
-Expo + React Native + TypeScript. Каркас — ШАГ 7, основной сценарий — ШАГ 8.
+Expo + React Native + TypeScript. Каркас — ШАГ 7, основной сценарий — ШАГ 8,
+разрешения и push-уведомления — ШАГ 9.
 
 ## Стек
 
@@ -11,8 +12,10 @@ Expo + React Native + TypeScript. Каркас — ШАГ 7, основной с
 - **Zustand** — стейт-менеджмент (`useAuthStore` — токены, текущий пользователь).
 - **react-i18next** + `expo-localization` — RU/EN, автоопределение языка устройства
   с фолбэком на RU (`DEFAULT_LOCALE` из `@apetite/shared`).
-- **expo-location** — геопозиция для nearby-поиска (минимальный флоу без rationale-экрана,
-  полноценный UX разрешений — ШАГ 9).
+- **expo-location** — геопозиция для nearby-поиска, полноценный UX разрешений
+  (rationale-баннер, "заблокировано навсегда" → deep link в Settings) — ШАГ 9.
+- **expo-notifications** — push-разрешение + регистрация Expo push-токена
+  (`POST /notifications/push-token`), тап по уведомлению → навигация — ШАГ 9.
 - **react-native-maps** — карта на native; на web у библиотеки нет реализации (её
   `MapView.web.ts` — пустая заглушка `UnimplementedView`), поэтому `MapScreen.web.tsx` —
   честный фолбэк: тот же список, отсортированный по расстоянию.
@@ -32,14 +35,17 @@ Expo + React Native + TypeScript. Каркас — ШАГ 7, основной с
 src/
   api/          — fetch-клиент (JWT, авто-refresh на 401) + по модулю на backend-ресурс
   store/        — authStore (zustand) + абстракция secure-хранилища токенов
-  hooks/        — useLocation, useNearbyOffers, useNow (тик для countdown)
+  hooks/        — useLocation (+ статус пермишена), useNearbyOffers, useNow (тик для
+                  countdown), usePushNotifications, useUnreadNotificationsCount
   theme/        — токены темы, ThemeProvider, тема для React Navigation
   i18n/         — react-i18next + locales/{ru,en}.json
   navigation/   — RootNavigator (Auth vs Main), AuthNavigator, MainTabNavigator, types.ts
   screens/      — auth, home, map (.native/.web), offer-detail, checkout,
-                  order-confirmation, order-detail, orders, profile, eco-profile
+                  order-confirmation, order-detail, orders, profile, eco-profile,
+                  notifications
   components/   — Screen, Button, TextField, StateViews, OfferCard, CountdownBadge,
-                  SegmentedControl, CategoryFilterBar, OrderStatusTimeline
+                  SegmentedControl, CategoryFilterBar, OrderStatusTimeline,
+                  LocationPermissionBanner, NotificationsBellButton
   utils/        — time.ts (countdown), confirm.ts (кроссплатформенный confirm-диалог)
 ```
 
@@ -69,6 +75,36 @@ src/
   iOS/Android-симулятора в этом окружении); на web — список по расстоянию с честной
   пометкой, что интерактивная карта доступна в мобильном приложении.
 
+## Разрешения и push-уведомления (ШАГ 9)
+
+- **Гео**: `useLocation` больше не запрашивает пермишен автоматически при монтировании —
+  только читает текущий статус (`undetermined`/`denied`/`blocked`/`granted`), чтобы
+  системный диалог не выскакивал раньше, чем пользователь увидит объяснение.
+  `LocationPermissionBanner` (на Home и Map) показывает rationale и кнопку — цвет
+  меняется по серьёзности: `warningSoft`/`warning` пока можно спросить снова
+  ("Разрешить"), `dangerSoft`/`danger` когда система заблокировала намертво
+  ("Открыть настройки" → `Linking.openSettings()`). При успешном гранте координаты
+  синхронизируются в `PATCH /users/me/location` (best-effort, не блокирует UI) — это
+  питает гео-дайджест "рядом с тобой N предложений" из ШАГ 6.
+- **Push**: `usePushNotifications` запрашивает разрешение после входа, получает
+  Expo push-токен и регистрирует его (`POST /notifications/push-token`). Тап по
+  уведомлению — навигация на заказ (`data.orderId`) или на Home, если это дайджест
+  без конкретного заказа.
+- **Экран «Уведомления»**: значок-колокольчик на Home с бейджем количества
+  непрочитанных (`useUnreadNotificationsCount`, обновляется по фокусу экрана + раз в
+  минуту), фильтр Все/Непрочитанные, тап помечает прочитанным
+  (`PATCH /notifications/:id/read`) и переходит по `data.orderId`. Непрочитанные
+  строки визуально приподняты (`surfaceElevated` + тонкая `primarySoft`-рамка + точка
+  акцентным цветом) — первое реальное применение токена `surfaceElevated`,
+  заведённого в палитру ещё в ШАГ 8, но не использованного тогда.
+
+⚠️ Реальный Expo push-токен требует EAS `projectId` (в этой бете не настроен — на
+бэкенде тоже `EXPO_PUSH_MODE=mock`) и физическое устройство; на web/без `projectId`
+`getExpoPushTokenAsync` ожидаемо падает — тогда просто не регистрируем токен, без
+краша (проверено в консоли: `[expo-notifications] Listening to push token changes is
+not yet fully supported on web` — предупреждение, не ошибка). Остальной push-флоу
+(permission, тап-навигация) от токена не зависит.
+
 ## Быстрый старт
 
 ```bash
@@ -88,12 +124,18 @@ Backend должен быть поднят (`docker compose up -d` или `pnpm 
 - `react-native-web`'s `Alert.alert()` — пустая заглушка (колбэки не срабатывают),
   поэтому подтверждение отмены заказа — через `utils/confirm.ts`
   (`window.confirm` на web, `Alert.alert` на native), а не напрямую `Alert.alert`.
-- Гео — минимальный флоу (`useLocation`): запрос пермишена + фолбэк на центр Москвы,
-  без rationale-экрана и обработки "запретил навсегда" — это ШАГ 9.
 - Карта на native (`MapScreen.native.tsx`) не проверена вживую — нет симулятора в
   этом окружении. Код написан по документированному API `react-native-maps`
   (проверил сигнатуры типов перед использованием), но нуждается в проверке на
   реальном устройстве/симуляторе.
+- Браузерный preview-инструмент этого окружения сам блокирует запрос гео-пермишена
+  (`navigator.permissions.query({name:'geolocation'})` сразу отдаёт `denied`) —
+  живьём проверен только "denied"-баннер и happy-path код чтения статуса; настоящий
+  "granted" и различение "denied" vs "заблокировано навсегда" (`canAskAgain`) не
+  проверены вживую в этом окружении, только по коду и контракту `expo-location`.
+- Push-токен не регистрируется на web/без EAS `projectId` (см. выше) — проверено,
+  что это не крашит приложение, но сама доставка push через реальный Expo Push API
+  не проверена (соответствует `EXPO_PUSH_MODE=mock` на бэкенде).
 
 ## Проверка (сделана вживую, не только тестами)
 
@@ -112,3 +154,19 @@ built-in browser tool намеренно подавляет нативные `co
 так что через него нельзя докликать до "да". Эндпоинт `PATCH /orders/:id/cancel`
 уже проверен `curl`'ом в ШАГ 4/5 smoke-тестах; сама mobile-обёртка — однострочный
 вызов, структурно идентичный уже проверенным `create`/`complete`.
+
+### ШАГ 9 — проверено вживую
+
+Location-баннер (rationale, цвет по серьёзности) — на Home и Map, в светлой и тёмной
+теме. Колокольчик с бейджем непрочитанных — счёт растёт/падает корректно после
+прогона `POST /notifications/run-digest` (admin) и ручных `PATCH .../read`. Экран
+«Уведомления»: фильтр Все/Непрочитанные, mark-as-read по тапу, тап по уведомлению с
+`data.orderId` → верный `OrderDetail`, тап по `NEARBY_OFFERS` (без orderId) → Home.
+Визуальная иерархия непрочитанных/прочитанных строк проверена в обеих темах.
+
+Попутно нашёл и исправил реальный баг: `GET /notifications?unreadOnly=false` (именно
+так теперь шлёт вкладка "Все") возвращал пустой список вместо всех уведомлений —
+`class-transformer`'s `@Type(() => Boolean)` превращает JS-конструктором ЛЮБУЮ
+непустую строку query-параметра в `true`. Исправлено явным `@Transform` в
+`apps/backend/src/notifications/dto/list-notifications.query.ts`, закрыто
+регрессионной проверкой в `smoke-test.sh` (39/39 проходят).

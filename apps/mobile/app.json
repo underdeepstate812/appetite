@@ -32,7 +32,8 @@
         {
           "locationWhenInUsePermission": "Apetite использует геопозицию, чтобы показывать предложения рядом с тобой."
         }
-      ]
+      ],
+      "expo-notifications"
     ]
   }
 }

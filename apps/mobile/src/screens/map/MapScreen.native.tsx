@@ -6,6 +6,7 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { useLocation } from "../../hooks/useLocation";
 import { useNearbyOffers, DEFAULT_RADIUS_KM } from "../../hooks/useNearbyOffers";
 import { Screen } from "../../components/Screen";
+import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
 import { LoadingView, ErrorView } from "../../components/StateViews";
 import type { MainTabScreenProps } from "../../navigation/types";
 
@@ -15,7 +16,8 @@ type Props = MainTabScreenProps<"Map">;
 export function MapScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { location, loading: locationLoading } = useLocation();
+  const { location, loading: locationLoading, status: locationStatus, requestPermission, openSettings } =
+    useLocation();
   const { offers, error } = useNearbyOffers(location, { radiusKm: DEFAULT_RADIUS_KM });
 
   if (locationLoading || !location || (offers === null && !error)) {
@@ -58,6 +60,11 @@ export function MapScreen({ navigation }: Props) {
           />
         ))}
       </MapView>
+      {locationStatus !== "granted" ? (
+        <View style={styles.overlay}>
+          <LocationPermissionBanner status={locationStatus} onRequest={requestPermission} onOpenSettings={openSettings} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -65,4 +72,5 @@ export function MapScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+  overlay: { position: "absolute", top: 12, left: 12, right: 12 },
 });

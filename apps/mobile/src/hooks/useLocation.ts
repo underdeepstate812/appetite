@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Linking } from "react-native";
 import * as Location from "expo-location";
+import { usersApi } from "../api/users";
 
 /** Центр Москвы (пилот, ШАГ 0) — фолбэк, если геопермишен не выдан/недоступен. */
 const MOSCOW_CENTER = { lat: 55.751244, lng: 37.618423 };
@@ -11,41 +13,69 @@ export interface UserLocation {
   isFallback: boolean;
 }
 
+export type LocationPermissionStatus = "undetermined" | "denied" | "blocked" | "granted";
+
+function toStatus(permission: Location.LocationPermissionResponse): LocationPermissionStatus {
+  if (permission.status === Location.PermissionStatus.GRANTED) return "granted";
+  // canAskAgain === false — пользователь выбрал "не спрашивать больше" (iOS) или
+  // "запретить навсегда" (Android): системный диалог больше не появится, нужен deep link в Settings.
+  return permission.canAskAgain ? "denied" : "blocked";
+}
+
 /**
- * Полноценный флоу запроса пермишена (rationale-экран, обработка "запретил навсегда",
- * deep link в настройки) — ШАГ 9. Здесь — минимум, чтобы гео-фичи (nearby, карта)
- * работали уже сейчас: запросить пермишен, получить точку, иначе — центр Москвы.
+ * Разрешение НЕ запрашивается автоматически при монтировании — только читается текущий
+ * статус, чтобы системный диалог не выскакивал раньше, чем пользователь увидит объяснение
+ * (rationale-баннер, см. LocationPermissionBanner). Пока разрешения нет — гео-фичи (nearby,
+ * карта) уже работают на фолбэке (центр Москвы), а не блокируются в состоянии загрузки.
  */
 export function useLocation() {
   const [location, setLocation] = useState<UserLocation | null>(null);
+  const [status, setStatus] = useState<LocationPermissionStatus>("undetermined");
   const [loading, setLoading] = useState(true);
+
+  const applyPermission = useCallback(async (permission: Location.LocationPermissionResponse) => {
+    setStatus(toStatus(permission));
+    if (permission.status !== Location.PermissionStatus.GRANTED) {
+      setLocation({ ...MOSCOW_CENTER, isFallback: true });
+      return;
+    }
+    try {
+      const position = await Location.getCurrentPositionAsync({});
+      const next: UserLocation = { lat: position.coords.latitude, lng: position.coords.longitude, isFallback: false };
+      setLocation(next);
+      // Бэкенду нужна последняя позиция для гео-дайджеста "рядом с тобой N предложений" (ШАГ 6);
+      // не блокируем UI её результатом — обновление best-effort.
+      void usersApi.updateLocation(next.lat, next.lng).catch(() => {});
+    } catch {
+      setLocation({ ...MOSCOW_CENTER, isFallback: true });
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function resolve() {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== Location.PermissionStatus.GRANTED) {
-          if (!cancelled) setLocation({ ...MOSCOW_CENTER, isFallback: true });
-          return;
-        }
-        const position = await Location.getCurrentPositionAsync({});
-        if (!cancelled) {
-          setLocation({ lat: position.coords.latitude, lng: position.coords.longitude, isFallback: false });
-        }
-      } catch {
-        if (!cancelled) setLocation({ ...MOSCOW_CENTER, isFallback: true });
-      } finally {
+    Location.getForegroundPermissionsAsync()
+      .then(async (permission) => {
+        if (cancelled) return;
+        await applyPermission(permission);
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    }
+      });
 
-    void resolve();
     return () => {
       cancelled = true;
     };
+  }, [applyPermission]);
+
+  const requestPermission = useCallback(async () => {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    await applyPermission(permission);
+  }, [applyPermission]);
+
+  const openSettings = useCallback(() => {
+    void Linking.openSettings();
   }, []);
 
-  return { location, loading };
+  return { location, loading, status, requestPermission, openSettings };
 }

@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Checkout: { offerId: string };
   OrderConfirmation: { orderId: string };
   OrderDetail: { orderId: string };
+  Notifications: undefined;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<AuthStackParamList, T>;

@@ -39,8 +39,20 @@
       "GROCERIES": "Groceries"
     },
     "emptyNow": "No deals available right now",
-    "emptyEvening": "No evening deals yet",
-    "usingDefaultLocation": "Showing deals near central Moscow — location unavailable"
+    "emptyEvening": "No evening deals yet"
+  },
+  "location": {
+    "rationaleMessage": "Turn on location to see deals near you and how far they are",
+    "enable": "Allow",
+    "blockedMessage": "Location access is blocked in settings — showing deals near central Moscow instead",
+    "openSettings": "Open settings"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "empty": "No notifications yet",
+    "emptyUnread": "No unread notifications"
   },
   "offerCard": {
     "pickupClosed": "Pickup closed",

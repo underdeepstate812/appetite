@@ -9,6 +9,8 @@ import { Screen } from "../../components/Screen";
 import { SegmentedControl } from "../../components/SegmentedControl";
 import { CategoryFilterBar } from "../../components/CategoryFilterBar";
 import { OfferCard } from "../../components/OfferCard";
+import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
+import { NotificationsBellButton } from "../../components/NotificationsBellButton";
 import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
 import type { MainTabScreenProps } from "../../navigation/types";
 
@@ -25,7 +27,8 @@ const CATEGORY_VALUES: OfferCategory[] = [
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { location, loading: locationLoading } = useLocation();
+  const { location, loading: locationLoading, status: locationStatus, requestPermission, openSettings } =
+    useLocation();
   const [tab, setTab] = useState<Tab>("now");
   const [category, setCategory] = useState<OfferCategory | undefined>(undefined);
 
@@ -61,15 +64,12 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen>
-      <Text style={[theme.typography.h1, { color: theme.colors.text, marginBottom: theme.spacing.sm }]}>
-        {t("home.title")}
-      </Text>
+      <View style={styles.header}>
+        <Text style={[theme.typography.h1, { color: theme.colors.text }]}>{t("home.title")}</Text>
+        <NotificationsBellButton />
+      </View>
 
-      {location?.isFallback ? (
-        <Text style={[theme.typography.caption, { color: theme.colors.warning, marginBottom: theme.spacing.sm }]}>
-          {t("home.usingDefaultLocation")}
-        </Text>
-      ) : null}
+      <LocationPermissionBanner status={locationStatus} onRequest={requestPermission} onOpenSettings={openSettings} />
 
       <View style={{ marginBottom: theme.spacing.sm }}>
         <SegmentedControl
@@ -112,4 +112,5 @@ export function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   grow: { flexGrow: 1 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
 });

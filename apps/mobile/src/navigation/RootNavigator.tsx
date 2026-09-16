@@ -8,6 +8,7 @@ import { OfferDetailScreen } from "../screens/offer-detail/OfferDetailScreen";
 import { CheckoutScreen } from "../screens/checkout/CheckoutScreen";
 import { OrderConfirmationScreen } from "../screens/order-confirmation/OrderConfirmationScreen";
 import { OrderDetailScreen } from "../screens/order-detail/OrderDetailScreen";
+import { NotificationsScreen } from "../screens/notifications/NotificationsScreen";
 import { LoadingView } from "../components/StateViews";
 import type { RootStackParamList } from "./types";
 
@@ -37,6 +38,7 @@ export function RootNavigator() {
         options={{ title: t("orderConfirmation.title"), headerBackVisible: false, gestureEnabled: false }}
       />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: t("orderDetail.title") }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t("notifications.title") }} />
     </Stack.Navigator>
   );
 }

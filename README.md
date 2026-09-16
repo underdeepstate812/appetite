@@ -215,6 +215,26 @@ countdown-таймером и остатком, Checkout → mock-оплата �
 известные упрощения (fixed quantity=1, `Alert.alert` не работает в react-native-web) и
 что именно проверено вживую — в [apps/mobile/README.md](apps/mobile/README.md).
 
+### Mobile: разрешения и push-уведомления (ШАГ 9)
+
+Полноценный UX геопермишена (вместо автозапроса на монтировании из ШАГ 7): статус
+"не спрошено"/"отклонено"/"заблокировано навсегда"/"выдано", rationale-баннер на
+Home/Map с двумя степенями серьёзности по цвету (warning — можно спросить снова,
+danger — нужны системные настройки, `Linking.openSettings()`), синхронизация с
+`PATCH /users/me/location` при выдаче (питает гео-дайджест из ШАГ 6). Push:
+`expo-notifications`, регистрация токена в `POST /notifications/push-token` после
+входа, тап по уведомлению — навигация на заказ (`data.orderId`) или на Home.
+Новый экран «Уведомления» (значок-колокольчик с бейджем непрочитанных на Home) —
+фильтр Все/Непрочитанные, mark-as-read по тапу, `GET /notifications`.
+
+⚠️ Попутно нашёл и починил баг в `apps/backend/src/notifications/dto/list-notifications.query.ts`:
+`@Type(() => Boolean)` от class-transformer превращает ЛЮБУЮ непустую строку query-параметра
+(включая буквально `"false"`) в `true` — мобильный клиент, который теперь явно шлёт
+`unreadOnly=false` для вкладки "Все", получал пустой список вместо всех уведомлений.
+Заменено на явный `@Transform`. Регрессия закрыта в smoke-test.sh.
+
+Подробности — в [apps/mobile/README.md](apps/mobile/README.md).
+
 Дальше (появится в следующих шагах):
 - `pnpm dev:admin` — запуск admin в dev-режиме (ШАГ 10).
 
