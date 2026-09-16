@@ -36,7 +36,7 @@ docs/
   architecture.md — диаграмма компонентов и потоки данных
 ```
 
-## Быстрый старт (появится по мере готовности шагов)
+## Быстрый старт
 
 Пакетный менеджер — **pnpm** (workspaces). Если pnpm не установлен:
 
@@ -51,10 +51,32 @@ corepack prepare pnpm@9.12.0 --activate
 pnpm install
 ```
 
-Дальше (появится в соответствующих шагах):
-- `docker compose up` — поднимет PostgreSQL, Redis, backend, admin (ШАГ 2).
-- `pnpm --filter @apetite/backend prisma migrate dev` + `prisma db seed` (ШАГ 3).
-- `pnpm dev:backend` / `pnpm dev:admin` / `pnpm dev:mobile` — запуск отдельных приложений.
+Переменные окружения — скопировать пример (нужен для `docker compose`, backend и т.д.):
+
+```bash
+cp .env.example .env
+```
+
+### Docker Compose (ШАГ 2)
+
+```bash
+pnpm docker:up      # поднять postgres, redis, backend, admin
+pnpm docker:logs    # логи всех сервисов
+pnpm docker:down    # остановить
+```
+
+- `postgres` (5432) и `redis` (6379) — полноценные сервисы с healthcheck.
+- `backend` (3000) и `admin` (5173) — **плейсхолдеры** (простой health-эндпоинт /
+  статичная страница) только для проверки сети и docker-compose-обвязки. Реальные
+  приложения появятся в ШАГ 4 (backend) и ШАГ 10 (admin) и заменят Dockerfile'ы —
+  до этого `pnpm dev:backend` / `pnpm dev:admin` работать не будут.
+- Проверка: `curl http://localhost:3000/health` → `{"status":"ok",...}`,
+  `http://localhost:5173` → страница-плейсхолдер admin.
+
+Дальше (появится в следующих шагах):
+- `pnpm db:migrate` + `pnpm db:seed` — миграции и сиды Prisma (ШАГ 3, сейчас упадут:
+  `@apetite/backend` ещё не существует как пакет).
+- `pnpm dev:backend` / `pnpm dev:admin` / `pnpm dev:mobile` — запуск приложений в dev-режиме.
 
 Полный гайд по запуску, переменным окружения, сидам и тестам будет собран в
 **ШАГ 13** — сейчас справочно смотри [.env.example](.env.example).

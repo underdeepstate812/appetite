@@ -1,0 +1,66 @@
+name: apetite
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-apetite}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-apetite}
+      POSTGRES_DB: ${POSTGRES_DB:-apetite}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-apetite} -d ${POSTGRES_DB:-apetite}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Плейсхолдер до ШАГ 4 — см. apps/backend/Dockerfile.
+  backend:
+    build:
+      context: ./apps/backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-apetite}:${POSTGRES_PASSWORD:-apetite}@postgres:5432/${POSTGRES_DB:-apetite}?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Плейсхолдер до ШАГ 10 — см. apps/admin/Dockerfile.
+  admin:
+    build:
+      context: ./apps/admin
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api/v1}
+    ports:
+      - "${ADMIN_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
