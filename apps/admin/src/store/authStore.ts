@@ -48,9 +48,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ accessToken, refreshToken });
     try {
       const user = await authApi.me();
-      if (user.role !== "BUSINESS") {
-        // Панель — только для владельцев заведений; ADMIN/USER сюда не логинятся.
-        throw new Error("Эта панель доступна только владельцам заведений");
+      if (user.role !== "BUSINESS" && user.role !== "ADMIN") {
+        // Панель — только для владельцев заведений (ШАГ 10) и платформы (ШАГ 11); USER сюда не логинится.
+        throw new Error("Эта панель доступна только владельцам заведений и администраторам платформы");
       }
       set({ user, isHydrated: true });
     } catch {
@@ -63,8 +63,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authApi.login(input);
-      if (data.user.role !== "BUSINESS") {
-        throw new Error("Эта панель доступна только владельцам заведений");
+      if (data.user.role !== "BUSINESS" && data.user.role !== "ADMIN") {
+        throw new Error("Эта панель доступна только владельцам заведений и администраторам платформы");
       }
       persistTokens(data.accessToken, data.refreshToken);
       set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isLoading: false });

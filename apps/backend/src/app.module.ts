@@ -13,6 +13,7 @@ import { SchedulerModule } from "./scheduler/scheduler.module";
 import { UsersModule } from "./users/users.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { EcoModule } from "./eco/eco.module";
+import { PlatformModule } from "./platform/platform.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -42,6 +43,7 @@ import { AppController } from "./app.controller";
     UsersModule,
     NotificationsModule,
     EcoModule,
+    PlatformModule,
   ],
   controllers: [AppController],
 })

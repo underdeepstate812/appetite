@@ -74,6 +74,7 @@ export class BusinessesService {
     const data = { ...dto };
     if (requester.role !== Role.ADMIN) {
       delete data.status;
+      delete data.commissionPercent;
     }
 
     return this.prisma.business.update({ where: { id }, data });

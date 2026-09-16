@@ -78,6 +78,12 @@ STATS_BEFORE_REVENUE=$(echo "$STATS_BEFORE" | json_field "['revenue']")
 STATS_BEFORE_FEE=$(echo "$STATS_BEFORE" | json_field "['platformFee']")
 STATS_BEFORE_KG=$(echo "$STATS_BEFORE" | json_field "['weightSavedKg']")
 
+# То же самое для платформенной сводки ШАГ 11 — тоже дельтой, платформа не пустая.
+PLATFORM_BEFORE=$(curl -s "$BASE/platform/stats" -H "Authorization: Bearer $ADMIN_TOKEN")
+PLATFORM_BEFORE_GMV=$(echo "$PLATFORM_BEFORE" | json_field "['gmv']")
+PLATFORM_BEFORE_REVENUE=$(echo "$PLATFORM_BEFORE" | json_field "['platformRevenue']")
+PLATFORM_BEFORE_COMPLETED=$(echo "$PLATFORM_BEFORE" | json_field "['completedOrders']")
+
 echo "== offers =="
 PICKUP_START=$(python3 -c "import datetime;print(datetime.datetime.utcnow().isoformat()+'Z')")
 PICKUP_END=$(python3 -c "import datetime;print((datetime.datetime.utcnow()+datetime.timedelta(hours=3)).isoformat()+'Z')")
@@ -133,6 +139,38 @@ STATS_FEE_DELTA=$(python3 -c "print($(echo "$STATS" | json_field "['platformFee'
 check "статистика: +12500 копеек комиссии (25% от выручки)" 12500 "$STATS_FEE_DELTA"
 STATS_KG_DELTA=$(python3 -c "print(round(float($(echo "$STATS" | json_field "['weightSavedKg']")) - float($STATS_BEFORE_KG), 4))")
 check "статистика: +1 кг спасено (0.5 кг x 2)" "1.0" "$STATS_KG_DELTA"
+
+echo "== ШАГ 11: панель платформы (модерация, GMV, комиссия) =="
+PLATFORM_BIZ_FORBIDDEN=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/platform/businesses" -H "Authorization: Bearer $BUSINESS_TOKEN")
+check "BUSINESS не может смотреть панель платформы -> 403" 403 "$PLATFORM_BIZ_FORBIDDEN"
+PLATFORM_STATS_FORBIDDEN=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/platform/stats" -H "Authorization: Bearer $USER_TOKEN")
+check "USER не может смотреть GMV платформы -> 403" 403 "$PLATFORM_STATS_FORBIDDEN"
+
+# commissionPercent — только ADMIN; BUSINESS, меняющий себе, тихо игнорируется (как и status).
+COMMISSION_IGNORED=$(curl -s -X PATCH "$BASE/businesses/$MY_BIZ_ID" -H "Authorization: Bearer $BUSINESS_TOKEN" \
+  -H "Content-Type: application/json" -d '{"commissionPercent":1}' | json_field "['commissionPercent']")
+check "BUSINESS не может сам себе снизить комиссию" 25 "$COMMISSION_IGNORED"
+
+COMMISSION_SET=$(curl -s -X PATCH "$BASE/businesses/$MY_BIZ_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" -d '{"commissionPercent":30}' | json_field "['commissionPercent']")
+check "ADMIN может задать комиссию заведения" 30 "$COMMISSION_SET"
+curl -s -X PATCH "$BASE/businesses/$MY_BIZ_ID" -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" -d '{"commissionPercent":25}' > /dev/null
+
+PLATFORM_BIZ_LIST=$(curl -s "$BASE/platform/businesses" -H "Authorization: Bearer $ADMIN_TOKEN")
+MY_BIZ_IN_LIST=$(echo "$PLATFORM_BIZ_LIST" | python3 -c "import json,sys;print(any(b['id']=='$MY_BIZ_ID' for b in json.load(sys.stdin)))")
+check "GET /platform/businesses включает моё заведение" "True" "$MY_BIZ_IN_LIST"
+
+PLATFORM_AFTER=$(curl -s "$BASE/platform/stats" -H "Authorization: Bearer $ADMIN_TOKEN")
+PLATFORM_GMV_DELTA=$(python3 -c "print($(echo "$PLATFORM_AFTER" | json_field "['gmv']") - $PLATFORM_BEFORE_GMV)")
+check "GMV платформы вырос минимум на выручку смоук-заказа (+50000)" "true" \
+  "$([ "$PLATFORM_GMV_DELTA" -ge 50000 ] && echo true || echo false)"
+PLATFORM_COMPLETED_DELTA=$(python3 -c "print($(echo "$PLATFORM_AFTER" | json_field "['completedOrders']") - $PLATFORM_BEFORE_COMPLETED)")
+check "выданных заказов на платформе стало минимум на 1 больше" "true" \
+  "$([ "$PLATFORM_COMPLETED_DELTA" -ge 1 ] && echo true || echo false)"
+PLATFORM_REVENUE_DELTA=$(python3 -c "print($(echo "$PLATFORM_AFTER" | json_field "['platformRevenue']") - $PLATFORM_BEFORE_REVENUE)")
+check "доход платформы вырос минимум на комиссию смоук-заказа (+12500)" "true" \
+  "$([ "$PLATFORM_REVENUE_DELTA" -ge 12500 ] && echo true || echo false)"
 
 echo "== ШАГ 5: гео-поиск /offers/nearby =="
 NEARBY_COUNT=$(curl -s "$BASE/offers/nearby?lat=55.751244&lng=37.618423&radiusKm=20" | python3 -c "import json,sys;print(len(json.load(sys.stdin)))")

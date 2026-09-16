@@ -3,13 +3,7 @@ import { OfferCategory, OfferStatus, type Offer } from "@apetite/shared";
 import { Modal } from "./Modal";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
-
-const CATEGORY_LABELS: Record<OfferCategory, string> = {
-  [OfferCategory.FOOD]: "Еда",
-  [OfferCategory.BAKERY]: "Выпечка",
-  [OfferCategory.FLOWERS]: "Цветы",
-  [OfferCategory.GROCERIES]: "Продукты",
-};
+import { CATEGORY_LABELS } from "../constants";
 
 interface OfferFormModalProps {
   businessId: string;

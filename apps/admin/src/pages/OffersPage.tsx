@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Offer, OfferCategory } from "@apetite/shared";
+import type { Offer } from "@apetite/shared";
 import { useBusinessStore } from "../store/businessStore";
 import { offersApi } from "../api/offers";
 import { OfferStatusBadge } from "../components/StatusBadge";
 import { LoadingView, EmptyView, ErrorView } from "../components/StateViews";
 import { OfferFormModal } from "../components/OfferFormModal";
-
-const CATEGORY_LABELS: Record<OfferCategory, string> = {
-  FOOD: "Еда",
-  BAKERY: "Выпечка",
-  FLOWERS: "Цветы",
-  GROCERIES: "Продукты",
-};
+import { CATEGORY_LABELS } from "../constants";
 
 export function OffersPage() {
   const business = useBusinessStore((state) => state.business);

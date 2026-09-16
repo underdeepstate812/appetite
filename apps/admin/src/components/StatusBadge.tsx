@@ -1,4 +1,4 @@
-import type { OfferStatus, OrderStatus } from "@apetite/shared";
+import type { BusinessStatus, OfferStatus, OrderStatus } from "@apetite/shared";
 
 type Tone = "primary" | "success" | "warning" | "danger" | "muted";
 
@@ -16,6 +16,12 @@ const ORDER_STATUS: Record<OrderStatus, { label: string; tone: Tone }> = {
   EXPIRED: { label: "Просрочен", tone: "danger" },
 };
 
+const BUSINESS_STATUS: Record<BusinessStatus, { label: string; tone: Tone }> = {
+  PENDING: { label: "На модерации", tone: "warning" },
+  ACTIVE: { label: "Активно", tone: "success" },
+  SUSPENDED: { label: "Заблокировано", tone: "danger" },
+};
+
 function Badge({ label, tone }: { label: string; tone: Tone }) {
   return <span className={`badge badge-${tone}`}>{label}</span>;
 }
@@ -27,5 +33,10 @@ export function OfferStatusBadge({ status }: { status: OfferStatus }) {
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const { label, tone } = ORDER_STATUS[status];
+  return <Badge label={label} tone={tone} />;
+}
+
+export function BusinessStatusBadge({ status }: { status: BusinessStatus }) {
+  const { label, tone } = BUSINESS_STATUS[status];
   return <Badge label={label} tone={tone} />;
 }

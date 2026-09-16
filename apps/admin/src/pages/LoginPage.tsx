@@ -14,7 +14,8 @@ export function LoginPage() {
     event.preventDefault();
     try {
       await login({ email, password });
-      navigate("/offers", { replace: true });
+      const role = useAuthStore.getState().user?.role;
+      navigate(role === "ADMIN" ? "/platform/businesses" : "/offers", { replace: true });
     } catch {
       // ошибка уже в authStore.error
     }
@@ -25,7 +26,7 @@ export function LoginPage() {
       <form onSubmit={(event) => void handleSubmit(event)} className="card stack" style={{ width: 360, padding: 32, gap: 16 }}>
         <div>
           <p style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>Apetite</p>
-          <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>Вход для заведений</p>
+          <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>Вход для бизнеса и платформы</p>
         </div>
 
         <div className="field">
@@ -51,7 +52,7 @@ export function LoginPage() {
         </button>
 
         <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-          Демо-доступ: cafe.pushkin@apetite.ru / password123
+          Демо-доступ: cafe.pushkin@apetite.ru (бизнес) или admin@apetite.ru (платформа) / password123
         </p>
       </form>
     </div>

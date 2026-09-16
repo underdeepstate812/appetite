@@ -1,4 +1,4 @@
-import { OfferCategory } from "./enums";
+import { BusinessStatus, OfferCategory } from "./enums";
 import { GeoPoint } from "./entities";
 
 /**
@@ -63,5 +63,46 @@ export interface BusinessStats {
   revenue: number;
   /** Комиссия платформы, копейки, только по COMPLETED-заказам. */
   platformFee: number;
+  weightSavedKg: number;
+}
+
+/**
+ * Строка таблицы заведений в панели платформы (ШАГ 11) — GET /platform/businesses.
+ * Совмещает данные для модерации (статус, комиссия) со сводкой по выручке, чтобы
+ * не гонять два запроса на один и тот же список.
+ */
+export interface PlatformBusinessSummary {
+  id: string;
+  name: string;
+  category: OfferCategory;
+  status: BusinessStatus;
+  commissionPercent: number;
+  address: string;
+  ordersCompleted: number;
+  /** Минорные единицы валюты (копейки), только по COMPLETED-заказам. */
+  revenue: number;
+  platformFee: number;
+  createdAt: string;
+}
+
+/**
+ * Платформенная сводка (ШАГ 11) — GET /platform/stats. В отличие от BusinessStats
+ * (одно заведение), здесь агрегация по ВСЕЙ платформе — это и есть GMV.
+ */
+export interface PlatformStats {
+  businessesTotal: number;
+  businessesActive: number;
+  businessesSuspended: number;
+  businessesPending: number;
+  activeOffersCount: number;
+  totalOrders: number;
+  confirmedOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  expiredOrders: number;
+  /** GMV — суммарная стоимость всех выданных (COMPLETED) заказов по всей платформе, копейки. */
+  gmv: number;
+  /** Фактический доход платформы — сумма platformFee по выданным заказам, копейки. */
+  platformRevenue: number;
   weightSavedKg: number;
 }
