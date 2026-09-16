@@ -71,9 +71,15 @@
     "summary": "Сводка заказа",
     "quantityLabel": "Количество",
     "totalLabel": "Итого",
-    "payButton": "Оплатить (мок)",
-    "processing": "Оформляем...",
-    "errorGeneric": "Не удалось оформить заказ"
+    "payButton": "Оплатить",
+    "errorGeneric": "Не удалось оформить заказ",
+    "paymentMethodLabel": "Способ оплаты",
+    "paymentCard": "Банковская карта",
+    "paymentCardHint": "Visa, Mastercard, МИР",
+    "paymentSbp": "СБП",
+    "paymentSbpHint": "Оплата по QR через банк",
+    "cooking": "Готовим твой заказ",
+    "cookingHint": "Оплата обрабатывается — это займёт пару секунд"
   },
   "orderConfirmation": {
     "title": "Заказ оформлен!",
@@ -118,7 +124,10 @@
     "themeLabel": "Тема оформления",
     "themeSystem": "Системная",
     "themeLight": "Светлая",
-    "themeDark": "Тёмная"
+    "themeDark": "Тёмная",
+    "languageLabel": "Язык",
+    "languageRu": "Русский",
+    "languageEn": "English"
   },
   "eco": {
     "title": "Эко-профиль",
@@ -135,7 +144,6 @@
     }
   },
   "map": {
-    "title": "Карта",
-    "webFallbackNote": "Интерактивная карта доступна в мобильном приложении — здесь список, отсортированный по расстоянию"
+    "title": "Карта"
   }
 }

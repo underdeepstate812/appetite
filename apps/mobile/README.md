@@ -1,7 +1,8 @@
 # @apetite/mobile
 
 Expo + React Native + TypeScript. Каркас — ШАГ 7, основной сценарий — ШАГ 8,
-разрешения и push-уведомления — ШАГ 9.
+разрешения и push-уведомления — ШАГ 9. Дизайн-рефреш (RU по умолчанию, новая
+палитра, сковорода вместо корзины, реальная карта) — после ШАГ 14, см. ниже.
 
 ## Стек
 
@@ -10,15 +11,20 @@ Expo + React Native + TypeScript. Каркас — ШАГ 7, основной с
 - **React Navigation v7** — native-stack (Auth-стек, root-стек с OfferDetail/Checkout/
   OrderConfirmation/OrderDetail) + bottom-tabs (Home/Map/Orders/EcoProfile/Profile).
 - **Zustand** — стейт-менеджмент (`useAuthStore` — токены, текущий пользователь).
-- **react-i18next** + `expo-localization` — RU/EN, автоопределение языка устройства
-  с фолбэком на RU (`DEFAULT_LOCALE` из `@apetite/shared`).
+- **react-i18next** — RU/EN. RU — жёсткий дефолт при старте (`DEFAULT_LOCALE`), не
+  автоопределение по локали устройства: явный выбор — переключатель в Profile
+  (`languageStore.ts`, тот же zustand+persist паттерн, что и у темы).
+  `expo-localization` убран из зависимостей — стал не нужен вместе с автоопределением.
 - **expo-location** — геопозиция для nearby-поиска, полноценный UX разрешений
   (rationale-баннер, "заблокировано навсегда" → deep link в Settings) — ШАГ 9.
 - **expo-notifications** — push-разрешение + регистрация Expo push-токена
   (`POST /notifications/push-token`), тап по уведомлению → навигация — ШАГ 9.
 - **react-native-maps** — карта на native; на web у библиотеки нет реализации (её
-  `MapView.web.ts` — пустая заглушка `UnimplementedView`), поэтому `MapScreen.web.tsx` —
-  честный фолбэк: тот же список, отсортированный по расстоянию.
+  `MapView.web.ts` — пустая заглушка `UnimplementedView`), поэтому на web —
+  **Leaflet + OpenStreetMap** (`LeafletMapView.tsx`) — настоящая интерактивная
+  карта, бесплатно и без API-ключа/аккаунта (в отличие от Yandex Maps JS API,
+  который требует завести Yandex-аккаунт — не то, что можно сделать за
+  пользователя). Список под картой остался для быстрого сканирования по расстоянию.
 - **expo-secure-store** (iOS/Android) / **AsyncStorage** (web) — хранение
   access/refresh токенов, платформенно-специфичный выбор в `store/tokenStorage.ts`.
 - Собственная лёгкая тема (`theme/tokens.ts`) — светлая/тёмная, с ручным
@@ -34,7 +40,8 @@ Expo + React Native + TypeScript. Каркас — ШАГ 7, основной с
 ```
 src/
   api/          — fetch-клиент (JWT, авто-refresh на 401) + по модулю на backend-ресурс
-  store/        — authStore (zustand) + абстракция secure-хранилища токенов
+  store/        — authStore (zustand) + абстракция secure-хранилища токенов,
+                  themeStore, languageStore
   hooks/        — useLocation (+ статус пермишена), useNearbyOffers, useNow (тик для
                   countdown), usePushNotifications, useUnreadNotificationsCount
   theme/        — токены темы, ThemeProvider, тема для React Navigation
@@ -45,7 +52,9 @@ src/
                   notifications
   components/   — Screen, Button, TextField, StateViews, OfferCard, CountdownBadge,
                   SegmentedControl, CategoryFilterBar, OrderStatusTimeline,
-                  LocationPermissionBanner, NotificationsBellButton
+                  LocationPermissionBanner, NotificationsBellButton,
+                  PaymentMethodSelector, LeafletMapView (web-only)
+  components/icons/ — FryingPanIcon, CookingLoader, PaymentIcons (react-native-svg)
   utils/        — time.ts (countdown), confirm.ts (кроссплатформенный confirm-диалог)
 ```
 
@@ -104,6 +113,53 @@ src/
 краша (проверено в консоли: `[expo-notifications] Listening to push token changes is
 not yet fully supported on web` — предупреждение, не ошибка). Остальной push-флоу
 (permission, тап-навигация) от токена не зависит.
+
+## Дизайн-рефреш: язык, цвета, сковорода, карта (после ШАГ 14)
+
+По прямому запросу — четыре независимых изменения, один заход:
+
+- **RU по умолчанию** — см. `react-i18next` в стеке выше. Переключатель языка в
+  Profile рядом с темой.
+- **Новая палитра акцента**: `primary` `#FF6B4A` (пастельный коралл) →
+  `#EA580C` (насыщенный terracotta-orange, Tailwind `orange-600`). Не только
+  "посвежее" — у старого цвета hue был всего в ~11° от `danger` (`#D64545`),
+  акцент и ошибку было легко перепутать; у нового — ~21°, дальше и чище.
+  `primarySoft`/`primarySoftDark` пересчитаны под новый тон.
+- **Сковорода вместо корзины** — `FryingPanIcon` (`react-native-svg`, круг +
+  ручка, без внешних PNG/эмодзи-зависимостей) заменила эмодзи 🛍️ на стадии
+  "можно забирать" в `OrderStatusTimeline`. На экране оформления заказа —
+  `CookingLoader`: та же сковорода, кусочек еды подпрыгивает на ней (жарка),
+  пар — двумя штрихами со сдвигом по фазе; `submitting` в `CheckoutScreen`
+  подменяет форму оплаты этой анимацией на ≥1100мс (`MIN_COOKING_MS`) — mock-оплата
+  сама по себе почти мгновенна, без искусственного пола анимация просто
+  мигнёт и никто её не увидит. Один и тот же мотив в обоих местах намеренно:
+  "готовим" при оформлении → та же сковорода отмечает "готово" в таймлайне.
+- **Оплата продумана предметно**: `PaymentMethodSelector` — выбор между
+  банковской картой и СБП (система быстрых платежей — стандарт для RU-рынка)
+  на экране оформления. Выбор не меняет поведение backend (`PaymentProvider`
+  как был mock, так и остался) — это честная, привычная UI-форма выбора,
+  а не имитация реальной маршрутизации платежа, которую не имеет смысла
+  строить поверх мок-провайдера.
+- **Настоящая карта на web** — см. `react-native-maps` в стеке выше.
+  Маркеры — свои `L.divIcon` с процентом скидки в цвете темы, не дефолтные
+  PNG-иконки Leaflet (у них классическая проблема резолва пути через
+  бандлер — на нашем стеке тоже вылезла бы). Тап по маркеру → `OfferDetail`,
+  как и по карточке в списке.
+
+⚠️ Нашёл и исправил race condition в `LeafletMapView`: карта создаётся
+асинхронно (`import("leaflet")` — динамический, чтобы не тянуть Leaflet в
+native-бандл), а эффект, расставляющий маркеры, был завязан только на
+`[offers, theme, onSelectOffer]` — при первом рендере он успевал отработать
+и выйти (`mapRef.current` ещё `null`) до того, как карта готова, и больше не
+перезапускался: маркеры молча не появлялись, хотя сама карта и тайлы рисовались
+нормально (заметно только по факту — 0 элементов `.apetite-marker` в DOM).
+Добавлен `mapReady`-стейт, выставляется после успешной инициализации карты и
+входит в зависимости эффекта с маркерами.
+
+OpenStreetMap-тайлы (`tile.openstreetmap.org`) — бесплатно для dev/демо-объёма
+этого масштаба; у прямого использования тайл-сервера есть usage policy для
+серьёзного прод-трафика (см. их [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)) —
+при реальном пилоте стоит переехать на платный тайл-провайдер или self-host.
 
 ## Быстрый старт
 
@@ -170,3 +226,25 @@ Location-баннер (rationale, цвет по серьёзности) — на
 непустую строку query-параметра в `true`. Исправлено явным `@Transform` в
 `apps/backend/src/notifications/dto/list-notifications.query.ts`, закрыто
 регрессионной проверкой в `smoke-test.sh` (39/39 проходят).
+
+### Дизайн-рефреш — проверено вживую
+
+RU по умолчанию подтверждено буквально с экрана логина — этот браузер отдаёт
+`en` (см. выше по документу), но "Вход"/"Пароль" были на русском без единого
+переключения языка вручную. Переключатель RU↔EN в Profile — мгновенный
+live-свитч (react-i18next `changeLanguage`), проверен в обе стороны, весь UI
+включая таб-бар. Новый цвет акцента — на кнопках/бейджах/скидках в светлой и
+тёмной теме. Сковорода в `OrderStatusTimeline` — на стадии "можно забирать",
+обеих темах. `CookingLoader` — поймана вживую (временно подняв
+`MIN_COOKING_MS` до 6000ms для скриншота, затем вернул обратно к 1100):
+сковорода с подпрыгивающим "кусочком еды" рендерится и анимируется корректно.
+`PaymentMethodSelector` — переключение карта↔СБП, состояние выбора визуально
+корректно. Карта на web — реальные тайлы OpenStreetMap вокруг центра Москвы,
+4 маркера со скидкой из сида, тап по маркеру → верный `OfferDetail` (сверено
+по проценту скидки на маркере против открывшегося оффера).
+
+Про саму карту: маркеры сначала не появлялись вообще (race condition — карта
+инициализируется асинхронно, эффект с маркерами не перезапускался, когда она
+наконец становилась готова) — не спрятал баг под "потом проверим", нашёл через
+`document.querySelectorAll('.apetite-marker').length === 0` в консоли, поправил
+(`mapReady`-стейт), переверифицировал скриншотом с явно видимыми пинами.

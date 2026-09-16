@@ -7,6 +7,8 @@ import { ordersApi } from "../../api/orders";
 import { useTheme } from "../../theme/ThemeProvider";
 import { Screen } from "../../components/Screen";
 import { Button } from "../../components/Button";
+import { CookingLoader } from "../../components/icons/CookingLoader";
+import { PaymentMethodSelector, type PaymentMethod } from "../../components/PaymentMethodSelector";
 import { LoadingView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
@@ -14,6 +16,16 @@ type Props = RootStackScreenProps<"Checkout">;
 
 /** Количество фиксировано в 1 (как "сюрприз-пакет" в TGTG) — без степпера, проще для беты. */
 const QUANTITY = 1;
+/**
+ * Mock-оплата на backend отвечает почти мгновенно — без искусственной паузы анимация
+ * "жарки" просто мигнёт и пользователь её не увидит. Минимальная видимая длительность
+ * не эмулирует реальную задержку платежа, а даёт анимации доиграть один цикл.
+ */
+const MIN_COOKING_MS = 1100;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function CheckoutScreen({ route, navigation }: Props) {
   const { offerId } = route.params;
@@ -23,6 +35,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +56,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const order = await ordersApi.create({ offerId, quantity: QUANTITY });
+      const [order] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
       // replace — чтобы "назад" с экрана подтверждения не возвращал на форму оплаты.
       navigation.replace("OrderConfirmation", { orderId: order.id });
     } catch (error) {
@@ -64,6 +77,29 @@ export function CheckoutScreen({ route, navigation }: Props) {
     return (
       <Screen>
         <LoadingView label={t("common.loading")} />
+      </Screen>
+    );
+  }
+
+  if (submitting) {
+    return (
+      <Screen>
+        <View style={styles.cookingWrap}>
+          <CookingLoader />
+          <Text
+            style={[theme.typography.h3, { color: theme.colors.text, marginTop: theme.spacing.lg, textAlign: "center" }]}
+          >
+            {t("checkout.cooking")}
+          </Text>
+          <Text
+            style={[
+              theme.typography.caption,
+              { color: theme.colors.textMuted, marginTop: theme.spacing.xs, textAlign: "center" },
+            ]}
+          >
+            {t("checkout.cookingHint")}
+          </Text>
+        </View>
       </Screen>
     );
   }
@@ -92,6 +128,23 @@ export function CheckoutScreen({ route, navigation }: Props) {
         </View>
       </View>
 
+      <Text
+        style={[
+          theme.typography.caption,
+          { color: theme.colors.textMuted, marginTop: theme.spacing.xl, marginBottom: theme.spacing.xs },
+        ]}
+      >
+        {t("checkout.paymentMethodLabel")}
+      </Text>
+      <PaymentMethodSelector
+        value={paymentMethod}
+        onChange={setPaymentMethod}
+        cardLabel={t("checkout.paymentCard")}
+        cardHint={t("checkout.paymentCardHint")}
+        sbpLabel={t("checkout.paymentSbp")}
+        sbpHint={t("checkout.paymentSbpHint")}
+      />
+
       {submitError ? (
         <Text style={[theme.typography.body, { color: theme.colors.danger, marginTop: theme.spacing.md }]}>
           {submitError}
@@ -99,11 +152,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
       ) : null}
 
       <View style={{ marginTop: theme.spacing.xl }}>
-        <Button
-          title={submitting ? t("checkout.processing") : t("checkout.payButton")}
-          onPress={handlePay}
-          loading={submitting}
-        />
+        <Button title={t("checkout.payButton")} onPress={handlePay} />
       </View>
     </Screen>
   );
@@ -112,4 +161,5 @@ export function CheckoutScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   card: { padding: 16 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
+  cookingWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 });

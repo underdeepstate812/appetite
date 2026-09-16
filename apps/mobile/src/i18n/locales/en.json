@@ -71,9 +71,15 @@
     "summary": "Order summary",
     "quantityLabel": "Quantity",
     "totalLabel": "Total",
-    "payButton": "Pay (mock)",
-    "processing": "Processing...",
-    "errorGeneric": "Could not place the order"
+    "payButton": "Pay",
+    "errorGeneric": "Could not place the order",
+    "paymentMethodLabel": "Payment method",
+    "paymentCard": "Bank card",
+    "paymentCardHint": "Visa, Mastercard, Mir",
+    "paymentSbp": "Fast Payments (SBP)",
+    "paymentSbpHint": "Pay by QR via your bank",
+    "cooking": "Cooking up your order",
+    "cookingHint": "Processing payment — just a couple of seconds"
   },
   "orderConfirmation": {
     "title": "Order placed!",
@@ -118,7 +124,10 @@
     "themeLabel": "Appearance",
     "themeSystem": "System",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "languageLabel": "Language",
+    "languageRu": "Русский",
+    "languageEn": "English"
   },
   "eco": {
     "title": "Eco profile",
@@ -135,7 +144,6 @@
     }
   },
   "map": {
-    "title": "Map",
-    "webFallbackNote": "Interactive map is available in the mobile app — here's a list sorted by distance"
+    "title": "Map"
   }
 }

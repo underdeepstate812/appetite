@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { useNow } from "../hooks/useNow";
 import { getTimeLeft } from "../utils/time";
+import { FryingPanIcon } from "./icons/FryingPanIcon";
 
 interface OrderStatusTimelineProps {
   pickupStart: string;
@@ -13,10 +14,11 @@ interface OrderStatusTimelineProps {
 type StageKey = "confirmed" | "preparing" | "ready";
 
 const STAGES: StageKey[] = ["confirmed", "preparing", "ready"];
-const STAGE_ICONS: Record<StageKey, string> = {
+// "ready" — фирменная сковорода (FryingPanIcon), не эмодзи: тот же мотив, что и
+// в CookingLoader на экране оформления заказа — "готовили → готово" одним символом.
+const STAGE_ICONS: Record<Exclude<StageKey, "ready">, string> = {
   confirmed: "✓",
   preparing: "🧑‍🍳",
-  ready: "🛍️",
 };
 
 /**
@@ -85,9 +87,16 @@ export function OrderStatusTimeline({ pickupStart, pickupEnd }: OrderStatusTimel
                     },
                   ]}
                 >
-                  <Text style={[styles.icon, isDone && { color: theme.colors.onPrimary }]}>
-                    {STAGE_ICONS[stageKey]}
-                  </Text>
+                  {stageKey === "ready" ? (
+                    <FryingPanIcon
+                      size={22}
+                      color={isActive ? theme.colors.success : theme.colors.textMuted}
+                    />
+                  ) : (
+                    <Text style={[styles.icon, isDone && { color: theme.colors.onPrimary }]}>
+                      {STAGE_ICONS[stageKey]}
+                    </Text>
+                  )}
                 </Animated.View>
                 <Text
                   style={[

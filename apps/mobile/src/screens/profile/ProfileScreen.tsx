@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useThemeModeStore, ThemeModeOverride } from "../../store/themeStore";
+import { useLanguageStore } from "../../store/languageStore";
+import type { SupportedLocale } from "../../i18n";
 import { useAuthStore } from "../../store/authStore";
 import { Screen } from "../../components/Screen";
 import { Button } from "../../components/Button";
@@ -18,11 +20,18 @@ export function ProfileScreen(_props: Props) {
   const logout = useAuthStore((state) => state.logout);
   const themeOverride = useThemeModeStore((state) => state.override);
   const setThemeOverride = useThemeModeStore((state) => state.setOverride);
+  const locale = useLanguageStore((state) => state.locale);
+  const setLocale = useLanguageStore((state) => state.setLocale);
 
   const themeOptions: { value: ThemeModeOverride; label: string }[] = [
     { value: "system", label: t("profile.themeSystem") },
     { value: "light", label: t("profile.themeLight") },
     { value: "dark", label: t("profile.themeDark") },
+  ];
+
+  const languageOptions: { value: SupportedLocale; label: string }[] = [
+    { value: "ru", label: t("profile.languageRu") },
+    { value: "en", label: t("profile.languageEn") },
   ];
 
   return (
@@ -50,6 +59,16 @@ export function ProfileScreen(_props: Props) {
         {t("profile.themeLabel")}
       </Text>
       <SegmentedControl value={themeOverride} onChange={(mode) => void setThemeOverride(mode)} options={themeOptions} />
+
+      <Text
+        style={[
+          theme.typography.caption,
+          { color: theme.colors.textMuted, marginTop: theme.spacing.lg, marginBottom: theme.spacing.xs },
+        ]}
+      >
+        {t("profile.languageLabel")}
+      </Text>
+      <SegmentedControl value={locale} onChange={(value) => void setLocale(value)} options={languageOptions} />
 
       <View style={{ marginTop: theme.spacing.xl }}>
         <Button title={t("profile.logout")} variant="secondary" onPress={() => void logout()} />

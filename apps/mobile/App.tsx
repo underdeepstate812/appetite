@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme } from "./src/theme/ThemeProvider";
 import { buildNavigationTheme } from "./src/theme/navigationTheme";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/store/authStore";
+import { useLanguageStore } from "./src/store/languageStore";
 import { usePushNotifications } from "./src/hooks/usePushNotifications";
 import type { RootStackParamList } from "./src/navigation/types";
 
@@ -26,10 +27,12 @@ function AppContent() {
 
 export default function App() {
   const hydrate = useAuthStore((state) => state.hydrate);
+  const hydrateLanguage = useLanguageStore((state) => state.hydrate);
 
   useEffect(() => {
     void hydrate();
-  }, [hydrate]);
+    void hydrateLanguage();
+  }, [hydrate, hydrateLanguage]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

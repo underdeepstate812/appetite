@@ -1,9 +1,12 @@
 const palette = {
-  primary: "#FF6B4A",
-  primaryDark: "#FF8566",
+  // Обновлённый акцент — насыщенный terracotta-orange вместо более пастельного
+  // кораллового: дальше по тону от danger (было ~11°, стало ~21° по hue — меньше
+  // риск спутать акцент с ошибкой), выше контраст с белым текстом на кнопках.
+  primary: "#EA580C",
+  primaryDark: "#FB923C",
   // Мягкая заливка под акцентом (бейджи/карточки статуса) — тон, не полноцветная заливка.
-  primarySoft: "#FFE8E1",
-  primarySoftDark: "#3A241D",
+  primarySoft: "#FFEDD5",
+  primarySoftDark: "#4A1D0A",
   secondary: "#2E7D5B",
   secondaryDark: "#4CAF7D",
   background: "#FFFFFF",
