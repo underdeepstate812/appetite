@@ -3,7 +3,9 @@ export function Footer() {
     <footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <p style={{ color: "#fff", fontSize: 20, fontWeight: 800, marginBottom: 10 }}>🍊 Apetite</p>
+          <p className="footer-logo" style={{ marginBottom: 10 }}>
+            🍊 Apetite
+          </p>
           <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
             Спасаем вкусную еду от списания — заведения продают остатки со скидкой
             50–70%, ты забираешь самовывозом. Пилот — Москва.
