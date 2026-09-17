@@ -19,8 +19,8 @@ export function AppetiteMark({ size = 32 }: { size?: number }) {
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">
       <Defs>
         <LinearGradient id={gradId} x1="8" y1="3" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%" stopColor="#FB923C" />
-          <Stop offset="100%" stopColor="#EA580C" />
+          <Stop offset="0%" stopColor="#2DD4BF" />
+          <Stop offset="100%" stopColor="#0F766E" />
         </LinearGradient>
       </Defs>
       <Path

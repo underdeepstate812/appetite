@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import type { NearbyOffer } from "@apetite/shared";
 import { OfferCard } from "./OfferCard";
+import { StaggerReveal } from "./StaggerReveal";
 
 /**
  * Bento-сетка вместо однородного вертикального списка: самый "горячий" оффер
@@ -23,13 +24,17 @@ export function BentoOfferGrid({
 
   return (
     <View>
-      <View style={styles.featuredWrap}>
-        <OfferCard offer={featured} onPress={() => onPressOffer(featured)} featured />
-      </View>
+      <StaggerReveal index={0}>
+        <View style={styles.featuredWrap}>
+          <OfferCard offer={featured} onPress={() => onPressOffer(featured)} featured />
+        </View>
+      </StaggerReveal>
       <View style={styles.grid}>
-        {rest.map((offer) => (
+        {rest.map((offer, index) => (
           <View key={offer.id} style={styles.cell}>
-            <OfferCard offer={offer} onPress={() => onPressOffer(offer)} />
+            <StaggerReveal index={index + 1}>
+              <OfferCard offer={offer} onPress={() => onPressOffer(offer)} />
+            </StaggerReveal>
           </View>
         ))}
       </View>

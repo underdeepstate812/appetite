@@ -67,9 +67,14 @@ export function OfferCard({ offer, onPress, featured = false }: OfferCardProps) 
         </View>
 
         {featured ? (
+          // Красный, не primary — "успей забрать" это urgency-сигнал (тот же
+          // смысловой регистр, что и тающий таймер/рамка), а не брендовый
+          // акцент. Тот же принцип, что и у Deliveroo: brand-цвет и
+          // "горячо/спешка"-цвет нарочно разведены, чтобы их нельзя было
+          // спутать на витрине из карточек.
           <View style={styles.featuredEyebrow}>
-            <Flame size={14} color={theme.colors.primary} strokeWidth={2.5} />
-            <Text style={[styles.featuredEyebrowText, { color: theme.colors.primary }]}>
+            <Flame size={14} color={theme.colors.danger} strokeWidth={2.5} />
+            <Text style={[styles.featuredEyebrowText, { color: theme.colors.danger }]}>
               {t("home.featuredEyebrow")}
             </Text>
           </View>

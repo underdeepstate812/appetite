@@ -26,11 +26,13 @@ export function MapPreviewChips({ offers }: { offers: NearbyOffer[] }) {
     <View style={styles.row} pointerEvents="none">
       <Chip icon={<Store size={13} color={theme.colors.text} strokeWidth={2.2} />} label={t("home.chipVenuesNearby", { count: venueCount })} bg={theme.colors.surfaceElevated} textColor={theme.colors.text} />
       {hotCount > 0 ? (
+        // danger (красный), не primary — "горящие" предложения это urgency,
+        // не бренд-акцент (см. тот же принцип в OfferCard.featuredEyebrow).
         <Chip
-          icon={<Flame size={13} color={theme.colors.onPrimary} strokeWidth={2.2} />}
+          icon={<Flame size={13} color="#FFFFFF" strokeWidth={2.2} />}
           label={t("home.chipHotDeals", { count: hotCount })}
-          bg={theme.colors.primary}
-          textColor={theme.colors.onPrimary}
+          bg={theme.colors.danger}
+          textColor="#FFFFFF"
         />
       ) : null}
     </View>
