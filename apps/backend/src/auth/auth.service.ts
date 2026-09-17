@@ -1,14 +1,33 @@
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { randomInt } from "node:crypto";
+import { ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
 import { Role, User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { RedisService } from "../redis/redis.service";
 import { toPublicUser } from "../common/utils/public-user";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { RequestOtpDto } from "./dto/request-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
+import { SMS_PROVIDER, SmsProvider } from "./sms/sms-provider.interface";
 
 const PASSWORD_SALT_ROUNDS = 10;
+const OTP_TTL_SECONDS = 300;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+/** Окно, в течение которого подтверждённый телефон можно приложить к регистрации. */
+const OTP_VERIFIED_TTL_SECONDS = 600;
+
+function otpCodeKey(phone: string) {
+  return `otp:code:${phone}`;
+}
+function otpCooldownKey(phone: string) {
+  return `otp:cooldown:${phone}`;
+}
+function otpVerifiedKey(phone: string) {
+  return `otp:verified:${phone}`;
+}
 
 export interface AuthTokens {
   accessToken: string;
@@ -20,13 +39,50 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly redis: RedisService,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider
   ) {}
+
+  /** Код действителен OTP_TTL_SECONDS, повторная отправка — не чаще раза в OTP_RESEND_COOLDOWN_SECONDS. */
+  async requestOtp(dto: RequestOtpDto) {
+    const onCooldown = await this.redis.get(otpCooldownKey(dto.phone));
+    if (onCooldown) {
+      throw new ConflictException("Код уже отправлен, попробуй через минуту");
+    }
+    const code = randomInt(100000, 1000000).toString();
+    await this.redis.set(otpCodeKey(dto.phone), code, "EX", OTP_TTL_SECONDS);
+    await this.redis.set(otpCooldownKey(dto.phone), "1", "EX", OTP_RESEND_COOLDOWN_SECONDS);
+    await this.sms.send(dto.phone, `Код подтверждения Apetite: ${code}`);
+    return { success: true };
+  }
+
+  /**
+   * Код одноразовый — удаляется сразу после успешной проверки. Отдельный
+   * "verified"-ключ с более коротким TTL — доказательство для register(), что именно
+   * этот телефон только что подтверждён (иначе register принял бы любой phone без проверки).
+   */
+  async verifyOtp(dto: VerifyOtpDto) {
+    const storedCode = await this.redis.get(otpCodeKey(dto.phone));
+    if (!storedCode || storedCode !== dto.code) {
+      throw new ConflictException("Неверный или истёкший код");
+    }
+    await this.redis.del(otpCodeKey(dto.phone));
+    await this.redis.set(otpVerifiedKey(dto.phone), "1", "EX", OTP_VERIFIED_TTL_SECONDS);
+    return { verified: true };
+  }
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new ConflictException("Пользователь с таким email уже зарегистрирован");
+    }
+    if (dto.phone) {
+      const verified = await this.redis.get(otpVerifiedKey(dto.phone));
+      if (!verified) {
+        throw new ConflictException("Телефон не подтверждён — запроси код ещё раз");
+      }
+      await this.redis.del(otpVerifiedKey(dto.phone));
     }
 
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS);

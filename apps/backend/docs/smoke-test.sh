@@ -58,6 +58,44 @@ ADMIN_TOKEN=$(curl -s -X POST "$BASE/auth/login" -H "Content-Type: application/j
 BUSINESS_TOKEN=$(curl -s -X POST "$BASE/auth/login" -H "Content-Type: application/json" \
   -d '{"email":"cafe.pushkin@apetite.ru","password":"password123"}' | json_field "['accessToken']")
 
+echo "== auth: OTP по телефону (Redis) =="
+OTP_PHONE="+79990000$(( RANDOM % 900 + 100 ))"
+OTP_REQUEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/otp/request" \
+  -H "Content-Type: application/json" -d "{\"phone\":\"$OTP_PHONE\"}")
+check "запрос OTP-кода -> 200" 200 "$OTP_REQUEST_STATUS"
+
+OTP_COOLDOWN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/otp/request" \
+  -H "Content-Type: application/json" -d "{\"phone\":\"$OTP_PHONE\"}")
+check "повторный запрос сразу же -> 409 (cooldown)" 409 "$OTP_COOLDOWN_STATUS"
+
+# Код не возвращается в API-ответе (как и у настоящего SMS-провайдера) — берём напрямую из Redis-контейнера.
+OTP_CODE=$(docker exec apetite-redis-1 redis-cli GET "otp:code:$OTP_PHONE" 2>/dev/null | tr -d '[:space:]')
+if [ -n "$OTP_CODE" ]; then
+  WRONG_OTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/otp/verify" \
+    -H "Content-Type: application/json" -d "{\"phone\":\"$OTP_PHONE\",\"code\":\"000000\"}")
+  check "верификация неверным кодом -> 409" 409 "$WRONG_OTP_STATUS"
+
+  RIGHT_OTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/otp/verify" \
+    -H "Content-Type: application/json" -d "{\"phone\":\"$OTP_PHONE\",\"code\":\"$OTP_CODE\"}")
+  check "верификация верным кодом -> 200" 200 "$RIGHT_OTP_STATUS"
+
+  REUSE_OTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/otp/verify" \
+    -H "Content-Type: application/json" -d "{\"phone\":\"$OTP_PHONE\",\"code\":\"$OTP_CODE\"}")
+  check "тот же код повторно -> 409 (одноразовый)" 409 "$REUSE_OTP_STATUS"
+
+  REGISTER_WITH_PHONE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/register" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"otp-smoke-$OTP_PHONE@apetite.ru\",\"password\":\"password123\",\"name\":\"OTP Smoke\",\"phone\":\"$OTP_PHONE\"}")
+  check "регистрация с подтверждённым телефоном -> 201" 201 "$REGISTER_WITH_PHONE_STATUS"
+
+  REGISTER_UNVERIFIED_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/auth/register" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"otp-smoke-unverified@apetite.ru","password":"password123","name":"OTP Unverified","phone":"+79998887766"}')
+  check "регистрация с неподтверждённым телефоном -> 409" 409 "$REGISTER_UNVERIFIED_STATUS"
+else
+  echo "SKIP OTP-верификация: не нашли код напрямую в Redis-контейнере (нет доступа к контейнеру?) — не критично для API"
+fi
+
 echo "== businesses =="
 FORBIDDEN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/businesses" \
   -H "Authorization: Bearer $USER_TOKEN" -H "Content-Type: application/json" \

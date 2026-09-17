@@ -2,6 +2,8 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from "@n
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { RequestOtpDto } from "./dto/request-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { JwtRefreshGuard } from "../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -14,6 +16,18 @@ export class AuthController {
   @Post("register")
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post("otp/request")
+  requestOtp(@Body() dto: RequestOtpDto) {
+    return this.authService.requestOtp(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post("otp/verify")
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto);
   }
 
   @HttpCode(HttpStatus.OK)

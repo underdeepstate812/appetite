@@ -20,7 +20,17 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  /** Если указан, должен быть предварительно подтверждён через /auth/otp/verify. */
   phone?: string;
+}
+
+export interface RequestOtpRequest {
+  phone: string;
+}
+
+export interface VerifyOtpRequest {
+  phone: string;
+  code: string;
 }
 
 export interface NearbyOffersQuery extends GeoPoint {

@@ -4,6 +4,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { LoggerModule } from "nestjs-pino";
 import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./prisma/prisma.module";
+import { RedisModule } from "./redis/redis.module";
 import { AuthModule } from "./auth/auth.module";
 import { BusinessesModule } from "./businesses/businesses.module";
 import { OffersModule } from "./offers/offers.module";
@@ -34,6 +35,7 @@ import { AppController } from "./app.controller";
       },
     }),
     PrismaModule,
+    RedisModule,
     AuthModule,
     BusinessesModule,
     OffersModule,
