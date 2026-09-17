@@ -1,103 +1,241 @@
+import { useState, type CSSProperties } from "react";
+
+interface Pin {
+  x: number;
+  y: number;
+  label: string;
+  hot?: boolean;
+}
+
+const PINS: Pin[] = [
+  { x: 78, y: 128, label: "−40%" },
+  { x: 168, y: 96, label: "−70%", hot: true },
+  { x: 60, y: 248, label: "−55%" },
+  { x: 190, y: 232, label: "−45%" },
+];
+
 /**
- * Стилизованный макет телефона с открытой картой предложений и маркерами скидок —
- * повторяет реальный визуальный язык мобильного приложения (LeafletMapView,
- * apps/mobile/src/components/LeafletMapView.tsx: те же пилюли "-N%"), перекрашен
- * под новую "liquid glass" палитру сайта (лайм + лавандовый на тёмном).
+ * Макет телефона с картой предложений — теперь по-настоящему интерактивный:
+ * клик по нижней панели (bottom sheet) разворачивает список офферов поверх
+ * карты, ровно как в реальном интерфейсе мобильного приложения (см. концепт
+ * "карта + bottom sheet" — apps/mobile HomeScreen). Раньше это была статичная
+ * SVG-картинка; теперь HTML/CSS-макет с реальным состоянием, а не имитация.
  */
 export function PhoneMockup() {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <svg
-      viewBox="0 0 300 620"
-      width="100%"
-      role="img"
-      aria-label="Экран приложения Apetite с картой предложений и маркерами скидок рядом"
-    >
-      <defs>
-        <linearGradient id="screenGlow" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#141c14" />
-          <stop offset="100%" stopColor="#0d130e" />
-        </linearGradient>
-        <linearGradient id="pinGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#caff4d" />
-          <stop offset="100%" stopColor="#a8e62e" />
-        </linearGradient>
-        <filter id="phoneShadow" x="-40%" y="-20%" width="180%" height="140%">
-          <feDropShadow dx="0" dy="24" stdDeviation="28" floodColor="#000000" floodOpacity="0.45" />
-        </filter>
-      </defs>
+    <div style={frameStyle}>
+      <div style={notchStyle} />
+      <div style={screenStyle}>
+        {/* карта */}
+        <svg viewBox="0 0 260 460" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+          <rect width="260" height="460" fill="var(--color-surface)" />
+          <path d="M-10 90 C 60 60,120 130,270 100" stroke="var(--color-border)" strokeWidth="9" fill="none" />
+          <path d="M-10 230 C 70 200,110 300,270 260" stroke="var(--color-border)" strokeWidth="8" fill="none" />
+          <path d="M50 -10 C 30 140,90 220,70 350" stroke="var(--color-border)" strokeWidth="7" fill="none" />
+          <path d="M190 -10 C 205 150,150 230,180 380" stroke="var(--color-border)" strokeWidth="7" fill="none" />
+        </svg>
 
-      {/* Корпус телефона */}
-      <rect x="4" y="4" width="292" height="612" rx="44" fill="#0a0f0b" filter="url(#phoneShadow)" />
-      <rect x="10" y="10" width="280" height="600" rx="40" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="1.5" />
-      <rect x="12" y="12" width="276" height="596" rx="36" fill="#10160f" />
-      {/* Динамик/камера */}
-      <rect x="118" y="26" width="64" height="18" rx="9" fill="#000000" />
+        {/* хедер экрана приложения */}
+        <div style={appHeaderStyle}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--color-primary)" }}>
+            Apetite
+          </span>
+          <div style={bellDotStyle} />
+        </div>
 
-      {/* Экран */}
-      <clipPath id="screenClip">
-        <rect x="20" y="56" width="260" height="500" rx="20" />
-      </clipPath>
-      <g clipPath="url(#screenClip)">
-        <rect x="20" y="56" width="260" height="500" fill="url(#screenGlow)" />
-
-        {/* Хедер приложения */}
-        <text x="36" y="94" fontFamily="'Unbounded', sans-serif" fontSize="18" fontWeight="700" fill="#caff4d">
-          Apetite
-        </text>
-        <circle cx="256" cy="88" r="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.14)" />
-        <path d="M251 92 a5 6 0 0 1 10 0 z" fill="#b7a6ff" />
-
-        {/* Условные дороги на карте */}
-        <path d="M-10 220 C 80 180, 160 260, 310 210" stroke="rgba(255,255,255,0.09)" strokeWidth="10" fill="none" />
-        <path d="M-10 340 C 90 300, 150 420, 310 360" stroke="rgba(255,255,255,0.09)" strokeWidth="10" fill="none" />
-        <path d="M60 100 C 40 220, 120 320, 90 500" stroke="rgba(255,255,255,0.07)" strokeWidth="8" fill="none" />
-        <path d="M220 110 C 240 230, 190 340, 230 520" stroke="rgba(255,255,255,0.07)" strokeWidth="8" fill="none" />
-        <circle cx="150" cy="300" r="70" fill="rgba(183,166,255,0.08)" />
-
-        {/* Пин-маркеры со скидками — та же форма, что в LeafletMapView */}
-        {[
-          { x: 90, y: 190, label: "−70%" },
-          { x: 190, y: 240, label: "−50%" },
-          { x: 130, y: 340, label: "−60%" },
-          { x: 210, y: 400, label: "−50%" },
-        ].map((pin, index) => (
-          <g key={`${pin.label}-${index}`} transform={`translate(${pin.x} ${pin.y})`}>
-            <rect
-              x="-26"
-              y="-14"
-              width="52"
-              height="28"
-              rx="14"
-              fill="url(#pinGradient)"
-              stroke="#0a0f0b"
-              strokeWidth="2"
-            />
-            <text
-              x="0"
-              y="5"
-              textAnchor="middle"
-              fontFamily="'Onest', sans-serif"
-              fontSize="12"
-              fontWeight="700"
-              fill="#0a0f0b"
-            >
-              {pin.label}
-            </text>
-          </g>
+        {/* пины */}
+        {PINS.map((pin, i) => (
+          <div
+            key={i}
+            style={{
+              ...pinStyle,
+              left: pin.x,
+              top: pin.y,
+              background: pin.hot ? "var(--color-danger)" : "var(--color-primary)",
+              width: pin.hot ? 44 : 38,
+              height: pin.hot ? 44 : 38,
+            }}
+          >
+            <span style={{ transform: "rotate(45deg)", fontSize: pin.hot ? 11 : 10 }}>{pin.label}</span>
+          </div>
         ))}
 
-        {/* Нижняя карточка оффера */}
-        <rect x="20" y="470" width="220" height="70" rx="16" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.12)" />
-        <text x="36" y="497" fontFamily="'Onest', sans-serif" fontSize="13" fontWeight="700" fill="#f4f7ee">
-          Набор десертов дня
-        </text>
-        <text x="36" y="517" fontFamily="'Onest', sans-serif" fontSize="12" fill="#9aa596">
-          180 ₽ вместо 600 ₽ · 0.4 км
-        </text>
-      </g>
+        {/* bottom sheet — кликабельно */}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          style={{ ...sheetStyle, height: expanded ? 260 : 118 }}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Свернуть список предложений" : "Показать все предложения"}
+        >
+          <div style={handleStyle} />
+          <div style={sheetHeaderRow}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--color-ink)" }}>Рядом сейчас</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-primary)" }}>
+              {expanded ? "Свернуть" : "Все →"}
+            </span>
+          </div>
 
-      {/* Обводка экрана поверх контента */}
-      <rect x="20" y="56" width="260" height="500" rx="20" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-    </svg>
+          {expanded ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "0 14px 14px" }}>
+              <MiniCard title="Сеты дня" price="210 ₽" discount="−45%" />
+              <MiniCard title="Выпечка" price="150 ₽" discount="−55%" />
+              <MiniCard title="Букеты" price="390 ₽" discount="−40%" />
+              <MiniCard title="Ужин" price="280 ₽" discount="−70%" hot />
+            </div>
+          ) : (
+            <div style={miniCardRow}>
+              <MiniCard title="Ужин на двоих" price="280 ₽" discount="−70%" hot wide />
+            </div>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
+
+function MiniCard({
+  title,
+  price,
+  discount,
+  hot,
+  wide,
+}: {
+  title: string;
+  price: string;
+  discount: string;
+  hot?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--color-surface-elevated)",
+        border: `1.5px solid ${hot ? "var(--color-danger)" : "var(--color-border)"}`,
+        borderRadius: 12,
+        padding: "8px 10px",
+        textAlign: "left",
+        width: wide ? "100%" : undefined,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-ink)" }}>{title}</span>
+        <span
+          style={{
+            fontSize: 9.5,
+            fontWeight: 800,
+            color: "#fff",
+            background: hot ? "var(--color-danger)" : "var(--color-primary)",
+            borderRadius: 999,
+            padding: "1px 6px",
+          }}
+        >
+          {discount}
+        </span>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--color-primary)", marginTop: 3 }}>{price}</div>
+    </div>
+  );
+}
+
+const frameStyle: CSSProperties = {
+  width: "100%",
+  aspectRatio: "280 / 560",
+  background: "var(--color-ink)",
+  borderRadius: 38,
+  padding: 8,
+  boxShadow: "0 20px 50px rgba(18,16,13,0.25)",
+  position: "relative",
+};
+
+const notchStyle: CSSProperties = {
+  position: "absolute",
+  top: 18,
+  left: "50%",
+  transform: "translateX(-50%)",
+  width: "34%",
+  height: 14,
+  background: "var(--color-ink)",
+  borderRadius: 8,
+  zIndex: 2,
+};
+
+const screenStyle: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  borderRadius: 30,
+  overflow: "hidden",
+  background: "var(--color-background)",
+};
+
+const appHeaderStyle: CSSProperties = {
+  position: "absolute",
+  top: 14,
+  left: 16,
+  right: 16,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  zIndex: 1,
+};
+
+const bellDotStyle: CSSProperties = {
+  width: 22,
+  height: 22,
+  borderRadius: "50%",
+  background: "var(--color-surface-elevated)",
+  border: "1px solid var(--color-border)",
+};
+
+const pinStyle: CSSProperties = {
+  position: "absolute",
+  borderRadius: "50% 50% 50% 0",
+  border: "2.5px solid var(--color-background)",
+  transform: "rotate(-45deg)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#fff",
+  fontWeight: 800,
+  boxShadow: "0 4px 10px rgba(18,16,13,0.2)",
+};
+
+const sheetStyle: CSSProperties = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "var(--color-surface-elevated)",
+  borderRadius: "20px 20px 0 0",
+  boxShadow: "0 -6px 20px rgba(18,16,13,0.12)",
+  transition: "height 0.35s cubic-bezier(0.22,1,0.36,1)",
+  overflow: "hidden",
+  border: "none",
+  padding: 0,
+  cursor: "pointer",
+  font: "inherit",
+  display: "block",
+  width: "100%",
+};
+
+const handleStyle: CSSProperties = {
+  width: 28,
+  height: 3,
+  borderRadius: 999,
+  background: "var(--color-border)",
+  margin: "8px auto 6px",
+};
+
+const sheetHeaderRow: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "0 14px 10px",
+};
+
+const miniCardRow: CSSProperties = {
+  padding: "0 14px 14px",
+};

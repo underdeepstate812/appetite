@@ -1,26 +1,25 @@
 :root {
-  /* "Liquid Bio-Glass" — редизайн под тренды 26/27: тёмная "ботаническая ночь" вместо
-     светлого/бумажного фона, насыщенный digital-дуэт лайм + лавандовый вместо
-     единственного terracotta-акцента, стеклянные (glass) поверхности с blur вместо
-     плоских карточек — отсылка к "liquid glass" визуальному языку, который задаёт тон
-     интерфейсам 2026 года. */
-  --font-display: "Unbounded", "Segoe UI", sans-serif;
+  /* Третий и финальный акцент-рефреш: единая палитра для web и mobile — teal +
+     тёплый бумажный фон + красный строго под urgency (скидочные/горящие
+     сигналы), взятая из живого прототипа карты мобильного приложения
+     (apps/mobile/src/theme/tokens.ts: primary #0F766E/#2DD4BF). Ушли от тёмного
+     "liquid glass" (лайм+лаванда, стекло, aurora-свечение) к светлому,
+     минималистичному, бумажному — один голос вместо декоративного шума. */
+  --font-display: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-body: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --color-primary: #caff4d;
-  --color-primary-dark: #a8e62e;
-  --color-primary-soft: rgba(202, 255, 77, 0.16);
-  --color-secondary: #b7a6ff;
-  --color-secondary-soft: rgba(183, 166, 255, 0.16);
-  --color-background: #0a0f0b;
-  --color-surface: #10160f;
-  --color-surface-elevated: rgba(255, 255, 255, 0.06);
-  --color-ink: #f4f7ee;
-  --color-ink-muted: #9aa596;
-  --color-border: rgba(255, 255, 255, 0.14);
-  --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.14);
-  --color-on-primary: #0a0f0b;
+  --color-primary: #0f766e;
+  --color-primary-dark: #0b5a54;
+  --color-primary-soft: #d7f3ef;
+  --color-background: #fffdf9;
+  --color-surface: #f4efe4;
+  --color-surface-elevated: #ffffff;
+  --color-ink: #12100d;
+  --color-ink-muted: #7a7267;
+  --color-border: rgba(18, 16, 13, 0.12);
+  --color-danger: #d6432e;
+  --color-danger-soft: rgba(214, 67, 46, 0.1);
+  --color-on-primary: #fffdf9;
 
   --radius-sm: 10px;
   --radius-md: 18px;
@@ -28,9 +27,8 @@
   --radius-full: 999px;
   --radius-btn: var(--radius-full);
 
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-float: 0 12px 40px rgba(202, 255, 77, 0.18);
-  --glass-blur: blur(20px);
+  --shadow-card: 0 1px 2px rgba(18, 16, 13, 0.05);
+  --shadow-float: 0 10px 28px rgba(15, 118, 110, 0.22);
 
   --container-width: 1120px;
   --header-height: 76px;
@@ -53,25 +51,12 @@ body {
   position: relative;
 }
 
-/* Тонкая зерновая фактура поверх всего сайта — держит glass-поверхности живыми,
-   не даёт тёмному фону выглядеть плоским/пластиковым. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
 h1,
 h2,
 h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -112,7 +97,7 @@ img {
   padding: 0 20px;
 }
 
-/* --- Scroll-progress: тонкая градиентная полоса вверху, растёт с прогрессом скролла --- */
+/* --- Scroll-progress: тонкая полоса вверху, растёт с прогрессом скролла --- */
 
 .scroll-progress {
   position: fixed;
@@ -120,36 +105,9 @@ img {
   left: 0;
   height: 3px;
   z-index: 2000;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  background: var(--color-primary);
   transform-origin: left;
   transition: transform 0.1s linear;
-  box-shadow: 0 0 12px rgba(202, 255, 77, 0.5);
-}
-
-/* --- Aurora mesh: несколько блюрённых радиальных пятен лайм/лаванда, медленно дрейфующих
-   на заднем плане hero и business-блока — "liquid" акцент вместо плоского цвета фона. --- */
-
-.aurora-bg {
-  position: absolute;
-  inset: -20%;
-  z-index: 0;
-  pointer-events: none;
-  filter: blur(70px);
-  opacity: 0.6;
-  background:
-    radial-gradient(circle at 20% 25%, rgba(202, 255, 77, 0.32), transparent 55%),
-    radial-gradient(circle at 82% 15%, rgba(183, 166, 255, 0.28), transparent 50%),
-    radial-gradient(circle at 55% 85%, rgba(202, 255, 77, 0.16), transparent 55%);
-  animation: auroraDrift 20s ease-in-out infinite alternate;
-}
-
-@keyframes auroraDrift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  100% {
-    transform: translate3d(3%, -4%, 0) scale(1.08);
-  }
 }
 
 /* --- 3D-наклон карточки за курсором (макет телефона в hero) --- */
@@ -160,28 +118,8 @@ img {
   will-change: transform;
 }
 
-/* --- Cursor-glow: мягкое пятно света, следующее за курсором (только десктоп/мышь) --- */
-
-.cursor-glow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 420px;
-  height: 420px;
-  margin-left: -210px;
-  margin-top: -210px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(circle, rgba(202, 255, 77, 0.14) 0%, rgba(183, 166, 255, 0.08) 45%, transparent 72%);
-  transition: transform 0.15s ease-out, opacity 0.3s ease;
-  will-change: transform;
-}
-
-/* --- Buttons: "clay" tactile — мягкая приподнятая форма + вдавливание при клике,
-   вместо предыдущего liquid-sheen пилла. Тот же язык, что и у новой кнопки в
-   мобильном приложении (apps/mobile/src/components/Button.tsx): двойная тень
-   (свет сверху + тень снизу) и физическое "нажатие", не просто hover-эффект. --- */
+/* --- Buttons: минималистичная плоская заливка + мягкая тень в цвет + вдавливание
+   при клике — светлый бумажный фон, без стекла и декоративных слоёв. --- */
 
 .btn {
   position: relative;
@@ -192,7 +130,7 @@ img {
   min-height: 48px;
   padding: 0 26px;
   border-radius: var(--radius-btn);
-  border: none;
+  border: 1.5px solid transparent;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 15px;
@@ -201,7 +139,8 @@ img {
   transition:
     transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .btn:disabled {
@@ -210,59 +149,41 @@ img {
 }
 
 .btn-primary {
-  background: linear-gradient(160deg, var(--color-primary), var(--color-primary-dark));
+  background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow:
-    0 8px 20px rgba(202, 255, 77, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-float);
 }
 
 .btn-primary:not(:disabled):hover {
+  background: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
 .btn-primary:not(:disabled):active {
-  transform: translateY(2px) scale(0.98);
-  box-shadow:
-    0 3px 10px rgba(202, 255, 77, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
 }
 
 .btn-secondary {
   background: var(--color-surface-elevated);
-  backdrop-filter: var(--glass-blur);
   color: var(--color-ink);
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
-    inset 0 0 0 1px var(--color-border);
+  border-color: var(--color-border);
 }
 
 .btn-secondary:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
-    inset 0 0 0 1px var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .btn-secondary:not(:disabled):active {
-  transform: translateY(2px) scale(0.98);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    inset 0 0 0 1px var(--color-border);
+  transform: translateY(1px) scale(0.98);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-ink-muted);
   box-shadow: none;
+  border-color: transparent;
 }
 
 .btn-ghost:not(:disabled):hover {
@@ -340,35 +261,34 @@ img {
 }
 
 .form-error {
-  color: #ffb3b3;
+  color: #9a2e1c;
   background: var(--color-danger-soft);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  border: 1px solid rgba(214, 67, 46, 0.25);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 14px;
 }
 
-/* --- Glass card --- */
+/* --- Card: плоская, бумажная — тонкая линия вместо тени-стекла --- */
 
 .card {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   transition:
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-6px);
-  border-color: rgba(202, 255, 77, 0.4);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(202, 255, 77, 0.12);
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.14);
 }
 
-/* Стеклянный ярлык с переливающейся (iridescent) обводкой — лайм → лаванда. */
+/* Ярлык-«штамп» — тонкая обводка в акцентный цвет, без градиентов. */
 .stamp {
   display: inline-flex;
   align-items: center;
@@ -380,10 +300,8 @@ img {
   text-transform: uppercase;
   padding: 7px 16px;
   border-radius: var(--radius-full);
-  color: var(--color-ink);
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)) padding-box,
-    linear-gradient(120deg, var(--color-primary), var(--color-secondary)) border-box;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
   border: 1.5px solid transparent;
 }
 
@@ -393,10 +311,7 @@ img {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--color-primary);
 }
 
 /* --- Bento-сетка ("как это работает") --- */
@@ -486,14 +401,14 @@ img {
   transform: translateY(0) scale(1);
 }
 
-/* --- Header (glass) --- */
+/* --- Header --- */
 
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(10, 15, 11, 0.72);
-  backdrop-filter: var(--glass-blur);
+  background: rgba(255, 253, 249, 0.9);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -538,7 +453,7 @@ img {
   right: 100%;
   bottom: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  background: var(--color-primary);
   transition: right 0.25s ease;
 }
 
@@ -575,8 +490,7 @@ img {
   gap: 4px;
   padding: 12px 20px 20px;
   border-top: 1px solid var(--color-border);
-  background: rgba(10, 15, 11, 0.96);
-  backdrop-filter: var(--glass-blur);
+  background: var(--color-background);
 }
 
 .mobile-menu.is-open {
@@ -627,7 +541,7 @@ img {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-secondary), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
 }
 
 .footer-logo {
@@ -708,22 +622,7 @@ details[open] .faq-chevron {
     transform: none;
     transition: none;
   }
-  .cursor-glow {
-    display: none;
-  }
-  .aurora-bg {
-    animation: none;
-  }
   html {
     scroll-behavior: auto;
-  }
-  .btn::after {
-    display: none;
-  }
-}
-
-@media (hover: none) {
-  .cursor-glow {
-    display: none;
   }
 }

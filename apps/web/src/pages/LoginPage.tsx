@@ -37,7 +37,6 @@ export function LoginPage() {
   if (done) {
     return (
       <div className="auth-page">
-        <div className="aurora-bg" aria-hidden="true" />
         <div className="card auth-card" style={{ textAlign: "center" }}>
           <IconBadge icon={CheckCircle2} size="xl" />
           <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>С возвращением, {done}!</h1>
@@ -55,7 +54,6 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="aurora-bg" aria-hidden="true" />
       <form className="card auth-card" onSubmit={(event) => void handleSubmit(event)}>
         <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Вход</h1>
         <p style={{ color: "var(--color-ink-muted)", fontSize: 14, marginBottom: 24 }}>

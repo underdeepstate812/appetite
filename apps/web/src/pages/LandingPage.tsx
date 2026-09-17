@@ -10,7 +10,7 @@ const STEPS = [
   {
     icon: Search,
     title: "Находи рядом",
-    text: "Кафе, пекарни, цветочные и магазины продают остатки дня со скидкой 50–70% в радиусе пары километров.",
+    text: "Кафе, пекарни, цветочные и магазины города — скидки 40–70% в радиусе пары километров.",
   },
   {
     icon: CreditCard,
@@ -20,7 +20,7 @@ const STEPS = [
   {
     icon: ShoppingBag,
     title: "Забирай за 1–3 часа",
-    text: "Показываешь QR или называешь код на кассе — и уносишь то, что иначе оказалось бы в мусоре.",
+    text: "Показываешь QR или называешь код на кассе — и забираешь то, что выбрал, тёплым и свежим.",
   },
 ];
 
@@ -67,18 +67,17 @@ export function LandingPage() {
   return (
     <>
       <section style={heroStyle}>
-        <div className="aurora-bg" aria-hidden="true" />
         <div className="container" style={heroInnerStyle}>
           <div ref={heroRef} className="reveal" style={{ maxWidth: 560 }}>
-            <span className="stamp">✦ Бета · Москва</span>
+            <span className="stamp">Бета · Москва</span>
             <h1 style={h1Style}>
               Вкусная еда рядом —<br />
               со скидкой до{" "}
               <span style={{ fontStyle: "italic", color: "var(--color-primary)" }}>{animatedPercent}%</span>
             </h1>
             <p style={{ fontSize: 18, color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: 20 }}>
-              Заведения продают то, что иначе спишут в конце дня — ты забираешь
-              самовывозом за 1–3 часа. Хорошо для кошелька, хорошо для планеты.
+              Кафе, рестораны и магазины города — со скидкой 40–70% на позиции дня.
+              Бронируешь в приложении, забираешь самовывозом за 1–3 часа.
             </p>
             <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
               <Link
@@ -99,7 +98,7 @@ export function LandingPage() {
               </a>
             </div>
             <div style={{ display: "flex", gap: 32, marginTop: 48 }}>
-              <Stat value="50–70%" label="скидка на витрине" />
+              <Stat value="40–70%" label="скидка на витрине" />
               <Stat value="1–3 ч" label="окно самовывоза" />
               <Stat countTo={4} active={heroInView} label="категории: еда, выпечка, цветы, продукты" />
             </div>
@@ -109,12 +108,11 @@ export function LandingPage() {
             <TiltPhone />
           </div>
         </div>
-        <div style={heroFadeStyle} aria-hidden="true" />
       </section>
 
-      <section id="how" style={{ padding: "112px 0 96px" }}>
+      <section id="how" style={{ padding: "96px 0" }}>
         <div className="container">
-          <SectionHeading eyebrow="Как это работает" title="Три шага до спасённого ужина" />
+          <SectionHeading eyebrow="Как это работает" title="Три шага до вкусной скидки" />
           <div ref={stepsRef} className="reveal bento-grid">
             {STEPS.map((step, index) =>
               index === 0 ? (
@@ -155,22 +153,22 @@ export function LandingPage() {
       <section id="business" style={{ padding: "0 0 96px" }}>
         <div className="container">
           <div ref={businessRef} className="reveal" style={businessCardStyle}>
-            <div className="aurora-bg" style={{ opacity: 0.35 }} aria-hidden="true" />
-            <div style={{ maxWidth: 480, position: "relative", zIndex: 1 }}>
-              <span className="stamp">✦ Для заведений</span>
-              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-ink)", marginTop: 18 }}>
-                Продавай остатки,
-                <br />
-                <span style={{ fontStyle: "italic", color: "var(--color-secondary)" }}>не списывай</span> их
+            <div style={{ maxWidth: 480 }}>
+              <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--color-background)" }}>
+                Для заведений
+              </span>
+              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-background)", marginTop: 18 }}>
+                Привлекай новых гостей{" "}
+                <span style={{ fontStyle: "italic", color: "var(--color-primary-soft)" }}>скидками 40–70%</span>
               </h2>
-              <p style={{ color: "var(--color-ink-muted)", marginTop: 14, lineHeight: 1.6, fontSize: 15 }}>
-                Панель бизнеса — офферы, заказы и аналитика в реальном времени.
-                Онбординг — вручную через платформу, комиссия настраивается индивидуально.
+              <p style={{ color: "rgba(255,253,249,0.68)", marginTop: 14, lineHeight: 1.6, fontSize: 15 }}>
+                Панель бизнеса — офферы, заказы и аналитика в реальном времени. Скидка
+                настраивается от 40 до 70%, комиссия — индивидуально под твоё заведение.
               </p>
               <a
                 href="mailto:hello@apetite.ru?subject=Подключить заведение"
                 className="btn btn-secondary"
-                style={{ marginTop: 24 }}
+                style={{ marginTop: 24, background: "var(--color-background)" }}
                 onMouseMove={magneticMove}
                 onMouseLeave={magneticLeave}
               >
@@ -211,7 +209,7 @@ export function LandingPage() {
 function TiltPhone() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<CSSProperties>({
-    transform: "perspective(900px) rotateY(10deg) rotateX(-3deg)",
+    transform: "perspective(900px) rotateY(8deg) rotateX(-2deg)",
   });
 
   const handleMove = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -221,12 +219,12 @@ function TiltPhone() {
     const px = (event.clientX - rect.left) / rect.width - 0.5;
     const py = (event.clientY - rect.top) / rect.height - 0.5;
     setStyle({
-      transform: `perspective(900px) rotateX(${py * -16}deg) rotateY(${px * 20}deg) scale(1.04)`,
+      transform: `perspective(900px) rotateX(${py * -12}deg) rotateY(${px * 16}deg) scale(1.03)`,
     });
   };
 
   const handleLeave = () => {
-    setStyle({ transform: "perspective(900px) rotateY(10deg) rotateX(-3deg)" });
+    setStyle({ transform: "perspective(900px) rotateY(8deg) rotateX(-2deg)" });
   };
 
   return (
@@ -267,10 +265,8 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
 }
 
 const heroStyle: CSSProperties = {
-  background: "radial-gradient(ellipse 100% 60% at 50% 0%, #131c14 0%, var(--color-background) 65%)",
+  background: "linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 70%)",
   paddingTop: 56,
-  overflow: "hidden",
-  position: "relative",
 };
 
 const heroInnerStyle: CSSProperties = {
@@ -279,15 +275,13 @@ const heroInnerStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: 40,
   flexWrap: "wrap",
-  paddingBottom: 96,
-  position: "relative",
-  zIndex: 1,
+  paddingBottom: 80,
 };
 
 const h1Style: CSSProperties = {
   fontFamily: "var(--font-display)",
   fontSize: "clamp(34px, 5vw, 54px)",
-  fontWeight: 600,
+  fontWeight: 700,
   lineHeight: 1.1,
   marginTop: 22,
   letterSpacing: "-0.01em",
@@ -301,26 +295,14 @@ const phoneWrapStyle: CSSProperties = {
   margin: "0 auto",
 };
 
-/* Плавный переход из hero в основной фон — вместо жёсткой границы, в духе
-   "liquid" направления (было: рваный бумажный край в прошлой версии дизайна). */
-const heroFadeStyle: CSSProperties = {
-  position: "absolute",
-  left: 0,
-  right: 0,
-  bottom: -1,
-  height: 160,
-  background: "linear-gradient(180deg, transparent, var(--color-background))",
-  pointerEvents: "none",
-};
-
 const stepGhostNumberStyle: CSSProperties = {
   position: "absolute",
   top: -18,
   right: -6,
   fontFamily: "var(--font-display)",
   fontSize: 96,
-  fontWeight: 600,
-  color: "rgba(255,255,255,0.04)",
+  fontWeight: 700,
+  color: "rgba(18,16,13,0.05)",
   lineHeight: 1,
   zIndex: 0,
   userSelect: "none",
@@ -337,12 +319,9 @@ const bentoLargeStyle: CSSProperties = {
 const businessCardStyle: CSSProperties = {
   position: "relative",
   overflow: "hidden",
-  background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
-  backdropFilter: "var(--glass-blur)",
+  background: "var(--color-ink)",
   borderRadius: "var(--radius-lg)",
   padding: "56px 40px",
-  border: "1px solid var(--color-border)",
-  boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
 };
 
 const faqListStyle: CSSProperties = {
@@ -360,7 +339,7 @@ const faqSummaryStyle: CSSProperties = {
   alignItems: "center",
   gap: 16,
   fontFamily: "var(--font-display)",
-  fontWeight: 600,
+  fontWeight: 700,
   cursor: "pointer",
   fontSize: 17,
   listStyle: "none",
@@ -376,6 +355,6 @@ const faqIndexStyle: CSSProperties = {
 const statValueStyle: CSSProperties = {
   fontFamily: "var(--font-display)",
   fontSize: 24,
-  fontWeight: 600,
+  fontWeight: 700,
   color: "var(--color-primary)",
 };

@@ -21,7 +21,7 @@ export function IconBadge({ icon: Icon, size = "md" }: { icon: LucideIcon; size?
         width: dims,
         height: dims,
         borderRadius: size === "xl" ? "50%" : 16,
-        background: "linear-gradient(135deg, rgba(202,255,77,0.18), rgba(183,166,255,0.14))",
+        background: "var(--color-primary-soft)",
         border: "1px solid var(--color-border)",
         flexShrink: 0,
       }}
