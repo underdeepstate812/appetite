@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEven
 import { Link } from "react-router-dom";
 import { Search, CreditCard, ShoppingBag } from "lucide-react";
 import { PhoneMockup } from "../components/PhoneMockup";
+import { OffersRibbon } from "../components/OffersRibbon";
 import { IconBadge } from "../components/IconBadge";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
@@ -110,6 +111,8 @@ export function LandingPage() {
         </div>
       </section>
 
+      <OffersRibbon />
+
       <section id="how" style={{ padding: "96px 0" }}>
         <div className="container">
           <SectionHeading eyebrow="Как это работает" title="Три шага до вкусной скидки" />
@@ -117,7 +120,8 @@ export function LandingPage() {
             {STEPS.map((step, index) =>
               index === 0 ? (
                 <div key={step.title} className="card card-hover bento-large" style={bentoLargeStyle}>
-                  <IconBadge icon={step.icon} size="lg" />
+                  <span className="step-accent" aria-hidden="true" />
+                  <IconBadge icon={step.icon} size="lg" className="step-icon-badge" />
                   <div>
                     <p className="eyebrow" style={{ marginBottom: 6 }}>
                       Шаг 1
@@ -134,9 +138,10 @@ export function LandingPage() {
                   className="card card-hover bento-small"
                   style={{ padding: "28px 28px 32px", position: "relative", overflow: "hidden" }}
                 >
+                  <span className="step-accent" aria-hidden="true" />
                   <span style={stepGhostNumberStyle}>{index + 1}</span>
                   <div style={{ marginBottom: 16, position: "relative" }}>
-                    <IconBadge icon={step.icon} />
+                    <IconBadge icon={step.icon} className="step-icon-badge" />
                   </div>
                   <p className="eyebrow" style={{ marginBottom: 6 }}>
                     Шаг {index + 1}
@@ -302,7 +307,7 @@ const stepGhostNumberStyle: CSSProperties = {
   fontFamily: "var(--font-display)",
   fontSize: 96,
   fontWeight: 700,
-  color: "rgba(18,16,13,0.05)",
+  color: "rgba(15,118,110,0.07)",
   lineHeight: 1,
   zIndex: 0,
   userSelect: "none",

@@ -8,12 +8,21 @@ const ICON_SIZES = { md: 22, lg: 28, xl: 36 };
  * функциональные UI-иконки (шаги, статусы) на консистентный набор с чёткими
  * размерами вместо эмодзи, которые рендерятся по-разному на разных ОС/браузерах.
  */
-export function IconBadge({ icon: Icon, size = "md" }: { icon: LucideIcon; size?: keyof typeof DIMENSIONS }) {
+export function IconBadge({
+  icon: Icon,
+  size = "md",
+  className,
+}: {
+  icon: LucideIcon;
+  size?: keyof typeof DIMENSIONS;
+  className?: string;
+}) {
   const dims = DIMENSIONS[size];
   const iconSize = ICON_SIZES[size];
 
   return (
     <div
+      className={className}
       style={{
         display: "inline-flex",
         alignItems: "center",
