@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
+import { ScrollProgress } from "./components/ScrollProgress";
+import { CursorGlow } from "./components/CursorGlow";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -11,6 +13,8 @@ function Layout() {
 
   return (
     <>
+      <ScrollProgress />
+      <CursorGlow />
       <Header />
       <Routes>
         <Route path="/" element={<LandingPage />} />

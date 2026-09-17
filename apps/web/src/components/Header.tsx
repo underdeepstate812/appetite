@@ -42,15 +42,15 @@ export function Header() {
               {menuOpen ? (
                 <path
                   d="M1 1 L19 15 M19 1 L1 15"
-                  stroke="#1a1a1a"
+                  stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                 />
               ) : (
                 <>
-                  <line x1="0" y1="1" x2="20" y2="1" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="0" y1="8" x2="20" y2="8" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="0" y1="15" x2="20" y2="15" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="0" y1="1" x2="20" y2="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="0" y1="8" x2="20" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="0" y1="15" x2="20" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </>
               )}
             </svg>

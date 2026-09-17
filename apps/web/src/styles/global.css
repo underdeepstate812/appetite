@@ -1,34 +1,36 @@
 :root {
-  /* Тот же terracotta-orange, что и в mobile/admin после дизайн-рефреша (apps/mobile/src/theme/tokens.ts) —
-     единый акцент бренда на всех поверхностях: mobile, admin, теперь и здесь. Base tone shifted from
-     white-card SaaS to warm ink+paper — "рыночный чек / ценник", ближе к продуктовому/фермерскому рынку,
-     чем к типовому dashboard-стилю. */
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* "Liquid Bio-Glass" — редизайн под тренды 26/27: тёмная "ботаническая ночь" вместо
+     светлого/бумажного фона, насыщенный digital-дуэт лайм + лавандовый вместо
+     единственного terracotta-акцента, стеклянные (glass) поверхности с blur вместо
+     плоских карточек — отсылка к "liquid glass" визуальному языку, который задаёт тон
+     интерфейсам 2026 года. */
+  --font-display: "Unbounded", "Segoe UI", sans-serif;
+  --font-body: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --color-primary: #ea580c;
-  --color-primary-dark: #c2440a;
-  --color-primary-soft: #ffedd5;
-  --color-secondary: #6b7a3a;
-  --color-secondary-soft: #eef1df;
-  --color-background: #faf3e6;
-  --color-surface: #f2e9d8;
-  --color-surface-elevated: #fffbf3;
-  --color-ink: #1c1712;
-  --color-ink-muted: #6f6558;
-  --color-border: #ddceac;
-  --color-danger: #b8342a;
-  --color-danger-soft: #f7e2dc;
-  --color-on-primary: #fffbf3;
+  --color-primary: #caff4d;
+  --color-primary-dark: #a8e62e;
+  --color-primary-soft: rgba(202, 255, 77, 0.16);
+  --color-secondary: #b7a6ff;
+  --color-secondary-soft: rgba(183, 166, 255, 0.16);
+  --color-background: #0a0f0b;
+  --color-surface: #10160f;
+  --color-surface-elevated: rgba(255, 255, 255, 0.06);
+  --color-ink: #f4f7ee;
+  --color-ink-muted: #9aa596;
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-danger: #ff6b6b;
+  --color-danger-soft: rgba(255, 107, 107, 0.14);
+  --color-on-primary: #0a0f0b;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --radius-full: 999px;
-  --radius-btn: 10px;
+  --radius-btn: var(--radius-full);
 
-  --shadow-card: 0 1px 2px rgba(28, 23, 18, 0.06);
-  --shadow-float: 5px 5px 0 var(--color-ink);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-float: 0 12px 40px rgba(202, 255, 77, 0.18);
+  --glass-blur: blur(20px);
 
   --container-width: 1120px;
   --header-height: 76px;
@@ -51,16 +53,16 @@ body {
   position: relative;
 }
 
-/* Тонкая бумажная фактура поверх всего сайта — SVG-шум через feTurbulence,
-   держит "рыночно-бумажный" тон без веса реальной картинки. */
+/* Тонкая зерновая фактура поверх всего сайта — держит glass-поверхности живыми,
+   не даёт тёмному фону выглядеть плоским/пластиковым. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  opacity: 0.045;
-  mix-blend-mode: multiply;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -90,6 +92,11 @@ img {
   display: block;
 }
 
+::selection {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
 .container {
   width: 100%;
   max-width: var(--container-width);
@@ -97,85 +104,161 @@ img {
   padding: 0 20px;
 }
 
-/* --- Buttons --- */
+/* --- Scroll-progress: тонкая градиентная полоса вверху, растёт с прогрессом скролла --- */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  z-index: 2000;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transform-origin: left;
+  transition: transform 0.1s linear;
+  box-shadow: 0 0 12px rgba(202, 255, 77, 0.5);
+}
+
+/* --- Aurora mesh: несколько блюрённых радиальных пятен лайм/лаванда, медленно дрейфующих
+   на заднем плане hero и business-блока — "liquid" акцент вместо плоского цвета фона. --- */
+
+.aurora-bg {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.6;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(202, 255, 77, 0.32), transparent 55%),
+    radial-gradient(circle at 82% 15%, rgba(183, 166, 255, 0.28), transparent 50%),
+    radial-gradient(circle at 55% 85%, rgba(202, 255, 77, 0.16), transparent 55%);
+  animation: auroraDrift 20s ease-in-out infinite alternate;
+}
+
+@keyframes auroraDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(3%, -4%, 0) scale(1.08);
+  }
+}
+
+/* --- 3D-наклон карточки за курсором (макет телефона в hero) --- */
+
+.tilt-card {
+  transition: transform 0.15s ease-out;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* --- Cursor-glow: мягкое пятно света, следующее за курсором (только десктоп/мышь) --- */
+
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 420px;
+  height: 420px;
+  margin-left: -210px;
+  margin-top: -210px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle, rgba(202, 255, 77, 0.14) 0%, rgba(183, 166, 255, 0.08) 45%, transparent 72%);
+  transition: transform 0.15s ease-out, opacity 0.3s ease;
+  will-change: transform;
+}
+
+/* --- Buttons: "liquid" pill — градиентная заливка + sheen-волна при hover --- */
 
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  padding: 0 24px;
+  padding: 0 26px;
   border-radius: var(--radius-btn);
-  border: 2px solid var(--color-ink);
+  border: 1.5px solid transparent;
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
   cursor: pointer;
+  overflow: hidden;
   transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
   text-decoration: none;
+  isolation: isolate;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.35) 48%, transparent 66%);
+  transform: translateX(-120%);
+  transition: transform 0.55s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.btn:not(:disabled):hover::after {
+  transform: translateX(120%);
+}
+
+.btn > * {
+  position: relative;
+  z-index: 2;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-.btn-primary,
-.btn-secondary {
-  box-shadow: 4px 4px 0 var(--color-ink);
-}
-
-.btn-primary:not(:disabled):hover,
-.btn-secondary:not(:disabled):hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--color-ink);
-}
-
-.btn-primary:not(:disabled):active,
-.btn-secondary:not(:disabled):active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 var(--color-ink);
-}
-
 .btn-primary {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: var(--color-on-primary);
+  box-shadow: var(--shadow-float);
 }
 
 .btn-primary:not(:disabled):hover {
-  background: var(--color-primary-dark);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 16px 48px rgba(202, 255, 77, 0.28);
 }
 
 .btn-secondary {
   background: var(--color-surface-elevated);
+  backdrop-filter: var(--glass-blur);
   color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--color-ink);
+  color: var(--color-ink-muted);
   border-color: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--color-ink);
 }
 
 .btn-sm {
   min-height: 40px;
-  padding: 0 16px;
+  padding: 0 18px;
   font-size: 14px;
-}
-
-.btn-sm.btn-primary,
-.btn-sm.btn-secondary {
-  box-shadow: 3px 3px 0 var(--color-ink);
-}
-
-.btn-sm.btn-primary:not(:disabled):hover,
-.btn-sm.btn-secondary:not(:disabled):hover {
-  transform: translate(1.5px, 1.5px);
-  box-shadow: 1.5px 1.5px 0 var(--color-ink);
 }
 
 .btn-block {
@@ -202,15 +285,21 @@ img {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-border);
-  background: var(--color-surface-elevated);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--color-ink);
   min-height: 48px;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.field input::placeholder {
+  color: var(--color-ink-muted);
+  opacity: 0.6;
 }
 
 .field input:focus {
   outline: none;
   border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .field input.field-invalid {
@@ -228,33 +317,35 @@ img {
 }
 
 .form-error {
-  color: var(--color-danger);
+  color: #ffb3b3;
   background: var(--color-danger-soft);
+  border: 1px solid rgba(255, 107, 107, 0.3);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 14px;
 }
 
-/* --- Card --- */
+/* --- Glass card --- */
 
 .card {
-  background: var(--color-surface-elevated);
-  border: 1.5px solid var(--color-border);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
-  border-color: var(--color-ink);
-  box-shadow: 4px 4px 0 var(--color-ink);
+  transform: translateY(-6px);
+  border-color: rgba(202, 255, 77, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(202, 255, 77, 0.12);
 }
 
-/* Ярлык-ценник — угловой акцент вместо typical soft-badge, отсылка к бумажным ценникам рынка. */
+/* Стеклянный ярлык с переливающейся (iridescent) обводкой — лайм → лаванда. */
 .stamp {
   display: inline-flex;
   align-items: center;
@@ -265,9 +356,12 @@ img {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 7px 16px;
-  border: 1.5px dashed currentColor;
   border-radius: var(--radius-full);
-  transform: rotate(-2deg);
+  color: var(--color-ink);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)) padding-box,
+    linear-gradient(120deg, var(--color-primary), var(--color-secondary)) border-box;
+  border: 1.5px solid transparent;
 }
 
 .eyebrow {
@@ -276,7 +370,36 @@ img {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- Bento-сетка ("как это работает") --- */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 20px;
+}
+
+.bento-large {
+  grid-column: span 6;
+}
+
+.bento-small {
+  grid-column: span 3;
+}
+
+@media (max-width: 760px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-large,
+  .bento-small {
+    grid-column: span 1;
+  }
 }
 
 /* --- Auth-страницы --- */
@@ -287,38 +410,16 @@ img {
   align-items: center;
   justify-content: center;
   padding: 48px 20px;
-  background: var(--color-surface);
+  position: relative;
+  overflow: hidden;
 }
 
 .auth-card {
   width: 100%;
   max-width: 420px;
   padding: 36px 32px;
-}
-
-.auth-tabs {
-  display: flex;
-  background: var(--color-surface);
-  border-radius: var(--radius-full);
-  padding: 4px;
-  margin-bottom: 24px;
-}
-
-.auth-tab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  min-height: 40px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  color: var(--color-ink-muted);
-}
-
-.auth-tab.is-active {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  position: relative;
+  z-index: 1;
 }
 
 .strength-meter {
@@ -332,6 +433,7 @@ img {
   flex: 1;
   border-radius: var(--radius-full);
   background: var(--color-border);
+  transition: background 0.2s ease;
 }
 
 .strength-bar.is-filled-weak {
@@ -339,47 +441,37 @@ img {
 }
 
 .strength-bar.is-filled-medium {
-  background: #c98a12;
+  background: #f2c94c;
 }
 
 .strength-bar.is-filled-strong {
-  background: var(--color-secondary);
-}
-
-/* --- Интерактивный наклон макета телефона в хиро --- */
-
-.phone-tilt {
-  transition: transform 0.4s ease;
-}
-
-.phone-tilt:hover {
-  transform: rotate(-3deg) scale(1.03);
+  background: var(--color-primary);
 }
 
 /* --- Reveal-on-scroll --- */
 
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(28px) scale(0.98);
   transition:
-    opacity 0.6s ease,
-    transform 0.6s ease;
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
-/* --- Header --- */
+/* --- Header (glass) --- */
 
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(250, 243, 230, 0.88);
-  backdrop-filter: blur(10px);
-  border-bottom: 2px solid var(--color-ink);
+  background: rgba(10, 15, 11, 0.72);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .site-header-inner {
@@ -391,10 +483,12 @@ img {
 }
 
 .site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 600;
-  font-size: 23px;
+  font-weight: 700;
+  font-size: 19px;
   color: var(--color-ink);
   text-decoration: none;
 }
@@ -406,14 +500,31 @@ img {
 }
 
 .site-nav-link {
+  position: relative;
   color: var(--color-ink-muted);
   text-decoration: none;
   font-size: 15px;
   font-weight: 500;
+  padding: 4px 0;
+}
+
+.site-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transition: right 0.25s ease;
 }
 
 .site-nav-link:hover {
   color: var(--color-ink);
+}
+
+.site-nav-link:hover::after {
+  right: 0;
 }
 
 .site-header-actions {
@@ -430,7 +541,8 @@ img {
   justify-content: center;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--color-background);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
   cursor: pointer;
 }
 
@@ -440,7 +552,8 @@ img {
   gap: 4px;
   padding: 12px 20px 20px;
   border-top: 1px solid var(--color-border);
-  background: var(--color-background);
+  background: rgba(10, 15, 11, 0.96);
+  backdrop-filter: var(--glass-blur);
 }
 
 .mobile-menu.is-open {
@@ -460,7 +573,8 @@ img {
 }
 
 .mobile-menu-link:hover {
-  background: var(--color-surface);
+  background: var(--color-surface-elevated);
+  color: var(--color-primary);
 }
 
 /* Мобильные и планшеты — гамбургер вместо горизонтального меню (по запросу). */
@@ -477,17 +591,27 @@ img {
 /* --- Footer --- */
 
 .site-footer {
-  background: var(--color-ink);
-  color: #d8d0c2;
+  position: relative;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
   margin-top: 96px;
+}
+
+.site-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-secondary), transparent);
 }
 
 .footer-logo {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 600;
-  font-size: 22px;
-  color: #fffbf3;
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--color-ink);
 }
 
 .footer-grid {
@@ -498,7 +622,7 @@ img {
 }
 
 .footer-col-title {
-  color: #ffffff;
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 700;
   margin-bottom: 14px;
@@ -506,21 +630,22 @@ img {
 
 .footer-link {
   display: block;
-  color: #b6b1ab;
+  color: var(--color-ink-muted);
   text-decoration: none;
   font-size: 14px;
   padding: 6px 0;
+  transition: color 0.15s ease;
 }
 
 .footer-link:hover {
-  color: #ffffff;
+  color: var(--color-primary);
 }
 
 .footer-bottom {
-  border-top: 1px solid #33312e;
+  border-top: 1px solid var(--color-border);
   padding: 20px 0;
   font-size: 13px;
-  color: #8a857e;
+  color: var(--color-ink-muted);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -560,7 +685,22 @@ details[open] .faq-chevron {
     transform: none;
     transition: none;
   }
+  .cursor-glow {
+    display: none;
+  }
+  .aurora-bg {
+    animation: none;
+  }
   html {
     scroll-behavior: auto;
+  }
+  .btn::after {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .cursor-glow {
+    display: none;
   }
 }
