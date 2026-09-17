@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import * as Haptics from "expo-haptics";
 import type { Offer } from "@apetite/shared";
 import { offersApi } from "../../api/offers";
 import { ordersApi } from "../../api/orders";
@@ -57,6 +58,13 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setSubmitting(true);
     try {
       const [order] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
+      // Двойной плотный вибро-клик ("клик-клак") на успешный перехват — см. бриф про
+      // тактильный отклик; System.notificationAsync(Success) один общий импульс, а тут
+      // намеренно два разнесённых по времени, ощутимее как "защёлкивание замка".
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+      setTimeout(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }, 90);
       // replace — чтобы "назад" с экрана подтверждения не возвращал на форму оплаты.
       navigation.replace("OrderConfirmation", { orderId: order.id });
     } catch (error) {

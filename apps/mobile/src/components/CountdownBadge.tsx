@@ -1,23 +1,37 @@
-import React from "react";
-import { StyleSheet, Text } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme/ThemeProvider";
 import { useNow } from "../hooks/useNow";
-import { getTimeLeft, getUrgencyLevel } from "../utils/time";
+import { getTimeLeft, getUrgencyRatio } from "../utils/time";
 
+/**
+ * FOMO-таймер в стиле "тактильного максимализма" из брифа: не резкий
+ * 3-статусный переключатель, а непрерывно "тающий" цвет — мягкая пилюля,
+ * плавно съезжающая от зелёного к неоново-оранжевому по мере истечения
+ * окна самовывоза. Animated.timing на каждый тик useNow (раз в 30с) даёт
+ * ощущение непрерывного дрейфа, а не мгновенного скачка.
+ */
 export function CountdownBadge({ pickupEnd }: { pickupEnd: string }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const now = useNow();
   const timeLeft = getTimeLeft(pickupEnd, now);
-  const urgency = getUrgencyLevel(timeLeft);
+  const ratio = getUrgencyRatio(timeLeft);
 
-  const color =
-    urgency === "urgent"
-      ? theme.colors.danger
-      : urgency === "soon"
-        ? theme.colors.warning
-        : theme.colors.textMuted;
+  const anim = useRef(new Animated.Value(ratio)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: ratio, duration: 1400, useNativeDriver: false }).start();
+  }, [ratio, anim]);
+
+  const backgroundColor = anim.interpolate({
+    inputRange: [0, 0.55, 1],
+    outputRange: [theme.colors.successSoft, theme.colors.warningSoft, theme.colors.dangerSoft],
+  });
+  const textColor = anim.interpolate({
+    inputRange: [0, 0.55, 1],
+    outputRange: [theme.colors.success, theme.colors.warning, theme.colors.danger],
+  });
 
   const label = timeLeft.isPast
     ? t("offerCard.pickupClosed")
@@ -25,9 +39,14 @@ export function CountdownBadge({ pickupEnd }: { pickupEnd: string }) {
       ? t("offerCard.timeLeftHours", { hours: timeLeft.hours, minutes: timeLeft.minutes })
       : t("offerCard.timeLeftMinutes", { minutes: timeLeft.minutes });
 
-  return <Text style={[styles.text, { color }]}>{label}</Text>;
+  return (
+    <Animated.View style={[styles.pill, { backgroundColor, borderRadius: theme.radii.full }]}>
+      <Animated.Text style={[styles.text, { color: textColor }]}>{label}</Animated.Text>
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
+  pill: { paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" },
   text: { fontSize: 12, fontWeight: "700" },
 });

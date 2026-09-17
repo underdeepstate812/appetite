@@ -5,6 +5,28 @@ import { useTheme } from "../theme/ThemeProvider";
 
 const LEAFLET_CSS_ID = "apetite-leaflet-css";
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const PULSE_STYLE_ID = "apetite-marker-pulse";
+
+/** Чем больше скидка, тем крупнее и "горячее" пульсирует пин — см. бриф про "живой радар скидок". */
+function pinTierFor(discountPercent: number) {
+  if (discountPercent >= 50) return { dot: 22, glow: 16, duration: "1.4s" };
+  if (discountPercent >= 30) return { dot: 18, glow: 10, duration: "1.9s" };
+  return { dot: 14, glow: 6, duration: "2.6s" };
+}
+
+function ensurePulseKeyframes() {
+  if (document.getElementById(PULSE_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = PULSE_STYLE_ID;
+  style.textContent = `
+    @keyframes apetitePinPulse {
+      0% { box-shadow: 0 0 0 0 var(--pin-glow-color); }
+      70% { box-shadow: 0 0 0 var(--pin-glow-spread) transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 interface LeafletMapViewProps {
   center: { lat: number; lng: number };
@@ -42,6 +64,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
       link.href = LEAFLET_CSS_URL;
       document.head.appendChild(link);
     }
+    ensurePulseKeyframes();
   }, []);
 
   useEffect(() => {
@@ -88,21 +111,35 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
       markersRef.current = [];
 
       offers.forEach((offer) => {
+        const tier = pinTierFor(offer.discountPercent);
+        const glowColor = `${theme.colors.primary}80`; // ~50% alpha для стартового кольца пульса
         const icon = L.divIcon({
           className: "apetite-marker",
-          html: `<div style="
-            background:${theme.colors.primary};
-            color:${theme.colors.onPrimary};
-            border:2px solid ${theme.colors.background};
-            border-radius:14px;
-            padding:3px 8px;
-            font-size:12px;
-            font-weight:700;
-            font-family:system-ui,sans-serif;
-            white-space:nowrap;
-            box-shadow:0 1px 4px rgba(0,0,0,0.3);
-          ">−${offer.discountPercent}%</div>`,
-          iconAnchor: [16, 14],
+          html: `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <div style="
+                width:${tier.dot}px;
+                height:${tier.dot}px;
+                border-radius:50%;
+                background:radial-gradient(circle at 35% 30%, ${theme.colors.primary}, ${theme.colors.primary});
+                border:2px solid ${theme.colors.background};
+                --pin-glow-color:${glowColor};
+                --pin-glow-spread:${tier.glow}px;
+                animation:apetitePinPulse ${tier.duration} ease-out infinite;
+              "></div>
+              <div style="
+                background:${theme.colors.surfaceElevated};
+                color:${theme.colors.text};
+                border-radius:10px;
+                padding:1px 6px;
+                font-size:11px;
+                font-weight:700;
+                font-family:system-ui,sans-serif;
+                white-space:nowrap;
+                box-shadow:0 1px 4px rgba(0,0,0,0.25);
+              ">−${offer.discountPercent}%</div>
+            </div>`,
+          iconAnchor: [tier.dot / 2, tier.dot / 2],
         });
         const marker = L.marker([offer.businessLat, offer.businessLng], { icon }).addTo(map);
         marker.bindTooltip(`${offer.title} · ${offer.businessName}`);

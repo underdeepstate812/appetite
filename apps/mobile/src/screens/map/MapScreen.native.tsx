@@ -8,6 +8,7 @@ import { useNearbyOffers, DEFAULT_RADIUS_KM } from "../../hooks/useNearbyOffers"
 import { Screen } from "../../components/Screen";
 import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
 import { LoadingView, ErrorView } from "../../components/StateViews";
+import { PulsingMapPin } from "../../components/PulsingMapPin";
 import type { MainTabScreenProps } from "../../navigation/types";
 
 type Props = MainTabScreenProps<"Map">;
@@ -55,9 +56,10 @@ export function MapScreen({ navigation }: Props) {
             coordinate={{ latitude: offer.businessLat, longitude: offer.businessLng }}
             title={offer.title}
             description={`${offer.businessName} · -${offer.discountPercent}%`}
-            pinColor={theme.colors.primary}
             onPress={() => navigation.navigate("OfferDetail", { offerId: offer.id })}
-          />
+          >
+            <PulsingMapPin discountPercent={offer.discountPercent} />
+          </Marker>
         ))}
       </MapView>
       {locationStatus !== "granted" ? (

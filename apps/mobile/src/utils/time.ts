@@ -25,3 +25,13 @@ export function getUrgencyLevel(timeLeft: TimeLeft): UrgencyLevel {
   if (timeLeft.totalMinutes < 120) return "soon";
   return "normal";
 }
+
+/** Непрерывный "градус горячности" 0..1 по всему 3-часовому окну — 0 = спокойно
+ * (зелёный), 1 = вот-вот сгорит (неоново-оранжевый). Питает "тающие" цвета
+ * бейджа/рамки карточки (см. CountdownBadge, OfferCard) — плавный переход
+ * вместо резкого переключения между 3 дискретными состояниями. */
+export function getUrgencyRatio(timeLeft: TimeLeft): number {
+  if (timeLeft.isPast) return 1;
+  const MELT_WINDOW_MINUTES = 180;
+  return Math.min(1, Math.max(0, (MELT_WINDOW_MINUTES - timeLeft.totalMinutes) / MELT_WINDOW_MINUTES));
+}

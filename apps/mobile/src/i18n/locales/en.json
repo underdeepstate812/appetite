@@ -39,7 +39,18 @@
       "GROCERIES": "Groceries"
     },
     "emptyNow": "No deals available right now",
-    "emptyEvening": "No evening deals yet"
+    "emptyEvening": "No evening deals yet",
+    "greeting": "Hi, {{name}}!",
+    "greetingFallback": "Hi there!",
+    "hotDiscounts": "Hot deals nearby",
+    "featuredEyebrow": "Grab it fast",
+    "mapNearbyCafes": "Cafes nearby: {{count}}",
+    "mapNearbyRestaurants": "Restaurants: {{count}}",
+    "openMap": "Open map",
+    "ordersShortcut": "My orders",
+    "locationFallback": "Moscow",
+    "chipVenuesNearby": "Venues nearby: {{count}}",
+    "chipHotDeals": "Hot deals: {{count}}"
   },
   "location": {
     "rationaleMessage": "Turn on location to see deals near you and how far they are",

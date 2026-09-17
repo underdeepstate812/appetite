@@ -39,7 +39,18 @@
       "GROCERIES": "Продукты"
     },
     "emptyNow": "Пока нет доступных прямо сейчас предложений",
-    "emptyEvening": "Пока нет предложений на вечер"
+    "emptyEvening": "Пока нет предложений на вечер",
+    "greeting": "Привет, {{name}}!",
+    "greetingFallback": "Привет!",
+    "hotDiscounts": "Хот-скидки рядом",
+    "featuredEyebrow": "Успей забрать",
+    "mapNearbyCafes": "Кафе рядом: {{count}}",
+    "mapNearbyRestaurants": "Рестораны: {{count}}",
+    "openMap": "Открыть карту",
+    "ordersShortcut": "Мои заказы",
+    "locationFallback": "Москва",
+    "chipVenuesNearby": "Заведений рядом: {{count}}",
+    "chipHotDeals": "Горящих скидок: {{count}}"
   },
   "location": {
     "rationaleMessage": "Включи геопозицию, чтобы видеть предложения рядом с тобой и расстояние до них",
