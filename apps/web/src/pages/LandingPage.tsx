@@ -57,6 +57,7 @@ function magneticLeave<T extends HTMLElement>(event: ReactMouseEvent<T>) {
 
 export function LandingPage() {
   const [heroInView, setHeroInView] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const heroRef = useReveal<HTMLDivElement>(() => setHeroInView(true));
   const phoneRef = useReveal<HTMLDivElement>();
   const stepsRef = useReveal<HTMLDivElement>();
@@ -187,21 +188,36 @@ export function LandingPage() {
       <section id="faq" style={{ padding: "0 0 96px" }}>
         <div className="container" style={{ maxWidth: 720 }}>
           <SectionHeading eyebrow="Вопросы" title="Если что-то осталось непонятным" />
-          <div ref={faqRef} className="reveal" style={faqListStyle}>
-            {FAQ.map((item, index) => (
-              <details key={item.q} style={faqItemStyle}>
-                <summary style={faqSummaryStyle}>
-                  <span style={faqIndexStyle}>{String(index + 1).padStart(2, "0")}</span>
-                  {item.q}
-                  <span className="faq-chevron" aria-hidden="true" style={{ marginLeft: "auto", fontFamily: "var(--font-display)" }}>
-                    +
-                  </span>
-                </summary>
-                <p style={{ marginTop: 10, marginLeft: 40, color: "var(--color-ink-muted)", lineHeight: 1.6, fontSize: 14 }}>
-                  {item.a}
-                </p>
-              </details>
-            ))}
+          <div ref={faqRef} className="reveal faq-list" style={faqListStyle}>
+            {FAQ.map((item, index) => {
+              const isOpen = openFaq === index;
+              const panelId = `faq-panel-${index}`;
+              return (
+                <div key={item.q} className={`faq-item${isOpen ? " is-open" : ""}`} style={faqItemStyle}>
+                  <button
+                    type="button"
+                    className="faq-summary-btn"
+                    style={faqSummaryStyle}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                  >
+                    <span style={faqIndexStyle}>{String(index + 1).padStart(2, "0")}</span>
+                    {item.q}
+                    <span className="faq-chevron" aria-hidden="true" style={{ marginLeft: "auto", fontFamily: "var(--font-display)" }}>
+                      +
+                    </span>
+                  </button>
+                  <div className="faq-panel" id={panelId} role="region">
+                    <div className="faq-panel-inner">
+                      <p style={{ marginTop: 10, marginLeft: 40, color: "var(--color-ink-muted)", lineHeight: 1.6, fontSize: 14 }}>
+                        {item.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

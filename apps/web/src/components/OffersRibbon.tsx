@@ -64,6 +64,36 @@ export function OffersRibbon() {
   const visible = useMemo(() => (filter === "all" ? OFFERS : OFFERS.filter((o) => o.category === filter)), [filter]);
   const animatedCount = useAnimatedCount(visible.length);
 
+  // Лента дублируется, чтобы петля была бесшовной: как только автоскролл
+  // проходит первую копию целиком, мы отматываем scrollLeft ровно на её
+  // ширину назад — визуально это неотличимо от продолжения бегущей строки.
+  const loopedOffers = useMemo(() => [...visible, ...visible], [visible]);
+
+  const isHoveredRef = useRef(false);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }, [filter]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const SPEED = 0.5; // px за кадр (~30px/с при 60fps) — читаемый темп бегущей строки
+    let raf = 0;
+
+    const tick = () => {
+      if (!isHoveredRef.current && !dragState.current.dragging) {
+        const half = el.scrollWidth / 2;
+        el.scrollLeft += SPEED;
+        if (el.scrollLeft >= half) el.scrollLeft -= half;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [loopedOffers]);
+
   const toggleLike = (id: string) => {
     setLiked((prev) => {
       const next = new Set(prev);
@@ -71,6 +101,15 @@ export function OffersRibbon() {
       else next.add(id);
       return next;
     });
+  };
+
+  const handlePointerEnter = () => {
+    isHoveredRef.current = true;
+  };
+
+  const handlePointerLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
+    isHoveredRef.current = false;
+    endDrag(event);
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -87,6 +126,7 @@ export function OffersRibbon() {
   };
 
   const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragState.current.dragging) return;
     dragState.current.dragging = false;
     scrollRef.current?.releasePointerCapture(event.pointerId);
   };
@@ -129,14 +169,25 @@ export function OffersRibbon() {
           <div
             ref={scrollRef}
             className="ribbon-scroll"
+            onPointerEnter={handlePointerEnter}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={endDrag}
-            onPointerLeave={endDrag}
+            onPointerLeave={handlePointerLeave}
           >
-            {visible.map((offer, index) => (
-              <OfferTile key={offer.id} offer={offer} index={index} liked={liked.has(offer.id)} onToggleLike={() => toggleLike(offer.id)} />
-            ))}
+            {loopedOffers.map((offer, index) => {
+              const isDuplicate = index >= visible.length;
+              return (
+                <OfferTile
+                  key={`${offer.id}-${index}`}
+                  offer={offer}
+                  index={index % visible.length}
+                  liked={liked.has(offer.id)}
+                  onToggleLike={() => toggleLike(offer.id)}
+                  duplicate={isDuplicate}
+                />
+              );
+            })}
           </div>
           <div className="ribbon-fade ribbon-fade-left" aria-hidden="true" />
           <div className="ribbon-fade ribbon-fade-right" aria-hidden="true" />
@@ -151,11 +202,13 @@ function OfferTile({
   index,
   liked,
   onToggleLike,
+  duplicate,
 }: {
   offer: Offer;
   index: number;
   liked: boolean;
   onToggleLike: () => void;
+  duplicate?: boolean;
 }) {
   const meta = CATEGORY_META[offer.category];
   const Icon = meta.icon;
@@ -164,6 +217,7 @@ function OfferTile({
     <article
       className={`offer-tile${offer.hot ? " is-hot" : ""}`}
       style={{ "--tile-delay": `${Math.min(index, 6) * 60}ms` } as CSSProperties}
+      aria-hidden={duplicate || undefined}
     >
       {offer.hot ? (
         <span className="offer-tile-hot">
@@ -173,6 +227,7 @@ function OfferTile({
 
       <button
         type="button"
+        tabIndex={duplicate ? -1 : undefined}
         className={`offer-tile-like${liked ? " is-liked" : ""}`}
         onClick={onToggleLike}
         aria-pressed={liked}
