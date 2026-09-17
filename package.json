@@ -12,6 +12,7 @@
     "build:shared": "pnpm --filter @apetite/shared run build",
     "dev:backend": "pnpm --filter @apetite/backend dev",
     "dev:admin": "pnpm --filter @apetite/admin dev",
+    "dev:web": "pnpm --filter @apetite/web dev",
     "dev:mobile": "pnpm --filter @apetite/mobile start",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
