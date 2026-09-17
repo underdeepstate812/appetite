@@ -433,6 +433,32 @@ img {
   }
 }
 
+@keyframes emberGlow {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card), 0 0 0 0 rgba(214, 67, 46, 0);
+  }
+  50% {
+    box-shadow: var(--shadow-card), 0 0 20px 2px rgba(214, 67, 46, 0.32);
+  }
+}
+
+@keyframes flameFlicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  30% {
+    transform: scale(1.14) rotate(-7deg);
+  }
+  55% {
+    transform: scale(0.92) rotate(5deg);
+  }
+  80% {
+    transform: scale(1.06) rotate(-3deg);
+  }
+}
+
 .live-dot {
   width: 8px;
   height: 8px;
@@ -534,7 +560,10 @@ img {
   padding: 18px;
   opacity: 0;
   transform: translateY(20px) scale(0.96);
-  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s ease;
 }
 
 .ribbon-viewport.is-visible .offer-tile {
@@ -557,12 +586,14 @@ img {
 }
 
 .offer-tile.is-hot {
-  border-color: rgba(214, 67, 46, 0.3);
+  border-color: rgba(214, 67, 46, 0.4);
+  animation: emberGlow 2.4s ease-in-out infinite;
 }
 
 .offer-tile.is-hot:hover {
   border-color: var(--color-danger);
   box-shadow: 0 12px 26px rgba(214, 67, 46, 0.16);
+  animation-play-state: paused;
 }
 
 .offer-tile-hot {
@@ -580,6 +611,17 @@ img {
   border-radius: var(--radius-full);
   box-shadow: 0 4px 10px rgba(214, 67, 46, 0.35);
   z-index: 1;
+}
+
+.offer-tile-hot-flame {
+  animation: flameFlicker 1.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.offer-tile-countdown {
+  color: var(--color-danger);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .offer-tile-like {
@@ -1043,7 +1085,9 @@ img {
     transition: none;
   }
   .live-dot,
-  .offer-tile-icon.is-hot {
+  .offer-tile-icon.is-hot,
+  .offer-tile.is-hot,
+  .offer-tile-hot-flame {
     animation: none;
   }
   html {

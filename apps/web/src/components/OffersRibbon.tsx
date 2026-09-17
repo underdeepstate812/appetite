@@ -14,8 +14,17 @@ interface Offer {
   discount: number;
   distance: string;
   pickup: string;
-  hot?: boolean;
+  /** Минут до конца окна самовывоза на момент загрузки страницы — тикает вживую. */
+  minutesLeft: number;
 }
+
+/**
+ * "Горит" — не ручной флаг, а живое правило: большая скидка + мало времени.
+ * Считается от текущего обратного отсчёта, так что оффер может реально
+ * загореться прямо на экране, пока пользователь смотрит на ленту.
+ */
+const HOT_DISCOUNT_THRESHOLD = 60;
+const HOT_MINUTES_THRESHOLD = 45;
 
 const CATEGORY_META: Record<Category, { label: string; icon: typeof UtensilsCrossed }> = {
   food: { label: "Еда", icon: UtensilsCrossed },
@@ -33,14 +42,14 @@ const FILTERS: { id: Category | "all"; label: string }[] = [
 ];
 
 const OFFERS: Offer[] = [
-  { id: "1", category: "food", shop: "Никитская кухня", title: "Бизнес-ланч: суп + горячее", oldPrice: 490, price: 245, discount: 50, distance: "450 м", pickup: "до 21:30" },
-  { id: "2", category: "food", shop: "Padang Wok", title: "Сет: лапша с курицей терияки", oldPrice: 690, price: 210, discount: 70, distance: "1.1 км", pickup: "через 40 мин", hot: true },
-  { id: "3", category: "bakery", shop: "Sonnig Bakery", title: "Круассаны и багеты, набор", oldPrice: 340, price: 150, discount: 55, distance: "650 м", pickup: "до 20:00" },
-  { id: "4", category: "bakery", shop: "Хлеб и Соль", title: "Пироги с ягодами, 2 шт", oldPrice: 420, price: 250, discount: 40, distance: "900 м", pickup: "до 22:00" },
-  { id: "5", category: "flowers", shop: "Полевой цветочный", title: "Букет дня — микс сезонных", oldPrice: 1490, price: 890, discount: 40, distance: "1.4 км", pickup: "до 21:00" },
-  { id: "6", category: "flowers", shop: "GreenHouse Flowers", title: "Моно-букет: пионы", oldPrice: 2200, price: 660, discount: 70, distance: "2 км", pickup: "через 25 мин", hot: true },
-  { id: "7", category: "groceries", shop: "Свежий Корнер", title: "Овощи и фрукты, набор дня", oldPrice: 650, price: 260, discount: 60, distance: "300 м", pickup: "до 21:45" },
-  { id: "8", category: "groceries", shop: "Маркет Дня", title: "Молочная линейка, набор", oldPrice: 380, price: 210, discount: 45, distance: "800 м", pickup: "до 20:30" },
+  { id: "1", category: "food", shop: "Никитская кухня", title: "Бизнес-ланч: суп + горячее", oldPrice: 490, price: 245, discount: 50, distance: "450 м", pickup: "до 21:30", minutesLeft: 90 },
+  { id: "2", category: "food", shop: "Padang Wok", title: "Сет: лапша с курицей терияки", oldPrice: 690, price: 210, discount: 70, distance: "1.1 км", pickup: "через 40 мин", minutesLeft: 40 },
+  { id: "3", category: "bakery", shop: "Sonnig Bakery", title: "Круассаны и багеты, набор", oldPrice: 340, price: 150, discount: 55, distance: "650 м", pickup: "до 20:00", minutesLeft: 120 },
+  { id: "4", category: "bakery", shop: "Хлеб и Соль", title: "Пироги с ягодами, 2 шт", oldPrice: 420, price: 250, discount: 40, distance: "900 м", pickup: "до 22:00", minutesLeft: 150 },
+  { id: "5", category: "flowers", shop: "Полевой цветочный", title: "Букет дня — микс сезонных", oldPrice: 1490, price: 890, discount: 40, distance: "1.4 км", pickup: "до 21:00", minutesLeft: 100 },
+  { id: "6", category: "flowers", shop: "GreenHouse Flowers", title: "Моно-букет: пионы", oldPrice: 2200, price: 660, discount: 70, distance: "2 км", pickup: "через 25 мин", minutesLeft: 25 },
+  { id: "7", category: "groceries", shop: "Свежий Корнер", title: "Овощи и фрукты, набор дня", oldPrice: 650, price: 260, discount: 60, distance: "300 м", pickup: "до 21:45", minutesLeft: 46 },
+  { id: "8", category: "groceries", shop: "Маркет Дня", title: "Молочная линейка, набор", oldPrice: 380, price: 210, discount: 45, distance: "800 м", pickup: "до 20:30", minutesLeft: 80 },
 ];
 
 /**
@@ -213,15 +222,21 @@ function OfferTile({
   const meta = CATEGORY_META[offer.category];
   const Icon = meta.icon;
 
+  // Тикаем только те офферы, что вообще способны загореться — незачем
+  // гонять интервал у карточки со скидкой 40%, она никогда не станет "hot".
+  const tracked = offer.discount >= HOT_DISCOUNT_THRESHOLD;
+  const secondsLeft = useCountdown(offer.minutesLeft, tracked);
+  const hot = tracked && secondsLeft <= HOT_MINUTES_THRESHOLD * 60;
+
   return (
     <article
-      className={`offer-tile${offer.hot ? " is-hot" : ""}`}
+      className={`offer-tile${hot ? " is-hot" : ""}`}
       style={{ "--tile-delay": `${Math.min(index, 6) * 60}ms` } as CSSProperties}
       aria-hidden={duplicate || undefined}
     >
-      {offer.hot ? (
+      {hot ? (
         <span className="offer-tile-hot">
-          <Flame size={13} strokeWidth={2.4} aria-hidden="true" /> Горит
+          <Flame size={13} strokeWidth={2.4} className="offer-tile-hot-flame" aria-hidden="true" /> Горит
         </span>
       ) : null}
 
@@ -236,8 +251,8 @@ function OfferTile({
         <Heart size={16} strokeWidth={2.2} fill={liked ? "currentColor" : "none"} />
       </button>
 
-      <div className={`offer-tile-icon${offer.hot ? " is-hot" : ""}`}>
-        <Icon size={26} strokeWidth={2} color={offer.hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
+      <div className={`offer-tile-icon${hot ? " is-hot" : ""}`}>
+        <Icon size={26} strokeWidth={2} color={hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
       </div>
 
       <p className="offer-tile-shop">{offer.shop}</p>
@@ -246,19 +261,50 @@ function OfferTile({
       <div className="offer-tile-price-row">
         <span className="offer-tile-price">{offer.price} ₽</span>
         <span className="offer-tile-old-price">{offer.oldPrice} ₽</span>
-        <span className={`offer-tile-badge${offer.hot ? " is-hot" : ""}`}>−{offer.discount}%</span>
+        <span className={`offer-tile-badge${hot ? " is-hot" : ""}`}>−{offer.discount}%</span>
       </div>
 
       <div className="offer-tile-meta">
         <span>
           <MapPin size={12} strokeWidth={2.2} aria-hidden="true" /> {offer.distance}
         </span>
-        <span>
-          <Clock size={12} strokeWidth={2.2} aria-hidden="true" /> {offer.pickup}
-        </span>
+        {hot ? (
+          <span className="offer-tile-countdown">
+            <Flame size={12} strokeWidth={2.4} aria-hidden="true" /> {formatCountdown(secondsLeft)}
+          </span>
+        ) : (
+          <span>
+            <Clock size={12} strokeWidth={2.2} aria-hidden="true" /> {offer.pickup}
+          </span>
+        )}
       </div>
     </article>
   );
+}
+
+/**
+ * Живой обратный отсчёт от minutesLeft — тикает раз в секунду, пока tracked.
+ * От него зависит и текст таймера на "горящих" карточках, и сам момент,
+ * когда обычная карточка пересекает порог и реально становится "hot".
+ */
+function useCountdown(minutesLeft: number, tracked: boolean) {
+  const [secondsLeft, setSecondsLeft] = useState(() => Math.round(minutesLeft * 60));
+
+  useEffect(() => {
+    if (!tracked || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      setSecondsLeft((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [tracked]);
+
+  return secondsLeft;
+}
+
+function formatCountdown(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 /**
