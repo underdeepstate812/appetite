@@ -1,10 +1,12 @@
+import { AppetiteMark } from "./AppetiteMark";
+
 export function Footer() {
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <p className="footer-logo" style={{ marginBottom: 10 }}>
-            🍊 Apetite
+          <p className="footer-logo" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <AppetiteMark size={24} /> Apetite
           </p>
           <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
             Спасаем вкусную еду от списания — заведения продают остатки со скидкой

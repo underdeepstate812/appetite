@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { AppetiteMark } from "./AppetiteMark";
 
 const NAV_LINKS = [
   { href: "#how", label: "Как это работает" },
@@ -14,7 +15,7 @@ export function Header() {
     <header className="site-header">
       <div className="container site-header-inner">
         <Link to="/" className="site-logo" onClick={() => setMenuOpen(false)}>
-          🍊 Apetite
+          <AppetiteMark size={26} /> Apetite
         </Link>
 
         <nav className="site-nav-desktop">

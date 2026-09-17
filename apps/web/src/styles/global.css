@@ -178,7 +178,10 @@ img {
   will-change: transform;
 }
 
-/* --- Buttons: "liquid" pill — градиентная заливка + sheen-волна при hover --- */
+/* --- Buttons: "clay" tactile — мягкая приподнятая форма + вдавливание при клике,
+   вместо предыдущего liquid-sheen пилла. Тот же язык, что и у новой кнопки в
+   мобильном приложении (apps/mobile/src/components/Button.tsx): двойная тень
+   (свет сверху + тень снизу) и физическое "нажатие", не просто hover-эффект. --- */
 
 .btn {
   position: relative;
@@ -189,39 +192,16 @@ img {
   min-height: 48px;
   padding: 0 26px;
   border-radius: var(--radius-btn);
-  border: 1.5px solid transparent;
+  border: none;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  overflow: hidden;
-  transition:
-    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
   text-decoration: none;
-  isolation: isolate;
-}
-
-.btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.35) 48%, transparent 66%);
-  transform: translateX(-120%);
-  transition: transform 0.55s ease;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.btn:not(:disabled):hover::after {
-  transform: translateX(120%);
-}
-
-.btn > * {
-  position: relative;
-  z-index: 2;
+  transition:
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .btn:disabled {
@@ -230,37 +210,67 @@ img {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(160deg, var(--color-primary), var(--color-primary-dark));
   color: var(--color-on-primary);
-  box-shadow: var(--shadow-float);
+  box-shadow:
+    0 8px 20px rgba(202, 255, 77, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.12);
 }
 
 .btn-primary:not(:disabled):hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 16px 48px rgba(202, 255, 77, 0.28);
+  transform: translateY(-1px);
+}
+
+.btn-primary:not(:disabled):active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    0 3px 10px rgba(202, 255, 77, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
 }
 
 .btn-secondary {
   background: var(--color-surface-elevated);
   backdrop-filter: var(--glass-blur);
   color: var(--color-ink);
-  border-color: var(--color-border);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px var(--color-border);
 }
 
 .btn-secondary:not(:disabled):hover {
-  transform: translateY(-2px);
-  border-color: var(--color-primary);
-  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px var(--color-primary);
+}
+
+.btn-secondary:not(:disabled):active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px var(--color-border);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-ink-muted);
-  border-color: transparent;
+  box-shadow: none;
 }
 
 .btn-ghost:not(:disabled):hover {
   color: var(--color-ink);
+}
+
+.btn-ghost:not(:disabled):active {
+  transform: scale(0.97);
 }
 
 .btn-sm {
