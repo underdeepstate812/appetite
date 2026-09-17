@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import {
-  DISCOUNT_RULES,
+  computeDiscountPercent,
   ECO_POINTS_PER_KG,
   PICKUP_CODE_LENGTH,
   PLATFORM_COMMISSION_PERCENT,
@@ -28,20 +28,6 @@ function offsetCoords(deltaLatKm: number, deltaLngKm: number) {
   };
 }
 
-/** Повторяет правило скидок из ШАГ 5 (шедулер) — здесь только для реалистичных сид-данных. */
-function computeDiscountPercent(hoursToEnd: number): number {
-  if (hoursToEnd < DISCOUNT_RULES.TIER_3_HOURS_BEFORE_END) {
-    return Math.min(
-      DISCOUNT_RULES.BASE_PERCENT + DISCOUNT_RULES.TIER_3_BONUS_PERCENT,
-      DISCOUNT_RULES.MAX_PERCENT
-    );
-  }
-  if (hoursToEnd < DISCOUNT_RULES.TIER_1_HOURS_BEFORE_END) {
-    return DISCOUNT_RULES.BASE_PERCENT + DISCOUNT_RULES.TIER_2_BONUS_PERCENT;
-  }
-  return DISCOUNT_RULES.BASE_PERCENT;
-}
-
 function generatePickupCode(): string {
   const max = 10 ** PICKUP_CODE_LENGTH;
   return Math.floor(Math.random() * max).toString().padStart(PICKUP_CODE_LENGTH, "0");
@@ -56,6 +42,8 @@ interface OfferSeed {
   weightKg: number;
   quantityTotal: number;
   hoursToEnd: number;
+  /** Стартовая скидка, заданная владельцем бизнеса (минимум 25%). */
+  baseDiscountPercent: number;
 }
 
 interface BusinessSeed {
@@ -84,6 +72,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         weightKg: 0.6,
         quantityTotal: 8,
         hoursToEnd: 2.5,
+        baseDiscountPercent: 30,
       },
       {
         title: "Набор десертов дня",
@@ -92,6 +81,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         weightKg: 0.4,
         quantityTotal: 6,
         hoursToEnd: 0.8,
+        baseDiscountPercent: 40,
       },
     ],
   },
@@ -110,6 +100,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         weightKg: 0.3,
         quantityTotal: 12,
         hoursToEnd: 1.5,
+        baseDiscountPercent: 25,
       },
     ],
   },
@@ -128,6 +119,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         weightKg: 0.5,
         quantityTotal: 4,
         hoursToEnd: 3,
+        baseDiscountPercent: 50,
       },
     ],
   },
@@ -146,6 +138,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         weightKg: 1.2,
         quantityTotal: 10,
         hoursToEnd: 4,
+        baseDiscountPercent: 35,
       },
     ],
   },
@@ -220,7 +213,7 @@ async function main() {
       const now = Date.now();
       const pickupEnd = new Date(now + offerSeed.hoursToEnd * HOUR_MS);
       const pickupStart = new Date(now - HOUR_MS);
-      const discountPercent = computeDiscountPercent(offerSeed.hoursToEnd);
+      const discountPercent = computeDiscountPercent(offerSeed.baseDiscountPercent, offerSeed.hoursToEnd);
       const originalPrice = offerSeed.originalPriceRub * 100; // в копейки
       const discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
 
@@ -232,6 +225,7 @@ async function main() {
           originalPrice,
           discountedPrice,
           discountPercent,
+          baseDiscountPercent: offerSeed.baseDiscountPercent,
           quantityTotal: offerSeed.quantityTotal,
           quantityLeft: offerSeed.quantityTotal,
           weightKg: offerSeed.weightKg,

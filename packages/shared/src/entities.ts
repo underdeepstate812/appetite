@@ -61,8 +61,10 @@ export interface Offer {
   originalPrice: number;
   /** Цена с учётом текущей скидки — пересчитывается шедулером каждые 15 минут. */
   discountedPrice: number;
-  /** Текущий % скидки: 50 базовая → до 70 максимум. */
+  /** Текущий % скидки: baseDiscountPercent → докручивается до 70 максимум по времени. */
   discountPercent: number;
+  /** Стартовая скидка, которую задал владелец бизнеса (минимум MIN_BASE_PERCENT = 25%). */
+  baseDiscountPercent: number;
   quantityTotal: number;
   quantityLeft: number;
   /** Вес одной единицы товара в кг — основа для эко-баллов и "спасённых кг". */

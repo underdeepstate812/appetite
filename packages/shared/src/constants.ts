@@ -3,16 +3,35 @@
 export const PLATFORM_COMMISSION_PERCENT = 25;
 
 export const DISCOUNT_RULES = {
-  BASE_PERCENT: 50,
+  /** Минимальная стартовая скидка, которую владелец бизнеса может выставить офферу. */
+  MIN_BASE_PERCENT: 25,
+  /** Скидка по умолчанию в форме создания оффера — владелец может понизить её до MIN_BASE_PERCENT. */
+  DEFAULT_BASE_PERCENT: 50,
   MAX_PERCENT: 70,
-  /** >2 часов до pickupEnd — базовая скидка. */
+  /** >2 часов до pickupEnd — стартовая скидка владельца, без надбавки. */
   TIER_1_HOURS_BEFORE_END: 2,
-  /** 1–2 часа до pickupEnd — базовая + 10%. */
+  /** 1–2 часа до pickupEnd — стартовая + 10%. */
   TIER_2_BONUS_PERCENT: 10,
-  /** <1 часа до pickupEnd — базовая + 20% (капается MAX_PERCENT). */
+  /** <1 часа до pickupEnd — стартовая + 20% (капается MAX_PERCENT). */
   TIER_3_HOURS_BEFORE_END: 1,
   TIER_3_BONUS_PERCENT: 20,
 } as const;
+
+/**
+ * Текущий % скидки по правилу из ШАГ 5: чем ближе к концу самовывоза, тем
+ * выше скидка поверх стартовой, которую задал владелец бизнеса (минимум
+ * MIN_BASE_PERCENT). Одна реализация для шедулера, создания/редактирования
+ * оффера и сид-данных — раньше это правило было продублировано в трёх местах.
+ */
+export function computeDiscountPercent(baseDiscountPercent: number, hoursToEnd: number): number {
+  if (hoursToEnd < DISCOUNT_RULES.TIER_3_HOURS_BEFORE_END) {
+    return Math.min(baseDiscountPercent + DISCOUNT_RULES.TIER_3_BONUS_PERCENT, DISCOUNT_RULES.MAX_PERCENT);
+  }
+  if (hoursToEnd < DISCOUNT_RULES.TIER_1_HOURS_BEFORE_END) {
+    return Math.min(baseDiscountPercent + DISCOUNT_RULES.TIER_2_BONUS_PERCENT, DISCOUNT_RULES.MAX_PERCENT);
+  }
+  return baseDiscountPercent;
+}
 
 export const DISCOUNT_CRON_EXPRESSION = "*/15 * * * *";
 

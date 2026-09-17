@@ -20,6 +20,8 @@ export interface CreateOfferRequest {
   quantityTotal: number;
   pickupStart: string;
   pickupEnd: string;
+  /** Стартовая скидка, минимум 25% — шедулер только докручивает её вверх по времени. */
+  baseDiscountPercent: number;
 }
 
 export interface UpdateOfferRequest {
@@ -31,6 +33,7 @@ export interface UpdateOfferRequest {
   pickupStart?: string;
   pickupEnd?: string;
   status?: OfferStatus;
+  baseDiscountPercent?: number;
 }
 
 export const offersApi = {

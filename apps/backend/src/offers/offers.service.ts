@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { OfferStatus, Prisma, Role } from "@prisma/client";
-import { DISCOUNT_RULES, Paginated } from "@apetite/shared";
+import { computeDiscountPercent, Paginated } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { UpdateOfferDto } from "./dto/update-offer.dto";
@@ -45,7 +45,8 @@ export class OffersService {
     this.assertOwnerOrAdmin(business.ownerUserId, requester);
 
     const originalPrice = Math.round(dto.originalPriceRub * 100);
-    const discountPercent = DISCOUNT_RULES.BASE_PERCENT;
+    const hoursToEnd = (new Date(dto.pickupEnd).getTime() - Date.now()) / (1000 * 60 * 60);
+    const discountPercent = computeDiscountPercent(dto.baseDiscountPercent, hoursToEnd);
     const discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
 
     return this.prisma.offer.create({
@@ -57,6 +58,7 @@ export class OffersService {
         originalPrice,
         discountedPrice,
         discountPercent,
+        baseDiscountPercent: dto.baseDiscountPercent,
         quantityTotal: dto.quantityTotal,
         quantityLeft: dto.quantityTotal,
         weightKg: dto.weightKg,
@@ -149,12 +151,24 @@ export class OffersService {
       status: dto.status,
     };
     if (dto.pickupStart) data.pickupStart = new Date(dto.pickupStart);
-    if (dto.pickupEnd) data.pickupEnd = new Date(dto.pickupEnd);
 
-    if (dto.originalPriceRub !== undefined) {
-      const originalPrice = Math.round(dto.originalPriceRub * 100);
-      data.originalPrice = originalPrice;
-      data.discountedPrice = Math.round((originalPrice * (100 - offer.discountPercent)) / 100);
+    const pickupEnd = dto.pickupEnd ? new Date(dto.pickupEnd) : offer.pickupEnd;
+    if (dto.pickupEnd) data.pickupEnd = pickupEnd;
+
+    const originalPrice =
+      dto.originalPriceRub !== undefined ? Math.round(dto.originalPriceRub * 100) : offer.originalPrice;
+    if (dto.originalPriceRub !== undefined) data.originalPrice = originalPrice;
+
+    const baseDiscountPercent = dto.baseDiscountPercent ?? offer.baseDiscountPercent;
+    if (dto.baseDiscountPercent !== undefined) data.baseDiscountPercent = baseDiscountPercent;
+
+    // Скидку и цену со скидкой пересчитываем сразу, если поменялось что-то, что
+    // на них влияет — не ждём следующего тика шедулера (раз в 15 минут).
+    if (dto.baseDiscountPercent !== undefined || dto.pickupEnd !== undefined || dto.originalPriceRub !== undefined) {
+      const hoursToEnd = (pickupEnd.getTime() - Date.now()) / (1000 * 60 * 60);
+      const discountPercent = computeDiscountPercent(baseDiscountPercent, hoursToEnd);
+      data.discountPercent = discountPercent;
+      data.discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
     }
 
     return this.prisma.offer.update({ where: { id }, data });

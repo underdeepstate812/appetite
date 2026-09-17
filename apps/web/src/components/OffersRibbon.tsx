@@ -42,7 +42,7 @@ const FILTERS: { id: Category | "all"; label: string }[] = [
 ];
 
 const OFFERS: Offer[] = [
-  { id: "1", category: "food", shop: "Никитская кухня", title: "Бизнес-ланч: суп + горячее", oldPrice: 490, price: 245, discount: 50, distance: "450 м", pickup: "до 21:30", minutesLeft: 90 },
+  { id: "1", category: "food", shop: "Никитская кухня", title: "Бизнес-ланч: суп + горячее", oldPrice: 490, price: 343, discount: 30, distance: "450 м", pickup: "до 21:30", minutesLeft: 90 },
   { id: "2", category: "food", shop: "Padang Wok", title: "Сет: лапша с курицей терияки", oldPrice: 690, price: 210, discount: 70, distance: "1.1 км", pickup: "через 40 мин", minutesLeft: 40 },
   { id: "3", category: "bakery", shop: "Sonnig Bakery", title: "Круассаны и багеты, набор", oldPrice: 340, price: 150, discount: 55, distance: "650 м", pickup: "до 20:00", minutesLeft: 120 },
   { id: "4", category: "bakery", shop: "Хлеб и Соль", title: "Пироги с ягодами, 2 шт", oldPrice: 420, price: 250, discount: 40, distance: "900 м", pickup: "до 22:00", minutesLeft: 150 },

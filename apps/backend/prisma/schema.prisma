@@ -126,6 +126,8 @@ model Offer {
   /// Пересчитывается шедулером каждые 15 минут (ШАГ 5).
   discountedPrice Int
   discountPercent Int           @default(50)
+  /// Стартовая скидка, которую задаёт владелец бизнеса при создании оффера (минимум 25%).
+  baseDiscountPercent Int       @default(50)
   quantityTotal   Int
   quantityLeft    Int
   /// Вес одной единицы товара, кг — основа для эко-баллов и "спасённых кг".

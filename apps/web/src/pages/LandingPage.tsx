@@ -11,7 +11,7 @@ const STEPS = [
   {
     icon: Search,
     title: "Находи рядом",
-    text: "Кафе, пекарни, цветочные и магазины города — скидки 40–70% в радиусе пары километров.",
+    text: "Кафе, пекарни, цветочные и магазины города — скидки 25–70% в радиусе пары километров.",
   },
   {
     icon: CreditCard,
@@ -78,7 +78,7 @@ export function LandingPage() {
               <span style={{ fontStyle: "italic", color: "var(--color-primary)" }}>{animatedPercent}%</span>
             </h1>
             <p style={{ fontSize: 18, color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: 20 }}>
-              Кафе, рестораны и магазины города — со скидкой 40–70% на позиции дня.
+              Кафе, рестораны и магазины города — со скидкой 25–70% на позиции дня.
               Бронируешь в приложении, забираешь самовывозом за 1–3 часа.
             </p>
             <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
@@ -100,7 +100,7 @@ export function LandingPage() {
               </a>
             </div>
             <div style={{ display: "flex", gap: 32, marginTop: 48 }}>
-              <Stat value="40–70%" label="скидка на витрине" />
+              <Stat value="25–70%" label="скидка на витрине" />
               <Stat value="1–3 ч" label="окно самовывоза" />
               <Stat countTo={4} active={heroInView} label="категории: еда, выпечка, цветы, продукты" />
             </div>
@@ -165,11 +165,11 @@ export function LandingPage() {
               </span>
               <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-background)", marginTop: 18 }}>
                 Привлекай новых гостей{" "}
-                <span style={{ fontStyle: "italic", color: "var(--color-primary-soft)" }}>скидками 40–70%</span>
+                <span style={{ fontStyle: "italic", color: "var(--color-primary-soft)" }}>скидками 25–70%</span>
               </h2>
               <p style={{ color: "rgba(255,253,249,0.68)", marginTop: 14, lineHeight: 1.6, fontSize: 15 }}>
                 Панель бизнеса — офферы, заказы и аналитика в реальном времени. Скидка
-                настраивается от 40 до 70%, комиссия — индивидуально под твоё заведение.
+                настраивается от 25 до 70%, комиссия платформы — 25% с заказов.
               </p>
               <a
                 href="mailto:hello@apetite.ru?subject=Подключить заведение"

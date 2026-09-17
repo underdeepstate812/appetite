@@ -1,11 +1,12 @@
-import { IsDateString, IsEnum, IsOptional, IsPositive, IsString, MinLength } from "class-validator";
+import { IsDateString, IsEnum, IsInt, IsOptional, IsPositive, IsString, Max, Min, MinLength } from "class-validator";
 import { OfferCategory, OfferStatus } from "@prisma/client";
+import { DISCOUNT_RULES } from "@apetite/shared";
 
 /**
- * discountPercent/discountedPrice не редактируются напрямую — ими управляет
- * шедулер скидок (ШАГ 5); при смене originalPriceRub сервис пересчитывает
- * discountedPrice, сохраняя текущий discountPercent. quantityLeft меняется
- * только через заказы (ШАГ 5), не через этот эндпоинт.
+ * discountPercent/discountedPrice не редактируются напрямую — они пересчитываются
+ * сервисом сразу при смене originalPriceRub/baseDiscountPercent и докручиваются
+ * шедулером каждые 15 минут по времени до конца самовывоза (ШАГ 5). quantityLeft
+ * меняется только через заказы, не через этот эндпоинт.
  */
 export class UpdateOfferDto {
   @IsOptional()
@@ -28,6 +29,12 @@ export class UpdateOfferDto {
   @IsOptional()
   @IsPositive()
   weightKg?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(DISCOUNT_RULES.MIN_BASE_PERCENT)
+  @Max(DISCOUNT_RULES.MAX_PERCENT)
+  baseDiscountPercent?: number;
 
   @IsOptional()
   @IsDateString()

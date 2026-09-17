@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { OfferCategory, OfferStatus, type Offer } from "@apetite/shared";
+import { DISCOUNT_RULES, OfferCategory, OfferStatus, type Offer } from "@apetite/shared";
 import { Modal } from "./Modal";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
@@ -42,6 +42,9 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
   const [description, setDescription] = useState(offer?.description ?? "");
   const [category, setCategory] = useState<OfferCategory>(offer?.category ?? OfferCategory.FOOD);
   const [originalPriceRub, setOriginalPriceRub] = useState(offer ? String(offer.originalPrice / 100) : "");
+  const [baseDiscountPercent, setBaseDiscountPercent] = useState(
+    offer ? String(offer.baseDiscountPercent) : String(DISCOUNT_RULES.DEFAULT_BASE_PERCENT)
+  );
   const [weightKg, setWeightKg] = useState(offer ? String(offer.weightKg) : "");
   const [quantityTotal, setQuantityTotal] = useState(offer ? String(offer.quantityTotal) : "1");
   const [pickupStart, setPickupStart] = useState(offer ? toDatetimeLocal(offer.pickupStart) : defaultPickupStart());
@@ -61,6 +64,7 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
           description: description || undefined,
           category,
           originalPriceRub: Number(originalPriceRub),
+          baseDiscountPercent: Number(baseDiscountPercent),
           weightKg: Number(weightKg),
           pickupStart: fromDatetimeLocal(pickupStart),
           pickupEnd: fromDatetimeLocal(pickupEnd),
@@ -73,6 +77,7 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
           description: description || undefined,
           category,
           originalPriceRub: Number(originalPriceRub),
+          baseDiscountPercent: Number(baseDiscountPercent),
           weightKg: Number(weightKg),
           quantityTotal: Number(quantityTotal),
           pickupStart: fromDatetimeLocal(pickupStart),
@@ -113,8 +118,8 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
 
         {isEdit ? (
           <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-            Текущая скидка {offer.discountPercent}% ({(offer.discountedPrice / 100).toFixed(0)} ₽) — пересчитывается
-            автоматически по времени до конца самовывоза, вручную не редактируется.
+            Текущая скидка {offer.discountPercent}% ({(offer.discountedPrice / 100).toFixed(0)} ₽) — растёт от
+            стартовой автоматически по времени до конца самовывоза, максимум {DISCOUNT_RULES.MAX_PERCENT}%.
           </p>
         ) : null}
 
@@ -132,17 +137,35 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
             />
           </div>
           <div className="field">
-            <label htmlFor="weight">Вес, кг</label>
+            <label htmlFor="baseDiscount">Стартовая скидка, %</label>
             <input
-              id="weight"
+              id="baseDiscount"
               type="number"
-              min={0.01}
-              step="0.01"
-              value={weightKg}
-              onChange={(event) => setWeightKg(event.target.value)}
+              min={DISCOUNT_RULES.MIN_BASE_PERCENT}
+              max={DISCOUNT_RULES.MAX_PERCENT}
+              step="1"
+              value={baseDiscountPercent}
+              onChange={(event) => setBaseDiscountPercent(event.target.value)}
               required
             />
+            <span className="field-hint">
+              От {DISCOUNT_RULES.MIN_BASE_PERCENT}% до {DISCOUNT_RULES.MAX_PERCENT}% — дальше сама растёт к концу
+              самовывоза.
+            </span>
           </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="weight">Вес, кг</label>
+          <input
+            id="weight"
+            type="number"
+            min={0.01}
+            step="0.01"
+            value={weightKg}
+            onChange={(event) => setWeightKg(event.target.value)}
+            required
+          />
         </div>
 
         {!isEdit ? (

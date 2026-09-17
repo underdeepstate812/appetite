@@ -1,27 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { OfferStatus, OrderStatus } from "@prisma/client";
-import { DISCOUNT_RULES } from "@apetite/shared";
+import { computeDiscountPercent } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 export interface SchedulerRunResult {
   offersRecalculated: number;
   offersArchived: number;
   ordersExpired: number;
-}
-
-/** >2ч — база 50%, 1–2ч — +10%, <1ч — +20% (капается MAX_PERCENT). Правило из ШАГ 0. */
-function computeDiscountPercent(hoursToEnd: number): number {
-  if (hoursToEnd < DISCOUNT_RULES.TIER_3_HOURS_BEFORE_END) {
-    return Math.min(
-      DISCOUNT_RULES.BASE_PERCENT + DISCOUNT_RULES.TIER_3_BONUS_PERCENT,
-      DISCOUNT_RULES.MAX_PERCENT
-    );
-  }
-  if (hoursToEnd < DISCOUNT_RULES.TIER_1_HOURS_BEFORE_END) {
-    return DISCOUNT_RULES.BASE_PERCENT + DISCOUNT_RULES.TIER_2_BONUS_PERCENT;
-  }
-  return DISCOUNT_RULES.BASE_PERCENT;
 }
 
 @Injectable()
@@ -68,7 +54,7 @@ export class DiscountSchedulerService {
         continue;
       }
 
-      const discountPercent = computeDiscountPercent(hoursToEnd);
+      const discountPercent = computeDiscountPercent(offer.baseDiscountPercent, hoursToEnd);
       if (discountPercent !== offer.discountPercent) {
         const discountedPrice = Math.round((offer.originalPrice * (100 - discountPercent)) / 100);
         await this.prisma.offer.update({
