@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { Smartphone, CheckCircle2 } from "lucide-react";
 import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
 import { rememberSession } from "../utils/session";
 import { isValidEmail, isValidPhone, getPasswordError } from "../utils/validation";
 import { PasswordStrengthMeter } from "../components/PasswordStrengthMeter";
+import { IconBadge } from "../components/IconBadge";
 
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
@@ -119,8 +121,8 @@ export function RegisterPage() {
       <div className="auth-page">
         <div className="aurora-bg" aria-hidden="true" />
         <div className="card auth-card" style={{ textAlign: "center" }}>
-          <p style={{ fontSize: 40 }}>🎉</p>
-          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 8 }}>Добро пожаловать, {done}!</h1>
+          <IconBadge icon={CheckCircle2} size="xl" />
+          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>Добро пожаловать, {done}!</h1>
           <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
             Аккаунт создан{phoneEnabled && phoneVerified ? " и телефон подтверждён" : ""}. Сам
             сервис — в мобильном приложении Apetite, сайт пока только для входа/регистрации.
@@ -157,7 +159,7 @@ export function RegisterPage() {
               autoComplete="name"
               required
             />
-            {nameError ? <span className="field-error">{nameError}</span> : null}
+            {nameError ? <span className="field-error" role="alert">{nameError}</span> : null}
           </div>
 
           <div className="field">
@@ -172,7 +174,7 @@ export function RegisterPage() {
               autoComplete="email"
               required
             />
-            {emailError ? <span className="field-error">{emailError}</span> : null}
+            {emailError ? <span className="field-error" role="alert">{emailError}</span> : null}
           </div>
 
           <div className="field">
@@ -187,7 +189,7 @@ export function RegisterPage() {
               autoComplete="new-password"
               required
             />
-            {passwordError ? <span className="field-error">{passwordError}</span> : <PasswordStrengthMeter password={password} />}
+            {passwordError ? <span className="field-error" role="alert">{passwordError}</span> : <PasswordStrengthMeter password={password} />}
           </div>
 
           <div className="field">
@@ -202,7 +204,7 @@ export function RegisterPage() {
               autoComplete="new-password"
               required
             />
-            {confirmError ? <span className="field-error">{confirmError}</span> : null}
+            {confirmError ? <span className="field-error" role="alert">{confirmError}</span> : null}
           </div>
 
           {!phoneEnabled ? (
@@ -212,7 +214,7 @@ export function RegisterPage() {
               style={{ alignSelf: "flex-start", paddingLeft: 0 }}
               onClick={() => setPhoneEnabled(true)}
             >
-              📱 Подтвердить телефон по СМС (необязательно)
+              <Smartphone size={16} aria-hidden="true" /> Подтвердить телефон по СМС (необязательно)
             </button>
           ) : (
             <div className="field" style={{ background: "var(--color-surface)", padding: 14, borderRadius: "var(--radius-sm)" }}>
@@ -244,7 +246,7 @@ export function RegisterPage() {
                   </button>
                 ) : null}
               </div>
-              {phoneFormatError ? <span className="field-error">{phoneFormatError}</span> : null}
+              {phoneFormatError ? <span className="field-error" role="alert">{phoneFormatError}</span> : null}
 
               {phoneVerified ? (
                 <p style={{ color: "var(--color-secondary)", fontSize: 13, fontWeight: 600, marginTop: 4 }}>
@@ -270,11 +272,11 @@ export function RegisterPage() {
                   </button>
                 </div>
               ) : null}
-              {otpError ? <span className="field-error">{otpError}</span> : null}
+              {otpError ? <span className="field-error" role="alert">{otpError}</span> : null}
             </div>
           )}
 
-          {submitError ? <p className="form-error">{submitError}</p> : null}
+          {submitError ? <p className="form-error" role="alert">{submitError}</p> : null}
 
           <button className="btn btn-primary btn-block" type="submit" disabled={!canSubmit}>
             {submitting ? "Создаём аккаунт..." : "Зарегистрироваться"}

@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
 import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
 import { rememberSession } from "../utils/session";
 import { isValidEmail } from "../utils/validation";
+import { IconBadge } from "../components/IconBadge";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,8 +39,8 @@ export function LoginPage() {
       <div className="auth-page">
         <div className="aurora-bg" aria-hidden="true" />
         <div className="card auth-card" style={{ textAlign: "center" }}>
-          <p style={{ fontSize: 40 }}>👋</p>
-          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 8 }}>С возвращением, {done}!</h1>
+          <IconBadge icon={CheckCircle2} size="xl" />
+          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>С возвращением, {done}!</h1>
           <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
             Вход выполнен. Сам сервис — в мобильном приложении Apetite, сайт пока только
             для входа/регистрации.
@@ -76,7 +78,7 @@ export function LoginPage() {
               autoComplete="email"
               required
             />
-            {emailError ? <span className="field-error">{emailError}</span> : null}
+            {emailError ? <span className="field-error" role="alert">{emailError}</span> : null}
           </div>
 
           <div className="field">
@@ -91,7 +93,7 @@ export function LoginPage() {
             />
           </div>
 
-          {error ? <p className="form-error">{error}</p> : null}
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
 
           <button className="btn btn-primary btn-block" type="submit" disabled={!canSubmit}>
             {submitting ? "Входим..." : "Войти"}

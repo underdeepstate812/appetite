@@ -1,22 +1,24 @@
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
+import { Search, CreditCard, ShoppingBag } from "lucide-react";
 import { PhoneMockup } from "../components/PhoneMockup";
+import { IconBadge } from "../components/IconBadge";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
 
 const STEPS = [
   {
-    icon: "🔍",
+    icon: Search,
     title: "Находи рядом",
     text: "Кафе, пекарни, цветочные и магазины продают остатки дня со скидкой 50–70% в радиусе пары километров.",
   },
   {
-    icon: "🧑‍🍳",
+    icon: CreditCard,
     title: "Оплачивай в приложении",
     text: "Бронируешь и оплачиваешь за секунды — выбор способа оплаты, честная сумма, никаких сюрпризов на кассе.",
   },
   {
-    icon: "🍊",
+    icon: ShoppingBag,
     title: "Забирай за 1–3 часа",
     text: "Показываешь QR или называешь код на кассе — и уносишь то, что иначе оказалось бы в мусоре.",
   },
@@ -117,7 +119,7 @@ export function LandingPage() {
             {STEPS.map((step, index) =>
               index === 0 ? (
                 <div key={step.title} className="card card-hover bento-large" style={bentoLargeStyle}>
-                  <div style={bentoLargeIconStyle}>{step.icon}</div>
+                  <IconBadge icon={step.icon} size="lg" />
                   <div>
                     <p className="eyebrow" style={{ marginBottom: 6 }}>
                       Шаг 1
@@ -135,7 +137,9 @@ export function LandingPage() {
                   style={{ padding: "28px 28px 32px", position: "relative", overflow: "hidden" }}
                 >
                   <span style={stepGhostNumberStyle}>{index + 1}</span>
-                  <div style={stepIconStyle}>{step.icon}</div>
+                  <div style={{ marginBottom: 16, position: "relative" }}>
+                    <IconBadge icon={step.icon} />
+                  </div>
                   <p className="eyebrow" style={{ marginBottom: 6 }}>
                     Шаг {index + 1}
                   </p>
@@ -309,12 +313,6 @@ const heroFadeStyle: CSSProperties = {
   pointerEvents: "none",
 };
 
-const stepIconStyle: CSSProperties = {
-  fontSize: 32,
-  marginBottom: 16,
-  position: "relative",
-};
-
 const stepGhostNumberStyle: CSSProperties = {
   position: "absolute",
   top: -18,
@@ -334,11 +332,6 @@ const bentoLargeStyle: CSSProperties = {
   gap: 32,
   padding: "36px 40px",
   flexWrap: "wrap",
-};
-
-const bentoLargeIconStyle: CSSProperties = {
-  fontSize: 56,
-  flexShrink: 0,
 };
 
 const businessCardStyle: CSSProperties = {

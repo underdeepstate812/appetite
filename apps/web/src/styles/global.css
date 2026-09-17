@@ -97,6 +97,14 @@ img {
   color: var(--color-on-primary);
 }
 
+/* Единый, хорошо видимый focus-ring для клавиатурной навигации — на бренд-цвете,
+   а не дефолтный синий outline браузера, но не убран без замены (a11y). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .container {
   width: 100%;
   max-width: var(--container-width);
@@ -256,7 +264,7 @@ img {
 }
 
 .btn-sm {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 18px;
   font-size: 14px;
 }
@@ -300,6 +308,11 @@ img {
   outline: none;
   border-color: var(--color-primary);
   background: rgba(255, 255, 255, 0.07);
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .field input.field-invalid {

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@apetite/shared": "workspace:*",
+    "lucide-react": "^1.47.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-router-dom": "^6.28.0"
