@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Maximize2 } from "lucide-react-native";
+import Maximize2 from "lucide-react-native/icons/maximize-2";
 import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { LeafletMapView } from "./LeafletMapView";

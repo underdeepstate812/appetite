@@ -1,6 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { User, MapPin, ShoppingBag } from "lucide-react-native";
+import User from "lucide-react-native/icons/user";
+import MapPin from "lucide-react-native/icons/map-pin";
+import ShoppingBag from "lucide-react-native/icons/shopping-bag";
 import { useTheme } from "../theme/ThemeProvider";
 import { AppetiteMark } from "./icons/AppetiteMark";
 

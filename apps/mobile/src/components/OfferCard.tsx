@@ -1,7 +1,16 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { UtensilsCrossed, Croissant, Flower2, ShoppingBasket, Flame } from "lucide-react-native";
+// Прямые импорты вместо барреля lucide-react-native — package.json объявляет
+// exports["./icons/*"] именно под это, с подтянутыми типами (в отличие от
+// web-пакета lucide-react, где такого exports-маппинга нет — см. апдейт по
+// правилу bundle-barrel-imports). На Metro (без tree-shaking барреля) это
+// не даёт бандлить тысячи неиспользуемых иконок ради пяти нужных.
+import UtensilsCrossed from "lucide-react-native/icons/utensils-crossed";
+import Croissant from "lucide-react-native/icons/croissant";
+import Flower2 from "lucide-react-native/icons/flower-2";
+import ShoppingBasket from "lucide-react-native/icons/shopping-basket";
+import Flame from "lucide-react-native/icons/flame";
 import { OfferCategory, type NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { useNow } from "../hooks/useNow";

@@ -1,7 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Store, Flame } from "lucide-react-native";
+import Store from "lucide-react-native/icons/store";
+import Flame from "lucide-react-native/icons/flame";
 import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { useNow } from "../hooks/useNow";
