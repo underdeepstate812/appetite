@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { Check, Handshake, PenLine, Settings2 } from "lucide-react";
 import { OfferCategory } from "@apetite/shared";
 import { businessApplicationsApi } from "../api/businessApplications";
 import { ApiError } from "../api/client";
 import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../utils/validation";
-import { IconBadge } from "../components/IconBadge";
+import { Stamp } from "../components/Stamp";
+import { useReveal } from "../hooks/useReveal";
+import { useCountUp } from "../hooks/useCountUp";
 
 const CATEGORY_LABELS: Record<OfferCategory, string> = {
   [OfferCategory.FOOD]: "Кафе / ресторан",
@@ -13,6 +15,14 @@ const CATEGORY_LABELS: Record<OfferCategory, string> = {
   [OfferCategory.FLOWERS]: "Цветочный магазин",
   [OfferCategory.GROCERIES]: "Продуктовый магазин",
 };
+
+const STEPS = [
+  { n: "01", icon: PenLine, text: "Оставляешь заявку — название, адрес, контакты" },
+  { n: "02", icon: Handshake, text: "Мы звоним в течение рабочего дня и подключаем" },
+  { n: "03", icon: Settings2, text: "Настраиваешь офферы и скидку — и уже работаешь" },
+];
+
+const UNBOUNDED: CSSProperties = { fontFamily: '"Unbounded", var(--font-display)' };
 
 export function BusinessRegisterPage() {
   const [name, setName] = useState("");
@@ -26,6 +36,12 @@ export function BusinessRegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  const [panelInView, setPanelInView] = useState(false);
+  const panelRef = useReveal<HTMLDivElement>(() => setPanelInView(true));
+  const formRef = useReveal<HTMLFormElement>();
+  const discountCount = useCountUp(25, panelInView, 1000);
+  const commissionCount = useCountUp(25, panelInView, 1000);
 
   const nameError = touched.name && name.trim().length < 2 ? "Минимум 2 символа" : null;
   const addressError = touched.address && address.trim().length < 5 ? "Укажи полный адрес" : null;
@@ -74,8 +90,12 @@ export function BusinessRegisterPage() {
     return (
       <div className="auth-page">
         <div className="card auth-card" style={{ textAlign: "center" }}>
-          <IconBadge icon={CheckCircle2} size="xl" />
-          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>Заявка отправлена!</h1>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Stamp icon={Check} label="Принято" size={110} />
+          </div>
+          <h1 style={{ ...UNBOUNDED, fontSize: 24, fontWeight: 800, marginTop: 20, lineHeight: 1.25 }}>
+            Заявка отправлена!
+          </h1>
           <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
             Мы свяжемся с тобой в течение рабочего дня, чтобы подключить заведение и настроить
             панель бизнеса.
@@ -89,16 +109,109 @@ export function BusinessRegisterPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="card auth-card" style={{ maxWidth: 460 }} onSubmit={(event) => void handleSubmit(event)}>
-        <span className="stamp">Для бизнеса</span>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginTop: 12, marginBottom: 6 }}>Подключить заведение</h1>
-        <p style={{ color: "var(--color-ink-muted)", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
-          Оставь заявку — мы свяжемся, поможем настроить офферы и дадим доступ в панель бизнеса.
-          Комиссия платформы фиксированная — 25% с завершённых заказов.
-        </p>
+    <div style={{ padding: "48px 0 96px" }}>
+      <div className="container" style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "flex-start" }}>
+        {/* Манифест: почему стоит подключиться — цифры и шаги, не форма. */}
+        <div
+          ref={panelRef}
+          className="reveal grain-panel"
+          style={{
+            flex: "1 1 420px",
+            position: "relative",
+            overflow: "hidden",
+            background: "var(--color-ink)",
+            borderRadius: "var(--radius-lg)",
+            padding: "44px 36px",
+            color: "var(--color-background)",
+          }}
+        >
+          <Stamp
+            icon={Handshake}
+            label="Партнёр"
+            sublabel="Appetite"
+            tone="onDark"
+            size={108}
+            // Печать "наезжает" на угол панели — как оттиск на письме, а не приклеенная иконка.
+            style={{ position: "absolute", top: -14, right: 18 }}
+          />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <span className="eyebrow" style={{ color: "var(--color-primary-soft)" }}>
+            Для бизнеса
+          </span>
+          <h1
+            style={{
+              ...UNBOUNDED,
+              fontSize: "clamp(32px, 4vw, 44px)",
+              fontWeight: 800,
+              lineHeight: 1.08,
+              marginTop: 14,
+              maxWidth: 360,
+            }}
+          >
+            Твоя витрина —{" "}
+            <span style={{ color: "var(--color-primary-soft)", fontStyle: "italic" }}>
+              рядом с голодным Петербургом
+            </span>
+          </h1>
+
+          <div style={{ display: "flex", gap: 32, marginTop: 36, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>
+                {discountCount}–70%
+              </p>
+              <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
+                скидка — стартовую ставишь сам
+              </p>
+            </div>
+            <div>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>
+                {commissionCount}%
+              </p>
+              <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
+                комиссия — фиксированная, без сюрпризов
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 40 }}>
+            {STEPS.map((step) => (
+              <div key={step.n} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: "1.5px solid rgba(255,253,249,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <step.icon size={17} strokeWidth={1.8} color="var(--color-primary-soft)" />
+                </div>
+                <p style={{ fontSize: 14, lineHeight: 1.5, color: "rgba(255,253,249,0.85)" }}>
+                  <span style={{ ...UNBOUNDED, color: "var(--color-primary-soft)", marginRight: 8 }}>{step.n}</span>
+                  {step.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Сама форма заявки. */}
+        <form
+          ref={formRef}
+          className="reveal card"
+          style={{ flex: "1 1 380px", padding: "36px 32px" }}
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <span className="eyebrow">Заявка на подключение</span>
+          <h2 style={{ ...UNBOUNDED, fontSize: 22, fontWeight: 800, marginTop: 10, marginBottom: 22, lineHeight: 1.3 }}>
+            Подключить заведение
+          </h2>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="field">
             <label htmlFor="biz-name">Название заведения</label>
             <input
@@ -179,7 +292,19 @@ export function BusinessRegisterPage() {
             {phoneError ? <span className="field-error" role="alert">{phoneError}</span> : null}
           </div>
 
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, lineHeight: 1.5, cursor: "pointer" }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              fontSize: 13,
+              lineHeight: 1.5,
+              cursor: "pointer",
+              background: "var(--color-surface)",
+              borderRadius: "var(--radius-sm)",
+              padding: 14,
+            }}
+          >
             <input
               type="checkbox"
               checked={ofertaAccepted}
@@ -201,8 +326,9 @@ export function BusinessRegisterPage() {
           <button className="btn btn-primary btn-block" type="submit" disabled={!canSubmit}>
             {submitting ? "Отправляем..." : "Отправить заявку"}
           </button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
