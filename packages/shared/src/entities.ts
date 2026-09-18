@@ -25,6 +25,7 @@ export interface User {
   email: string;
   phone?: string | null;
   name: string;
+  avatarUrl?: string | null;
   role: Role;
   /** Expo push-токен устройства (ШАГ 6/9) — одно устройство на аккаунт. */
   expoPushToken?: string | null;

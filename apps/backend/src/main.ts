@@ -1,15 +1,21 @@
 import "./load-env";
 
+import { join } from "path";
 import { NestFactory } from "@nestjs/core";
 import { RequestMethod, ValidationPipe } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { ConfigService } from "@nestjs/config";
 import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+
+  // Аватарки (users/me/avatar) — вне версионированного префикса, как и /health,
+  // мобильный клиент строит URL прямо от origin backend: `${API_ORIGIN}/uploads/...`.
+  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads" });
 
   // Бета без продовой отдельной инфры: web-клиенты (mobile web, ШАГ 10 admin) обращаются
   // с других портов/хостов — открываем CORS широко, токены передаются заголовком, не cookie.

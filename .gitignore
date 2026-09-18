@@ -16,6 +16,7 @@ out/
 
 # Backend (NestJS)
 apps/backend/dist/
+apps/backend/uploads/
 
 # Admin (Vite)
 apps/admin/dist/

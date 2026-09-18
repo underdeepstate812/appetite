@@ -39,6 +39,12 @@ export interface RequestOtpRequest {
   phone: string;
 }
 
+/** Телефон сюда не входит намеренно — он обязателен для входа/заказов и не редактируется. */
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+}
+
 export interface VerifyOtpRequest {
   phone: string;
   code: string;

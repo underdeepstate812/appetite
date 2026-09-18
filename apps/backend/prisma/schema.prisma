@@ -65,6 +65,8 @@ model User {
   passwordHash     String
   phone            String?  @unique
   name             String
+  /// Относительный путь вида /uploads/avatars/<uuid>.<ext> — отдаётся статикой backend.
+  avatarUrl        String?
   role             Role     @default(USER)
   refreshTokenHash String?
   /// Expo push-токен устройства (ШАГ 6/9) — одно устройство на аккаунт, достаточно для беты.
