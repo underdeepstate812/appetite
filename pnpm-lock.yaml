@@ -241,6 +241,9 @@ importers:
       '@apetite/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      leaflet:
+        specifier: 1.9.4
+        version: 1.9.4
       lucide-react:
         specifier: ^1.47.0
         version: 1.47.0(react@19.2.3)
@@ -254,6 +257,9 @@ importers:
         specifier: ^6.28.0
         version: 6.30.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
+      '@types/leaflet':
+        specifier: 1.9.22
+        version: 1.9.22
       '@types/react':
         specifier: ^19.0.2
         version: 19.2.18

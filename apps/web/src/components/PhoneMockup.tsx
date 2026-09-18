@@ -1,20 +1,21 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { NearbyOffer } from "@apetite/shared";
 import { offersApi } from "../api/offers";
+import { LeafletMapView } from "./LeafletMapView";
 
-/** Питер целиком — мокап не привязан к конкретной геопозиции посетителя. */
+/**
+ * Центр карты мокапа — сейчас всегда Петербург (единственный пилотный регион),
+ * но вынесен в константу, а не зашит в JSX: когда сервис откроется в новых
+ * городах, здесь достаточно будет подставить центр по геопозиции посетителя
+ * (или выбранному им региону) вместо жёсткого SPB_CENTER — LeafletMapView уже
+ * принимает center пропом именно ради этого.
+ */
 const SPB_CENTER = { lat: 59.9311, lng: 30.3609 };
+const MAP_ZOOM = 14;
 const RADIUS_KM = 20;
 const PIN_COUNT = 4;
 /** Порог "горящей" скидки — тот же, что и в ленте предложений (OffersRibbon). */
 const HOT_DISCOUNT_THRESHOLD = 60;
-
-const PIN_POSITIONS = [
-  { x: 78, y: 128 },
-  { x: 168, y: 96 },
-  { x: 60, y: 248 },
-  { x: 190, y: 232 },
-];
 
 /**
  * Взвешенная выборка без повторов: офферы со скидкой 50%+ примерно в 4 раза
@@ -42,12 +43,11 @@ function weightedSample(offers: NearbyOffer[], count: number): NearbyOffer[] {
 }
 
 /**
- * Макет телефона с картой предложений — пины и карточки нижней панели теперь
- * реальные активные офферы (GET /offers/nearby), не выдуманные строки. Выборка
- * рандомная при каждой загрузке страницы, но взвешена в пользу скидок 50%+
- * (см. weightedSample). Позиции пинов на карте — фиксированный стилизованный
- * макет (это иллюстрация экрана, не настоящая проекция координат), но их
- * содержимое — честные данные с backend.
+ * Макет телефона с картой предложений — и карта, и пины теперь настоящие:
+ * OpenStreetMap-тайлы через Leaflet (см. LeafletMapView), маркеры стоят на
+ * реальных координатах заведений, карточки нижней панели — реальные активные
+ * офферы (GET /offers/nearby), не выдуманные строки. Выборка рандомная при
+ * каждой загрузке страницы, но взвешена в пользу скидок 50%+ (см. weightedSample).
  */
 export function PhoneMockup() {
   const [expanded, setExpanded] = useState(false);
@@ -88,62 +88,8 @@ export function PhoneMockup() {
       </div>
 
       <div style={screenStyle}>
-        {/* карта — стилизованный СПб: Нева, набережные, кварталы, парк */}
-        <svg viewBox="0 0 260 460" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-          <rect width="260" height="460" fill="var(--color-surface)" />
-
-          {/* городские кварталы — лёгкая текстура застройки под улицами */}
-          <g fill="var(--color-border)" opacity="0.5">
-            <rect x="14" y="30" width="34" height="26" rx="3" />
-            <rect x="56" y="24" width="22" height="40" rx="3" />
-            <rect x="100" y="34" width="30" height="22" rx="3" />
-            <rect x="146" y="26" width="26" height="30" rx="3" />
-            <rect x="20" y="160" width="26" height="34" rx="3" />
-            <rect x="150" y="150" width="32" height="24" rx="3" />
-            <rect x="196" y="180" width="24" height="30" rx="3" />
-            <rect x="18" y="290" width="30" height="24" rx="3" />
-            <rect x="90" y="310" width="26" height="30" rx="3" />
-            <rect x="170" y="300" width="28" height="22" rx="3" />
-            <rect x="200" y="360" width="26" height="30" rx="3" />
-            <rect x="60" y="380" width="30" height="24" rx="3" />
-          </g>
-
-          {/* парк */}
-          <ellipse cx="205" cy="90" rx="38" ry="26" fill="rgba(93,138,86,0.16)" />
-          <ellipse cx="228" cy="70" rx="20" ry="16" fill="rgba(93,138,86,0.14)" />
-
-          {/* Нева — широкой лентой через весь экран, как настоящая река */}
-          <path
-            d="M-20 340 C 40 300, 70 270, 130 250 C 190 230, 210 190, 190 140 C 175 105, 150 70, 165 -20"
-            stroke="rgba(15,118,110,0.16)"
-            strokeWidth="34"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path
-            d="M-20 340 C 40 300, 70 270, 130 250 C 190 230, 210 190, 190 140 C 175 105, 150 70, 165 -20"
-            stroke="rgba(15,118,110,0.28)"
-            strokeWidth="3"
-            fill="none"
-            strokeLinecap="round"
-          />
-
-          {/* магистрали */}
-          <path d="M-10 90 C 60 60,120 130,270 100" stroke="var(--color-border)" strokeWidth="9" fill="none" strokeLinecap="round" />
-          <path d="M-10 230 C 70 200,110 300,270 260" stroke="var(--color-border)" strokeWidth="8" fill="none" strokeLinecap="round" />
-          <path d="M50 -10 C 30 140,90 220,70 350" stroke="var(--color-border)" strokeWidth="7" fill="none" strokeLinecap="round" />
-          <path d="M190 -10 C 205 150,150 230,180 380" stroke="var(--color-border)" strokeWidth="7" fill="none" strokeLinecap="round" />
-
-          {/* второстепенные улицы — плотнее сетка, честнее ощущение города */}
-          <g stroke="var(--color-border)" strokeWidth="3" fill="none" opacity="0.75" strokeLinecap="round">
-            <path d="M0 60 L 260 46" />
-            <path d="M0 180 L 260 170" />
-            <path d="M0 320 L 260 300" />
-            <path d="M20 0 L 34 460" />
-            <path d="M120 0 L 108 460" />
-            <path d="M230 0 L 244 460" />
-          </g>
-        </svg>
+        {/* настоящая карта (OSM/Leaflet) — жесты отключены, это иллюстрация экрана */}
+        <LeafletMapView center={SPB_CENTER} zoom={MAP_ZOOM} offers={offers ?? []} />
 
         {/* лёгкий блик стекла поверх экрана */}
         <div style={glassGlareStyle} />
@@ -155,28 +101,6 @@ export function PhoneMockup() {
           </span>
           <div style={bellDotStyle} />
         </div>
-
-        {/* пины — реальные офферы */}
-        {offers?.map((offer, i) => {
-          const pos = PIN_POSITIONS[i];
-          if (!pos) return null;
-          const hot = offer.discountPercent >= HOT_DISCOUNT_THRESHOLD;
-          return (
-            <div
-              key={offer.id}
-              style={{
-                ...pinStyle,
-                left: pos.x,
-                top: pos.y,
-                background: hot ? "var(--color-danger)" : "var(--color-primary)",
-                width: hot ? 44 : 38,
-                height: hot ? 44 : 38,
-              }}
-            >
-              <span style={{ transform: "rotate(45deg)", fontSize: hot ? 11 : 10 }}>−{offer.discountPercent}%</span>
-            </div>
-          );
-        })}
 
         {/* bottom sheet — кликабельно */}
         <button
@@ -358,20 +282,6 @@ const bellDotStyle: CSSProperties = {
   borderRadius: "50%",
   background: "var(--color-surface-elevated)",
   border: "1px solid var(--color-border)",
-};
-
-const pinStyle: CSSProperties = {
-  position: "absolute",
-  borderRadius: "50% 50% 50% 0",
-  border: "2.5px solid var(--color-background)",
-  transform: "rotate(-45deg)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#fff",
-  fontWeight: 800,
-  boxShadow: "0 4px 10px rgba(18,16,13,0.2)",
-  transition: "opacity 0.3s ease",
 };
 
 const sheetStyle: CSSProperties = {
