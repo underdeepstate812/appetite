@@ -43,6 +43,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const apiClient = {
+  get: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "GET" }),
   post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>(path, { ...options, method: "POST", body }),
 };

@@ -114,13 +114,13 @@ export function OfertaPage() {
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 40 }}>
           <div className="doc-pullquote">
             <p className="doc-pullquote-number">25%</p>
-            <p style={{ fontSize: 13, color: "var(--color-ink-muted)", marginTop: 6, lineHeight: 1.5 }}>
+            <p style={{ position: "relative", zIndex: 1, fontSize: 13, color: "var(--color-ink-muted)", marginTop: 6, lineHeight: 1.5 }}>
               комиссия платформы с каждого завершённого заказа
             </p>
           </div>
           <div className="doc-pullquote">
             <p className="doc-pullquote-number">от 25%</p>
-            <p style={{ fontSize: 13, color: "var(--color-ink-muted)", marginTop: 6, lineHeight: 1.5 }}>
+            <p style={{ position: "relative", zIndex: 1, fontSize: 13, color: "var(--color-ink-muted)", marginTop: 6, lineHeight: 1.5 }}>
               минимальная скидка — стартовую ставку задаёт сам Партнёр
             </p>
           </div>

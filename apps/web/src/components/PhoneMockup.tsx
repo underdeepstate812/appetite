@@ -1,28 +1,79 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import type { NearbyOffer } from "@apetite/shared";
+import { offersApi } from "../api/offers";
 
-interface Pin {
-  x: number;
-  y: number;
-  label: string;
-  hot?: boolean;
-}
+/** Питер целиком — мокап не привязан к конкретной геопозиции посетителя. */
+const SPB_CENTER = { lat: 59.9311, lng: 30.3609 };
+const RADIUS_KM = 20;
+const PIN_COUNT = 4;
+/** Порог "горящей" скидки — тот же, что и в ленте предложений (OffersRibbon). */
+const HOT_DISCOUNT_THRESHOLD = 60;
 
-const PINS: Pin[] = [
-  { x: 78, y: 128, label: "−40%" },
-  { x: 168, y: 96, label: "−70%", hot: true },
-  { x: 60, y: 248, label: "−55%" },
-  { x: 190, y: 232, label: "−45%" },
+const PIN_POSITIONS = [
+  { x: 78, y: 128 },
+  { x: 168, y: 96 },
+  { x: 60, y: 248 },
+  { x: 190, y: 232 },
 ];
 
 /**
- * Макет телефона с картой предложений — теперь по-настоящему интерактивный:
- * клик по нижней панели (bottom sheet) разворачивает список офферов поверх
- * карты, ровно как в реальном интерфейсе мобильного приложения (см. концепт
- * "карта + bottom sheet" — apps/mobile HomeScreen). Раньше это была статичная
- * SVG-картинка; теперь HTML/CSS-макет с реальным состоянием, а не имитация.
+ * Взвешенная выборка без повторов: офферы со скидкой 50%+ примерно в 4 раза
+ * вероятнее попадут в отобранные N, чем более скромные — карта должна в первую
+ * очередь хвастаться самым горячим, а не быть равномерным срезом витрины.
+ */
+function weightedSample(offers: NearbyOffer[], count: number): NearbyOffer[] {
+  const pool = [...offers];
+  const picked: NearbyOffer[] = [];
+
+  while (picked.length < count && pool.length > 0) {
+    const weights = pool.map((offer) => (offer.discountPercent >= 50 ? 4 : 1));
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    let roll = Math.random() * total;
+    let index = 0;
+    for (; index < weights.length - 1; index++) {
+      roll -= weights[index];
+      if (roll <= 0) break;
+    }
+    picked.push(pool[index]);
+    pool.splice(index, 1);
+  }
+
+  return picked;
+}
+
+/**
+ * Макет телефона с картой предложений — пины и карточки нижней панели теперь
+ * реальные активные офферы (GET /offers/nearby), не выдуманные строки. Выборка
+ * рандомная при каждой загрузке страницы, но взвешена в пользу скидок 50%+
+ * (см. weightedSample). Позиции пинов на карте — фиксированный стилизованный
+ * макет (это иллюстрация экрана, не настоящая проекция координат), но их
+ * содержимое — честные данные с backend.
  */
 export function PhoneMockup() {
   const [expanded, setExpanded] = useState(false);
+  const [offers, setOffers] = useState<NearbyOffer[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    offersApi
+      .nearby({ ...SPB_CENTER, radiusKm: RADIUS_KM })
+      .then((data) => {
+        if (!cancelled) setOffers(weightedSample(data, PIN_COUNT));
+      })
+      .catch(() => {
+        // Витрина недоступна (backend не поднят и т.п.) — тихо остаёмся с пустой
+        // картой, это декоративный мокап на лендинге, а не рабочий экран.
+        if (!cancelled) setOffers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hotOffer = offers?.reduce<NearbyOffer | null>(
+    (hottest, offer) => (!hottest || offer.discountPercent > hottest.discountPercent ? offer : hottest),
+    null
+  );
 
   return (
     <div style={frameStyle}>
@@ -45,22 +96,27 @@ export function PhoneMockup() {
           <div style={bellDotStyle} />
         </div>
 
-        {/* пины */}
-        {PINS.map((pin, i) => (
-          <div
-            key={i}
-            style={{
-              ...pinStyle,
-              left: pin.x,
-              top: pin.y,
-              background: pin.hot ? "var(--color-danger)" : "var(--color-primary)",
-              width: pin.hot ? 44 : 38,
-              height: pin.hot ? 44 : 38,
-            }}
-          >
-            <span style={{ transform: "rotate(45deg)", fontSize: pin.hot ? 11 : 10 }}>{pin.label}</span>
-          </div>
-        ))}
+        {/* пины — реальные офферы */}
+        {offers?.map((offer, i) => {
+          const pos = PIN_POSITIONS[i];
+          if (!pos) return null;
+          const hot = offer.discountPercent >= HOT_DISCOUNT_THRESHOLD;
+          return (
+            <div
+              key={offer.id}
+              style={{
+                ...pinStyle,
+                left: pos.x,
+                top: pos.y,
+                background: hot ? "var(--color-danger)" : "var(--color-primary)",
+                width: hot ? 44 : 38,
+                height: hot ? 44 : 38,
+              }}
+            >
+              <span style={{ transform: "rotate(45deg)", fontSize: hot ? 11 : 10 }}>−{offer.discountPercent}%</span>
+            </div>
+          );
+        })}
 
         {/* bottom sheet — кликабельно */}
         <button
@@ -69,6 +125,7 @@ export function PhoneMockup() {
           style={{ ...sheetStyle, height: expanded ? 260 : 118 }}
           aria-expanded={expanded}
           aria-label={expanded ? "Свернуть список предложений" : "Показать все предложения"}
+          disabled={!offers?.length}
         >
           <div style={handleStyle} />
           <div style={sheetHeaderRow}>
@@ -80,16 +137,27 @@ export function PhoneMockup() {
 
           {expanded ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "0 14px 14px" }}>
-              <MiniCard title="Сеты дня" price="210 ₽" discount="−45%" />
-              <MiniCard title="Выпечка" price="150 ₽" discount="−55%" />
-              <MiniCard title="Букеты" price="390 ₽" discount="−40%" />
-              <MiniCard title="Ужин" price="280 ₽" discount="−70%" hot />
+              {offers?.map((offer) => (
+                <MiniCard
+                  key={offer.id}
+                  title={offer.title}
+                  price={`${(offer.discountedPrice / 100).toFixed(0)} ₽`}
+                  discount={`−${offer.discountPercent}%`}
+                  hot={offer.discountPercent >= HOT_DISCOUNT_THRESHOLD}
+                />
+              ))}
             </div>
-          ) : (
+          ) : hotOffer ? (
             <div style={miniCardRow}>
-              <MiniCard title="Ужин на двоих" price="280 ₽" discount="−70%" hot wide />
+              <MiniCard
+                title={hotOffer.title}
+                price={`${(hotOffer.discountedPrice / 100).toFixed(0)} ₽`}
+                discount={`−${hotOffer.discountPercent}%`}
+                hot={hotOffer.discountPercent >= HOT_DISCOUNT_THRESHOLD}
+                wide
+              />
             </div>
-          )}
+          ) : null}
         </button>
       </div>
     </div>
@@ -118,10 +186,22 @@ function MiniCard({
         padding: "8px 10px",
         textAlign: "left",
         width: wide ? "100%" : undefined,
+        overflow: "hidden",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-ink)" }}>{title}</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--color-ink)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {title}
+        </span>
         <span
           style={{
             fontSize: 9.5,
@@ -130,6 +210,7 @@ function MiniCard({
             background: hot ? "var(--color-danger)" : "var(--color-primary)",
             borderRadius: 999,
             padding: "1px 6px",
+            flexShrink: 0,
           }}
         >
           {discount}
@@ -201,6 +282,7 @@ const pinStyle: CSSProperties = {
   color: "#fff",
   fontWeight: 800,
   boxShadow: "0 4px 10px rgba(18,16,13,0.2)",
+  transition: "opacity 0.3s ease",
 };
 
 const sheetStyle: CSSProperties = {
