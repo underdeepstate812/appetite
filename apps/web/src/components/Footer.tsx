@@ -6,11 +6,11 @@ export function Footer() {
       <div className="container footer-grid">
         <div>
           <p className="footer-logo" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <AppetiteMark size={24} /> Apetite
+            <AppetiteMark size={24} /> Appetite
           </p>
           <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 280 }}>
             Вкусная еда, выпечка, цветы и продукты со скидкой 25–70% от заведений
-            в твоём городе. Пилот — Москва.
+            в твоём городе. Пилот — Санкт-Петербург.
           </p>
         </div>
         <div>
@@ -18,8 +18,8 @@ export function Footer() {
           <a href="#how" className="footer-link">
             Как это работает
           </a>
-          <a href="#business" className="footer-link">
-            Для заведений
+          <a href="/for-business" className="footer-link">
+            Для бизнеса
           </a>
           <a href="#faq" className="footer-link">
             Вопросы
@@ -40,12 +40,12 @@ export function Footer() {
             hello@apetite.ru
           </a>
           <p className="footer-link" style={{ cursor: "default" }}>
-            Москва, Россия
+            Санкт-Петербург, Россия
           </p>
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>© {new Date().getFullYear()} Apetite. Все права защищены.</span>
+        <span>© {new Date().getFullYear()} Appetite. Все права защищены.</span>
         <span>Бета — цены и доступность в тестовом режиме</span>
       </div>
     </footer>

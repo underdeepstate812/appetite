@@ -3,8 +3,8 @@ import { Linking } from "react-native";
 import * as Location from "expo-location";
 import { usersApi } from "../api/users";
 
-/** Центр Москвы (пилот, ШАГ 0) — фолбэк, если геопермишен не выдан/недоступен. */
-const MOSCOW_CENTER = { lat: 55.751244, lng: 37.618423 };
+/** Центр Санкт-Петербурга (пилот, ШАГ 0) — фолбэк, если геопермишен не выдан/недоступен. */
+const SPB_CENTER = { lat: 59.9311, lng: 30.3609 };
 
 export interface UserLocation {
   lat: number;
@@ -26,7 +26,7 @@ function toStatus(permission: Location.LocationPermissionResponse): LocationPerm
  * Разрешение НЕ запрашивается автоматически при монтировании — только читается текущий
  * статус, чтобы системный диалог не выскакивал раньше, чем пользователь увидит объяснение
  * (rationale-баннер, см. LocationPermissionBanner). Пока разрешения нет — гео-фичи (nearby,
- * карта) уже работают на фолбэке (центр Москвы), а не блокируются в состоянии загрузки.
+ * карта) уже работают на фолбэке (центр Санкт-Петербурга), а не блокируются в состоянии загрузки.
  */
 export function useLocation() {
   const [location, setLocation] = useState<UserLocation | null>(null);
@@ -36,7 +36,7 @@ export function useLocation() {
   const applyPermission = useCallback(async (permission: Location.LocationPermissionResponse) => {
     setStatus(toStatus(permission));
     if (permission.status !== Location.PermissionStatus.GRANTED) {
-      setLocation({ ...MOSCOW_CENTER, isFallback: true });
+      setLocation({ ...SPB_CENTER, isFallback: true });
       return;
     }
     try {
@@ -47,7 +47,7 @@ export function useLocation() {
       // не блокируем UI её результатом — обновление best-effort.
       void usersApi.updateLocation(next.lat, next.lng).catch(() => {});
     } catch {
-      setLocation({ ...MOSCOW_CENTER, isFallback: true });
+      setLocation({ ...SPB_CENTER, isFallback: true });
     }
   }, []);
 

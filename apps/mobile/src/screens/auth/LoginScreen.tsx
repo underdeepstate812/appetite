@@ -6,10 +6,13 @@ import { useAuthStore } from "../../store/authStore";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { Button } from "../../components/Button";
+import { SegmentedControl } from "../../components/SegmentedControl";
 import { AppetiteMark } from "../../components/icons/AppetiteMark";
+import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../../utils/validation";
 import type { AuthStackScreenProps } from "../../navigation/types";
 
 type Props = AuthStackScreenProps<"Login">;
+type LoginMode = "email" | "phone";
 
 export function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
@@ -17,14 +20,19 @@ export function LoginScreen({ navigation }: Props) {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
 
+  const [mode, setMode] = useState<LoginMode>("email");
   const [email, setEmail] = useState("user@apetite.ru");
+  const [phone, setPhone] = useState("+7");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const identifier = mode === "email" ? email : phone;
+  const identifierValid = mode === "email" ? isValidEmail(email) : isValidPhone(phone);
 
   const handleSubmit = async () => {
     setError(null);
     try {
-      await login({ email, password });
+      await login({ identifier, password });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : t("common.error"));
     }
@@ -37,14 +45,35 @@ export function LoginScreen({ navigation }: Props) {
       </View>
       <Text style={[styles.title, theme.typography.h1, { color: theme.colors.text }]}>{t("auth.loginTitle")}</Text>
 
-      <TextField
-        label={t("auth.email")}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        textContentType="emailAddress"
+      <SegmentedControl
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: "email", label: t("auth.email") },
+          { value: "phone", label: t("auth.phoneShort") },
+        ]}
       />
+
+      <View style={{ marginTop: 16 }}>
+        {mode === "email" ? (
+          <TextField
+            label={t("auth.email")}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+          />
+        ) : (
+          <TextField
+            label={t("auth.phoneShort")}
+            value={phone}
+            onChangeText={(value) => setPhone(formatRuPhoneInput(value))}
+            keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+          />
+        )}
+      </View>
       <TextField
         label={t("auth.password")}
         value={password}
@@ -55,7 +84,12 @@ export function LoginScreen({ navigation }: Props) {
 
       {error ? <Text style={[styles.error, { color: theme.colors.danger }]}>{error}</Text> : null}
 
-      <Button title={t("auth.loginButton")} onPress={handleSubmit} loading={isLoading} />
+      <Button
+        title={t("auth.loginButton")}
+        onPress={handleSubmit}
+        loading={isLoading}
+        disabled={!identifierValid || password.length === 0}
+      />
 
       <Text
         accessibilityRole="button"

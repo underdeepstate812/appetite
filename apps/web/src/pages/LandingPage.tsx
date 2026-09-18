@@ -35,8 +35,8 @@ const FAQ = [
     a: "Место остаётся забронированным до конца окна самовывоза, но при просрочке заказ автоматически отменяется — стоит рассчитывать время заранее.",
   },
   {
-    q: "В каких городах работает Apetite?",
-    a: "Пилот идёт в Москве. Список заведений и категорий расширяется постепенно.",
+    q: "В каких городах работает Appetite?",
+    a: "Пилот идёт в Санкт-Петербурге. Список заведений и категорий расширяется постепенно.",
   },
 ];
 
@@ -71,7 +71,7 @@ export function LandingPage() {
       <section style={heroStyle}>
         <div className="container" style={heroInnerStyle}>
           <div ref={heroRef} className="reveal" style={{ maxWidth: 560 }}>
-            <span className="stamp">Бета · Москва</span>
+            <span className="stamp">Бета · Санкт-Петербург</span>
             <h1 style={h1Style}>
               Вкусная еда рядом —<br />
               со скидкой до{" "}
@@ -161,7 +161,7 @@ export function LandingPage() {
           <div ref={businessRef} className="reveal" style={businessCardStyle}>
             <div style={{ maxWidth: 480 }}>
               <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--color-background)" }}>
-                Для заведений
+                Для бизнеса
               </span>
               <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-background)", marginTop: 18 }}>
                 Привлекай новых гостей{" "}
@@ -171,15 +171,15 @@ export function LandingPage() {
                 Панель бизнеса — офферы, заказы и аналитика в реальном времени. Скидка
                 настраивается от 25 до 70%, комиссия платформы — 25% с заказов.
               </p>
-              <a
-                href="mailto:hello@apetite.ru?subject=Подключить заведение"
+              <Link
+                to="/for-business"
                 className="btn btn-secondary"
                 style={{ marginTop: 24, background: "var(--color-background)" }}
                 onMouseMove={magneticMove}
                 onMouseLeave={magneticLeave}
               >
                 Подключить заведение
-              </a>
+              </Link>
             </div>
           </div>
         </div>

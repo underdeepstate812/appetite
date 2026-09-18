@@ -4,7 +4,7 @@ import { Smartphone, CheckCircle2 } from "lucide-react";
 import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
 import { rememberSession } from "../utils/session";
-import { isValidEmail, isValidPhone, getPasswordError } from "../utils/validation";
+import { formatRuPhoneInput, isValidEmail, isValidPhone, getPasswordError } from "../utils/validation";
 import { PasswordStrengthMeter } from "../components/PasswordStrengthMeter";
 import { IconBadge } from "../components/IconBadge";
 
@@ -18,7 +18,7 @@ export function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [phoneEnabled, setPhoneEnabled] = useState(false);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+7");
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
@@ -124,7 +124,7 @@ export function RegisterPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>Добро пожаловать, {done}!</h1>
           <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
             Аккаунт создан{phoneEnabled && phoneVerified ? " и телефон подтверждён" : ""}. Сам
-            сервис — в мобильном приложении Apetite, сайт пока только для входа/регистрации.
+            сервис — в мобильном приложении Appetite, сайт пока только для входа/регистрации.
           </p>
           <Link to="/" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
             На главную
@@ -220,9 +220,10 @@ export function RegisterPage() {
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   id="phone"
+                  type="tel"
                   value={phone}
                   onChange={(event) => {
-                    setPhone(event.target.value);
+                    setPhone(formatRuPhoneInput(event.target.value));
                     setPhoneVerified(false);
                     setOtpSent(false);
                   }}

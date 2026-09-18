@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Apetite",
+    "name": "Appetite",
     "slug": "apetite",
     "scheme": "apetite",
     "version": "0.1.0",
@@ -29,7 +29,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Apetite использует геопозицию, чтобы показывать предложения рядом с тобой."
+          "locationWhenInUsePermission": "Appetite использует геопозицию, чтобы показывать предложения рядом с тобой."
         }
       ],
       "expo-notifications"

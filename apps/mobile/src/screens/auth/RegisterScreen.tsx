@@ -7,6 +7,7 @@ import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { Button } from "../../components/Button";
 import { AppetiteMark } from "../../components/icons/AppetiteMark";
+import { formatRuPhoneInput, getPasswordError, isValidPhone } from "../../utils/validation";
 import type { AuthStackScreenProps } from "../../navigation/types";
 
 type Props = AuthStackScreenProps<"Register">;
@@ -21,10 +22,17 @@ export function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const passwordError = touched ? getPasswordError(password) : null;
+  const phoneError = touched && phone.length > 0 && !isValidPhone(phone) ? "Формат: +7XXXXXXXXXX" : null;
+  const canSubmit = name.trim().length >= 2 && getPasswordError(password) === null && (phone.length === 0 || isValidPhone(phone));
+
   const handleSubmit = async () => {
+    setTouched(true);
     setError(null);
+    if (!canSubmit) return;
     try {
       await register({ name, email, password, phone: phone || undefined });
     } catch (submitError) {
@@ -53,9 +61,10 @@ export function RegisterScreen({ navigation }: Props) {
       <TextField
         label={t("auth.phone")}
         value={phone}
-        onChangeText={setPhone}
+        onChangeText={(value) => setPhone(value.length ? formatRuPhoneInput(value) : "")}
         keyboardType="phone-pad"
         textContentType="telephoneNumber"
+        error={phoneError ?? undefined}
       />
       <TextField
         label={t("auth.password")}
@@ -63,11 +72,12 @@ export function RegisterScreen({ navigation }: Props) {
         onChangeText={setPassword}
         secureTextEntry
         textContentType="newPassword"
+        error={passwordError ?? undefined}
       />
 
       {error ? <Text style={[styles.error, { color: theme.colors.danger }]}>{error}</Text> : null}
 
-      <Button title={t("auth.registerButton")} onPress={handleSubmit} loading={isLoading} />
+      <Button title={t("auth.registerButton")} onPress={handleSubmit} loading={isLoading} disabled={touched && !canSubmit} />
 
       <Text
         accessibilityRole="button"

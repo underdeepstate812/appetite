@@ -4,19 +4,35 @@ import { CheckCircle2 } from "lucide-react";
 import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
 import { rememberSession } from "../utils/session";
-import { isValidEmail } from "../utils/validation";
+import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../utils/validation";
 import { IconBadge } from "../components/IconBadge";
 
+type LoginMode = "email" | "phone";
+
 export function LoginPage() {
+  const [mode, setMode] = useState<LoginMode>("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("+7");
   const [password, setPassword] = useState("");
-  const [emailTouched, setEmailTouched] = useState(false);
+  const [identifierTouched, setIdentifierTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  const emailError = emailTouched && email.length > 0 && !isValidEmail(email) ? "Некорректный email" : null;
-  const canSubmit = isValidEmail(email) && password.length > 0 && !submitting;
+  const identifier = mode === "email" ? email : phone;
+  const identifierValid = mode === "email" ? isValidEmail(email) : isValidPhone(phone);
+  const identifierError =
+    identifierTouched && identifier.length > 0 && !identifierValid
+      ? mode === "email"
+        ? "Некорректный email"
+        : "Формат: +7XXXXXXXXXX"
+      : null;
+  const canSubmit = identifierValid && password.length > 0 && !submitting;
+
+  const switchMode = (next: LoginMode) => {
+    setMode(next);
+    setIdentifierTouched(false);
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -24,7 +40,7 @@ export function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const data = await authApi.login({ email, password });
+      const data = await authApi.login({ identifier, password });
       rememberSession(data.user, data);
       setDone(data.user.name);
     } catch (submitError) {
@@ -41,7 +57,7 @@ export function LoginPage() {
           <IconBadge icon={CheckCircle2} size="xl" />
           <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>С возвращением, {done}!</h1>
           <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
-            Вход выполнен. Сам сервис — в мобильном приложении Apetite, сайт пока только
+            Вход выполнен. Сам сервис — в мобильном приложении Appetite, сайт пока только
             для входа/регистрации.
           </p>
           <Link to="/" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
@@ -64,20 +80,59 @@ export function LoginPage() {
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setEmailTouched(true)}
-              className={emailError ? "field-invalid" : ""}
-              autoComplete="email"
-              required
-            />
-            {emailError ? <span className="field-error" role="alert">{emailError}</span> : null}
+          <div className="ribbon-filters" role="tablist" aria-label="Способ входа" style={{ alignSelf: "flex-start" }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "email"}
+              className={`ribbon-filter${mode === "email" ? " is-active" : ""}`}
+              onClick={() => switchMode("email")}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "phone"}
+              className={`ribbon-filter${mode === "phone" ? " is-active" : ""}`}
+              onClick={() => switchMode("phone")}
+            >
+              Телефон
+            </button>
           </div>
+
+          {mode === "email" ? (
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onBlur={() => setIdentifierTouched(true)}
+                className={identifierError ? "field-invalid" : ""}
+                autoComplete="email"
+                required
+              />
+              {identifierError ? <span className="field-error" role="alert">{identifierError}</span> : null}
+            </div>
+          ) : (
+            <div className="field">
+              <label htmlFor="phone">Телефон</label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(formatRuPhoneInput(event.target.value))}
+                onBlur={() => setIdentifierTouched(true)}
+                className={identifierError ? "field-invalid" : ""}
+                autoComplete="tel"
+                placeholder="+79991234567"
+                required
+              />
+              {identifierError ? <span className="field-error" role="alert">{identifierError}</span> : null}
+            </div>
+          )}
 
           <div className="field">
             <label htmlFor="password">Пароль</label>

@@ -40,7 +40,7 @@ export function PhoneMockup() {
         {/* хедер экрана приложения */}
         <div style={appHeaderStyle}>
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--color-primary)" }}>
-            Apetite
+            Appetite
           </span>
           <div style={bellDotStyle} />
         </div>

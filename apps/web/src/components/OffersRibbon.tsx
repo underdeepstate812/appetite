@@ -251,8 +251,11 @@ function OfferTile({
         <Heart size={16} strokeWidth={2.2} fill={liked ? "currentColor" : "none"} />
       </button>
 
-      <div className={`offer-tile-icon${hot ? " is-hot" : ""}`}>
-        <Icon size={26} strokeWidth={2} color={hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
+      <div className={`offer-tile-photo${hot ? " is-hot" : ""}`}>
+        <Icon size={40} strokeWidth={1.5} color={hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
+        <span className="offer-tile-logo" aria-hidden="true">
+          {offer.shop.charAt(0)}
+        </span>
       </div>
 
       <p className="offer-tile-shop">{offer.shop}</p>

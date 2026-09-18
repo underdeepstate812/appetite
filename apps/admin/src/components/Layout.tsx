@@ -33,7 +33,7 @@ export function Layout() {
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside style={sidebarStyle}>
         <div style={{ padding: "20px 20px 8px" }}>
-          <p style={{ fontSize: 18, fontWeight: 800, color: "var(--color-primary)" }}>Apetite</p>
+          <p style={{ fontSize: 18, fontWeight: 800, color: "var(--color-primary)" }}>Appetite</p>
           <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
             {isAdmin ? "Панель платформы" : "Панель бизнеса"}
           </p>

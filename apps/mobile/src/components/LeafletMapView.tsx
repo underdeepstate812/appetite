@@ -94,7 +94,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Центр меняется, когда наконец приходит реальная геопозиция (после фолбэка на Москву).
+  // Центр меняется, когда наконец приходит реальная геопозиция (после фолбэка на Санкт-Петербург).
   useEffect(() => {
     mapRef.current?.setView([center.lat, center.lng]);
   }, [center.lat, center.lng]);

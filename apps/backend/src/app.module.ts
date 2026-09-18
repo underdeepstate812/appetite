@@ -15,6 +15,7 @@ import { UsersModule } from "./users/users.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { EcoModule } from "./eco/eco.module";
 import { PlatformModule } from "./platform/platform.module";
+import { BusinessApplicationsModule } from "./business-applications/business-applications.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -46,6 +47,7 @@ import { AppController } from "./app.controller";
     NotificationsModule,
     EcoModule,
     PlatformModule,
+    BusinessApplicationsModule,
   ],
   controllers: [AppController],
 })

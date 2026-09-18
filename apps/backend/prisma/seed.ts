@@ -16,15 +16,15 @@ import {
 
 const prisma = new PrismaClient();
 
-const MOSCOW_CENTER = { lat: 55.751244, lng: 37.618423 };
+const SPB_CENTER = { lat: 59.9311, lng: 30.3609 };
 const KM_PER_LAT_DEGREE = 111;
 
 /** Грубое смещение координат на deltaKm километров — достаточно для тестовых данных. */
 function offsetCoords(deltaLatKm: number, deltaLngKm: number) {
-  const lngKmPerDegree = KM_PER_LAT_DEGREE * Math.cos((MOSCOW_CENTER.lat * Math.PI) / 180);
+  const lngKmPerDegree = KM_PER_LAT_DEGREE * Math.cos((SPB_CENTER.lat * Math.PI) / 180);
   return {
-    lat: MOSCOW_CENTER.lat + deltaLatKm / KM_PER_LAT_DEGREE,
-    lng: MOSCOW_CENTER.lng + deltaLngKm / lngKmPerDegree,
+    lat: SPB_CENTER.lat + deltaLatKm / KM_PER_LAT_DEGREE,
+    lng: SPB_CENTER.lng + deltaLngKm / lngKmPerDegree,
   };
 }
 
@@ -61,7 +61,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
     ownerEmail: "cafe.pushkin@apetite.ru",
     name: "Кафе Пушкинъ",
     category: OfferCategory.FOOD,
-    address: "ул. Тверская, 26а, Москва",
+    address: "Невский проспект, 40, Санкт-Петербург",
     deltaLatKm: 0.3,
     deltaLngKm: 0.2,
     offers: [
@@ -87,9 +87,9 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
   },
   {
     ownerEmail: "bulka.arbat@apetite.ru",
-    name: "Булочная на Арбате",
+    name: "Булочная на Рубинштейна",
     category: OfferCategory.BAKERY,
-    address: "Арбат, 10, Москва",
+    address: "ул. Рубинштейна, 10, Санкт-Петербург",
     deltaLatKm: -0.5,
     deltaLngKm: 0.6,
     offers: [
@@ -106,9 +106,9 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
   },
   {
     ownerEmail: "flowers.mos@apetite.ru",
-    name: "Цветочная мастерская МОС",
+    name: "Цветочная мастерская СПб",
     category: OfferCategory.FLOWERS,
-    address: "Кутузовский пр-т, 5, Москва",
+    address: "наб. реки Фонтанки, 5, Санкт-Петербург",
     deltaLatKm: 0.8,
     deltaLngKm: -0.4,
     offers: [
@@ -127,7 +127,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
     ownerEmail: "market.svezhest@apetite.ru",
     name: "Магазин Свежесть",
     category: OfferCategory.GROCERIES,
-    address: "Ленинский пр-т, 45, Москва",
+    address: "Приморский пр-т, 45, Санкт-Петербург",
     deltaLatKm: -0.2,
     deltaLngKm: -0.7,
     offers: [
@@ -173,10 +173,10 @@ async function main() {
       passwordHash,
       name: "Тестовый пользователь",
       role: Role.USER,
-      // Рядом с центром Москвы — чтобы гео-дайджест "рядом с тобой N предложений" (ШАГ 6)
+      // Рядом с центром Санкт-Петербурга — чтобы гео-дайджест "рядом с тобой N предложений" (ШАГ 6)
       // сразу находил сидовые заведения, а не требовал ручного PATCH /users/me/location.
-      lastLat: MOSCOW_CENTER.lat,
-      lastLng: MOSCOW_CENTER.lng,
+      lastLat: SPB_CENTER.lat,
+      lastLng: SPB_CENTER.lng,
       expoPushToken: "ExponentPushToken[demo-seed-token]",
     },
   });

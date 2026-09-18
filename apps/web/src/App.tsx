@@ -5,10 +5,14 @@ import { ScrollProgress } from "./components/ScrollProgress";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { BusinessRegisterPage } from "./pages/BusinessRegisterPage";
+import { OfertaPage } from "./pages/OfertaPage";
+
+const NO_FOOTER_PATHS = ["/login", "/register", "/for-business"];
 
 function Layout() {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
+  const isAuthPage = NO_FOOTER_PATHS.includes(location.pathname);
 
   return (
     <>
@@ -18,6 +22,8 @@ function Layout() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/for-business" element={<BusinessRegisterPage />} />
+        <Route path="/legal/oferta" element={<OfertaPage />} />
       </Routes>
       {isAuthPage ? null : <Footer />}
     </>

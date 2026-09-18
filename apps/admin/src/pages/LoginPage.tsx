@@ -13,7 +13,7 @@ export function LoginPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await login({ email, password });
+      await login({ identifier: email, password });
       const role = useAuthStore.getState().user?.role;
       navigate(role === "ADMIN" ? "/platform/businesses" : "/offers", { replace: true });
     } catch {
@@ -25,7 +25,7 @@ export function LoginPage() {
     <div style={wrapperStyle}>
       <form onSubmit={(event) => void handleSubmit(event)} className="card stack" style={{ width: 360, padding: 32, gap: 16 }}>
         <div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>Apetite</p>
+          <p style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>Appetite</p>
           <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>Вход для бизнеса и платформы</p>
         </div>
 

@@ -14,6 +14,7 @@
     "password": "Password",
     "name": "Name",
     "phone": "Phone (optional)",
+    "phoneShort": "Phone",
     "loginButton": "Sign in",
     "registerButton": "Sign up",
     "noAccount": "No account? Sign up",
@@ -48,14 +49,14 @@
     "mapNearbyRestaurants": "Restaurants: {{count}}",
     "openMap": "Open map",
     "ordersShortcut": "My orders",
-    "locationFallback": "Moscow",
+    "locationFallback": "Saint Petersburg",
     "chipVenuesNearby": "Venues nearby: {{count}}",
     "chipHotDeals": "Hot deals: {{count}}"
   },
   "location": {
     "rationaleMessage": "Turn on location to see deals near you and how far they are",
     "enable": "Allow",
-    "blockedMessage": "Location access is blocked in settings — showing deals near central Moscow instead",
+    "blockedMessage": "Location access is blocked in settings — showing deals near central Saint Petersburg instead",
     "openSettings": "Open settings"
   },
   "notifications": {
@@ -131,6 +132,8 @@
   },
   "profile": {
     "title": "Profile",
+    "memberSince": "Member since {{date}}",
+    "ecoTeaser": "{{points}} points · {{kg}} kg saved",
     "logout": "Log out",
     "themeLabel": "Appearance",
     "themeSystem": "System",
@@ -151,7 +154,7 @@
       "1": "Newbie",
       "2": "Food Rescuer",
       "3": "Planet Hero",
-      "4": "Apetite Legend"
+      "4": "Appetite Legend"
     }
   },
   "map": {

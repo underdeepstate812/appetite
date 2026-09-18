@@ -4,9 +4,24 @@ import { AppetiteMark } from "./AppetiteMark";
 
 const NAV_LINKS = [
   { href: "#how", label: "Как это работает" },
-  { href: "#business", label: "Для заведений" },
+  { href: "/for-business", label: "Для бизнеса" },
   { href: "#faq", label: "Вопросы" },
 ];
+
+function NavLink({ href, label, className, onClick }: { href: string; label: string; className: string; onClick: () => void }) {
+  if (href.startsWith("#")) {
+    return (
+      <a href={href} className={className} onClick={onClick}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <Link to={href} className={className} onClick={onClick}>
+      {label}
+    </Link>
+  );
+}
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -15,14 +30,12 @@ export function Header() {
     <header className="site-header">
       <div className="container site-header-inner">
         <Link to="/" className="site-logo" onClick={() => setMenuOpen(false)}>
-          <AppetiteMark size={26} /> Apetite
+          <AppetiteMark size={26} /> Appetite
         </Link>
 
         <nav className="site-nav-desktop">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="site-nav-link">
-              {link.label}
-            </a>
+            <NavLink key={link.href} href={link.href} label={link.label} className="site-nav-link" onClick={() => {}} />
           ))}
         </nav>
 
@@ -61,9 +74,13 @@ export function Header() {
 
       <div className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
         {NAV_LINKS.map((link) => (
-          <a key={link.href} href={link.href} className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
-            {link.label}
-          </a>
+          <NavLink
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            className="mobile-menu-link"
+            onClick={() => setMenuOpen(false)}
+          />
         ))}
         <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
           Войти

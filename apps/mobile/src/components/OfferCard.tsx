@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 // Прямые импорты вместо барреля lucide-react-native — package.json объявляет
 // exports["./icons/*"] именно под это, с подтянутыми типами (в отличие от
@@ -66,12 +66,28 @@ export function OfferCard({ offer, onPress, featured = false }: OfferCardProps) 
           },
         ]}
       >
-        <View style={styles.headerRow}>
-          <View style={[styles.iconChip, { backgroundColor: theme.colors.primarySoft, borderRadius: theme.radii.md }]}>
-            <Icon size={18} color={theme.colors.primary} strokeWidth={2} />
-          </View>
+        <View
+          style={[
+            styles.photo,
+            { backgroundColor: featured ? theme.colors.dangerSoft : theme.colors.primarySoft, borderRadius: theme.radii.md },
+          ]}
+        >
+          {offer.imageUrl ? (
+            <Image source={{ uri: offer.imageUrl }} style={styles.photoImage} resizeMode="cover" />
+          ) : (
+            <Icon size={34} color={featured ? theme.colors.danger : theme.colors.primary} strokeWidth={1.5} />
+          )}
+
           <View style={[styles.discountBadge, { backgroundColor: theme.colors.primary, borderRadius: theme.radii.full }]}>
             <Text style={styles.discountText}>-{offer.discountPercent}%</Text>
+          </View>
+
+          <View style={[styles.logoBadge, { backgroundColor: theme.colors.surfaceElevated }]}>
+            {offer.businessLogoUrl ? (
+              <Image source={{ uri: offer.businessLogoUrl }} style={styles.logoImage} />
+            ) : (
+              <Text style={[styles.logoInitial, { color: theme.colors.primary }]}>{offer.businessName.charAt(0)}</Text>
+            )}
           </View>
         </View>
 
@@ -125,10 +141,30 @@ export function OfferCard({ offer, onPress, featured = false }: OfferCardProps) 
 const styles = StyleSheet.create({
   pressWrap: { width: "100%" },
   card: { padding: 14 },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconChip: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
-  discountBadge: { paddingHorizontal: 8, paddingVertical: 3 },
+  photo: {
+    width: "100%",
+    aspectRatio: 16 / 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    position: "relative",
+  },
+  photoImage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  discountBadge: { position: "absolute", top: 10, right: 10, paddingHorizontal: 8, paddingVertical: 3 },
   discountText: { fontSize: 12, fontWeight: "700", color: "#fff" },
+  logoBadge: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  logoImage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  logoInitial: { fontSize: 12, fontWeight: "800" },
   featuredEyebrow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
   featuredEyebrowText: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 10 },
