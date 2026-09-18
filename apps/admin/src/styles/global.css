@@ -1,30 +1,37 @@
 :root {
-  /* Палитра — те же токены, что и в мобильном приложении (apps/mobile/src/theme/tokens.ts),
-     для визуальной согласованности бренда между mobile и admin. Admin — только светлая
-     тема: это рабочий инструмент для персонала на кассе/в офисе, а не потребительское
-     приложение — тёмный режим здесь не даёт ощутимой пользы, упрощаем скоуп ШАГ 10. */
-  --color-primary: #ff6b4a;
-  --color-primary-soft: #ffe8e1;
-  --color-secondary: #2e7d5b;
-  --color-background: #ffffff;
-  --color-surface: #f7f5f3;
+  /* Единая палитра бренда (teal + тёплая бумага) — та же, что в apps/web и в
+     токенах мобильного приложения (apps/mobile/src/theme/tokens.ts:
+     primary #0F766E). Раньше здесь жил отдельный оранжево-зелёный набор,
+     оставшийся от более раннего прогона (ШАГ 10) — визуально расходился с
+     остальными поверхностями продукта. Admin — только светлая тема: это
+     рабочий инструмент для персонала на кассе/в офисе, тёмный режим не даёт
+     ощутимой пользы, упрощаем скоуп. */
+  --color-primary: #0f766e;
+  --color-primary-dark: #0b5a54;
+  --color-primary-soft: #d7f3ef;
+  --color-secondary: #0f766e;
+  --color-background: #fffdf9;
+  --color-surface: #f4efe4;
   --color-surface-elevated: #ffffff;
-  --color-text: #1a1a1a;
-  --color-text-muted: #6b6b6b;
-  --color-border: #e5e1dc;
-  --color-danger: #d64545;
-  --color-danger-soft: #fbe6e6;
-  --color-success: #2e7d5b;
-  --color-success-soft: #e3f3eb;
+  --color-text: #12100d;
+  --color-text-muted: #7a7267;
+  --color-border: rgba(18, 16, 13, 0.12);
+  --color-danger: #d6432e;
+  --color-danger-soft: rgba(214, 67, 46, 0.1);
+  --color-success: #0f766e;
+  --color-success-soft: #d7f3ef;
   --color-warning: #c98a12;
   --color-warning-soft: #fbf0da;
-  --color-on-primary: #ffffff;
+  --color-on-primary: #fffdf9;
 
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  /* Фирменный срезанный угол — тот же силуэт, что у кнопок/карточек на web,
+     вместо типовой равномерной скруглости. */
+  --radius-signature: 4px 16px 4px 16px;
 
-  --shadow-card: 0 1px 2px rgba(26, 26, 26, 0.06), 0 1px 1px rgba(26, 26, 26, 0.04);
+  --shadow-card: 0 1px 2px rgba(18, 16, 13, 0.05);
 }
 
 * {
@@ -33,8 +40,7 @@
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--color-surface);
   color: var(--color-text);
 }
@@ -55,7 +61,7 @@ button {
 .card {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-signature);
   box-shadow: var(--shadow-card);
 }
 
@@ -73,12 +79,12 @@ button {
   gap: 6px;
   min-height: 40px;
   padding: 0 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-signature);
   border: 1px solid transparent;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .btn:disabled {
@@ -86,19 +92,26 @@ button {
   cursor: not-allowed;
 }
 
-.btn:not(:disabled):hover {
-  opacity: 0.9;
-}
-
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.25);
 }
 
 .btn-secondary {
   background: var(--color-surface);
   color: var(--color-text);
   border-color: var(--color-border);
+}
+
+.btn-secondary:not(:disabled):hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .btn-danger {

@@ -5,6 +5,7 @@ import { offersApi } from "../api/offers";
 import { OfferStatusBadge } from "../components/StatusBadge";
 import { LoadingView, EmptyView, ErrorView } from "../components/StateViews";
 import { OfferFormModal } from "../components/OfferFormModal";
+import { QuickOfferCreate } from "../components/QuickOfferCreate";
 import { CATEGORY_LABELS } from "../constants";
 
 export function OffersPage() {
@@ -59,6 +60,8 @@ export function OffersPage() {
           + Новый оффер
         </button>
       </div>
+
+      <QuickOfferCreate businessId={business.id} onCreated={() => void load()} />
 
       {error ? (
         <ErrorView label={error} />

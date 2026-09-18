@@ -1,17 +1,21 @@
 import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import { ShoppingBag, Receipt, BarChart3, Store, TrendingUp } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useBusinessStore } from "../store/businessStore";
+import { AppetiteMark } from "./AppetiteMark";
 
+// SVG-иконки вместо эмодзи — эмодзи рендерятся по-разному на разных ОС/браузерах
+// и не держат единый визуальный вес рядом с остальным интерфейсом.
 const BUSINESS_NAV_ITEMS = [
-  { to: "/offers", label: "Офферы", icon: "🍱" },
-  { to: "/orders", label: "Заказы", icon: "🧾" },
-  { to: "/analytics", label: "Аналитика", icon: "📊" },
+  { to: "/offers", label: "Офферы", icon: ShoppingBag },
+  { to: "/orders", label: "Заказы", icon: Receipt },
+  { to: "/analytics", label: "Аналитика", icon: BarChart3 },
 ];
 
 const ADMIN_NAV_ITEMS = [
-  { to: "/platform/businesses", label: "Заведения", icon: "🏪" },
-  { to: "/platform/stats", label: "GMV", icon: "📈" },
+  { to: "/platform/businesses", label: "Заведения", icon: Store },
+  { to: "/platform/stats", label: "GMV", icon: TrendingUp },
 ];
 
 export function Layout() {
@@ -33,8 +37,11 @@ export function Layout() {
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <aside style={sidebarStyle}>
         <div style={{ padding: "20px 20px 8px" }}>
-          <p style={{ fontSize: 18, fontWeight: 800, color: "var(--color-primary)" }}>Appetite</p>
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <AppetiteMark size={22} />
+            <p style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)" }}>Appetite</p>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6 }}>
             {isAdmin ? "Панель платформы" : "Панель бизнеса"}
           </p>
         </div>
@@ -50,7 +57,7 @@ export function Layout() {
                 fontWeight: isActive ? 700 : 500,
               })}
             >
-              <span>{item.icon}</span>
+              <item.icon size={17} strokeWidth={2} aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}
