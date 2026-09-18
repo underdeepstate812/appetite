@@ -1020,12 +1020,62 @@ img {
   background: var(--color-surface-elevated);
   color: var(--color-ink);
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .hamburger-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.hamburger-btn:active {
+  transform: scale(0.92);
+}
+
+/* Бургер ⇄ крест — три полосы едут/поворачиваются в цель, а не подменяются
+   мгновенно чужой картинкой. Быстрая точная кривая (без пружинного нахлёста),
+   чтобы иконка-переключатель читалась как чёткий отклик, а не декоративный жест. */
+.hamburger-icon {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+}
+
+.hamburger-line {
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 0.32s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.2s ease, width 0.32s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.hamburger-line:nth-child(1) {
+  top: 0;
+}
+
+.hamburger-line:nth-child(2) {
+  top: 7px;
+}
+
+.hamburger-line:nth-child(3) {
+  top: 14px;
+}
+
+.hamburger-icon.is-open .hamburger-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-icon.is-open .hamburger-line:nth-child(2) {
+  width: 0;
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.hamburger-icon.is-open .hamburger-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 /* Раскрытие меню — grid-rows 0fr→1fr (тот же приём, что и у FAQ-аккордеона),
@@ -1457,7 +1507,8 @@ img {
     transition: none;
   }
   .faq-panel,
-  .mobile-menu {
+  .mobile-menu,
+  .hamburger-line {
     transition: none;
   }
   .mobile-menu-link {

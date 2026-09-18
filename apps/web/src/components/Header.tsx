@@ -96,22 +96,14 @@ export function Header() {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >
-            <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
-              {menuOpen ? (
-                <path
-                  d="M1 1 L19 15 M19 1 L1 15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              ) : (
-                <>
-                  <line x1="0" y1="1" x2="20" y2="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="0" y1="8" x2="20" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="0" y1="15" x2="20" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </>
-              )}
-            </svg>
+            {/* Три полосы никогда не размонтируются — открытие/закрытие это одна и та
+                же тройка span'ов, которая переезжает/вращается в крест и обратно, а не
+                подмена одной картинки на другую без перехода. */}
+            <span className={`hamburger-icon ${menuOpen ? "is-open" : ""}`} aria-hidden="true">
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+            </span>
           </button>
         </div>
       </div>
