@@ -1,4 +1,5 @@
-import { useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { AppetiteMark } from "./AppetiteMark";
@@ -14,71 +15,75 @@ function NavLink({
   label,
   className,
   onClick,
-  onMouseEnter,
+  trailingIcon,
 }: {
   href: string;
   label: string;
   className: string;
   onClick: () => void;
-  onMouseEnter?: (event: ReactMouseEvent<HTMLElement>) => void;
+  trailingIcon?: boolean;
 }) {
+  const content = (
+    <>
+      <span>{label}</span>
+      {trailingIcon ? (
+        <ArrowRight size={15} strokeWidth={2.2} className="mobile-menu-link-arrow" aria-hidden="true" />
+      ) : null}
+    </>
+  );
+
   if (href.startsWith("#")) {
     return (
-      <a href={href} className={className} onClick={onClick} onMouseEnter={onMouseEnter}>
-        {label}
+      <a href={href} className={className} onClick={onClick}>
+        {content}
       </a>
     );
   }
   return (
-    <Link to={href} className={className} onClick={onClick} onMouseEnter={onMouseEnter}>
-      {label}
+    <Link to={href} className={className} onClick={onClick}>
+      {content}
     </Link>
   );
 }
 
-/* Позиция и ширина капсулы читаются с самой наведённой ссылки (getBoundingClientRect),
-   а не захардкожены — значит верстка/лейбл может меняться, а подсветка всегда точно
-   обведёт нужный пункт. Тот же "магнитный" приём, что и у фокуса в macOS/tvOS: не
-   плоское подчёркивание, а один объект, который плавно переезжает между стоп-точками. */
-type Highlight = { left: number; width: number; opacity: number };
-
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const navRef = useRef<HTMLElement>(null);
-  const [highlight, setHighlight] = useState<Highlight>({ left: 0, width: 0, opacity: 0 });
+  const headerRef = useRef<HTMLElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
 
-  const moveHighlight = (event: ReactMouseEvent<HTMLElement>) => {
-    const nav = navRef.current;
-    if (!nav) return;
-    const navBox = nav.getBoundingClientRect();
-    const linkBox = event.currentTarget.getBoundingClientRect();
-    setHighlight({ left: linkBox.left - navBox.left, width: linkBox.width, opacity: 1 });
-  };
+  // Меню — плавающая панель поверх контента, а не аккордеон в потоке страницы,
+  // поэтому как у любого дропдауна должно закрываться кликом вне себя и по Esc.
+  useEffect(() => {
+    if (!menuOpen) return;
 
-  const hideHighlight = () => setHighlight((prev) => ({ ...prev, opacity: 0 }));
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const insideHeader = headerRef.current?.contains(target);
+      const insidePanel = menuPanelRef.current?.contains(target);
+      if (!insideHeader && !insidePanel) setMenuOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
-    <header className="site-header">
+    <header ref={headerRef} className="site-header">
       <div className="container site-header-inner">
         <Link to="/" className="site-logo" onClick={() => setMenuOpen(false)}>
           <AppetiteMark size={26} /> Appetite
         </Link>
 
-        <nav ref={navRef} className="site-nav-desktop" onMouseLeave={hideHighlight}>
-          <span
-            className="site-nav-highlight"
-            style={{ transform: `translateX(${highlight.left}px)`, width: highlight.width, opacity: highlight.opacity }}
-            aria-hidden="true"
-          />
+        <nav className="site-nav-desktop">
           {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              className="site-nav-link"
-              onClick={() => {}}
-              onMouseEnter={moveHighlight}
-            />
+            <NavLink key={link.href} href={link.href} label={link.label} className="site-nav-link" onClick={() => {}} />
           ))}
         </nav>
 
@@ -108,22 +113,31 @@ export function Header() {
         </div>
       </div>
 
-      <div className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
-        <nav className="mobile-menu-inner">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              className="mobile-menu-link"
-              onClick={() => setMenuOpen(false)}
-            />
-          ))}
-          <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
-            Войти
-          </Link>
-        </nav>
-      </div>
+      {/* Портал в body, а не дочерний элемент <header> — иначе собственный
+          backdrop-filter хедера ломает композитинг вложенного backdrop-filter
+          панели в Chromium (подтверждено экспериментально: с blur на хедере
+          стекло меню теряет непрозрачность и текст страницы просвечивает). */}
+      {createPortal(
+        <div ref={menuPanelRef} className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
+          <nav className="mobile-menu-inner">
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.href}
+                href={link.href}
+                label={link.label}
+                className="mobile-menu-link"
+                onClick={() => setMenuOpen(false)}
+                trailingIcon
+              />
+            ))}
+            <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+              <span>Войти</span>
+              <ArrowRight size={15} strokeWidth={2.2} className="mobile-menu-link-arrow" aria-hidden="true" />
+            </Link>
+          </nav>
+        </div>,
+        document.body
+      )}
     </header>
   );
 }

@@ -963,44 +963,41 @@ img {
 }
 
 .site-nav-desktop {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 26px;
 }
 
-/* Капсула-подсветка едет между пунктами и меняет ширину под каждый лейбл —
-   один "живой" объект вместо статичной линии (macOS/tvOS-приём фокуса), но
-   форма — фирменный срезанный угол, а не типовая pill, чтобы не съехать в
-   тот самый шаблонный SaaS-навбар, от которого раньше сознательно ушли. */
-.site-nav-highlight {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: var(--radius-signature);
-  background: var(--color-primary-soft);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.25s ease;
-}
-
+/* Минимализм вместо капсулы: только цвет и тонкая линия, которая не растёт,
+   а проявляется/гаснет — одно свойство (opacity), а не форма и не JS-трекинг. */
 .site-nav-link {
   position: relative;
-  z-index: 1;
   color: var(--color-ink-muted);
   text-decoration: none;
   font-size: 15px;
   font-weight: 500;
-  padding: 9px 16px;
-  border-radius: var(--radius-signature);
-  transition: color 0.25s ease;
+  padding: 6px 2px;
+  transition: color 0.2s ease;
+}
+
+.site-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 1.5px;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .site-nav-link:hover {
-  color: var(--color-primary-dark);
+  color: var(--color-ink);
+}
+
+.site-nav-link:hover::after {
+  opacity: 1;
 }
 
 .site-header-actions {
@@ -1078,69 +1075,85 @@ img {
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Раскрытие меню — grid-rows 0fr→1fr (тот же приём, что и у FAQ-аккордеона),
-   а не мгновенный display:none↔flex: пункты не появляются разом, а "выплывают"
-   по очереди слева, с небольшой задержкой друг за другом. */
+/* Меню больше не аккордеон, вдавливающий страницу вниз, а плавающая
+   стеклянная панель над контентом — раскрывается из-под хедера скейлом+фейдом
+   от верхней кромки (как macOS/iOS-дропдауны), а не растягиванием высоты. */
+/* Рендерится порталом прямо в <body> (см. Header.tsx) — position:fixed
+   относительно вьюпорта, top считается от известной высоты хедера. */
 .mobile-menu {
-  display: grid;
-  grid-template-rows: 0fr;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-background);
-  transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  top: calc(var(--header-height) + 10px);
+  left: 12px;
+  right: 12px;
+  z-index: 60;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 249, 0.78);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 24px 48px rgba(18, 16, 13, 0.16), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  overflow: hidden;
+  transform-origin: top center;
+  transform: scale(0.94) translateY(-6px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.26s ease, visibility 0s linear 0.38s;
 }
 
 .mobile-menu.is-open {
-  grid-template-rows: 1fr;
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.26s ease, visibility 0s;
 }
 
 .mobile-menu-inner {
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 12px 20px 20px;
+  padding: 14px;
 }
 
 .mobile-menu-link {
   position: relative;
-  padding: 12px 10px 12px 20px;
-  min-height: 44px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  min-height: 44px;
   color: var(--color-ink);
   text-decoration: none;
   font-family: "Unbounded", var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-signature);
   opacity: 0;
-  transform: translateX(-12px);
-  transition: opacity 0.35s ease, transform 0.35s ease, background 0.15s ease, color 0.15s ease;
+  transform: translateY(-6px);
+  transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease, color 0.2s ease;
 }
 
-/* Тил-штрих слева, раскрывается на hover — тот же мотив "маркер на полях",
-   что и у doc-pullquote и step-accent, а не третий случайный акцент. */
-.mobile-menu-link::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 9px;
-  bottom: 9px;
-  width: 3px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: transform 0.2s ease;
+/* Стрелка, а не подчёркивание/полоса — тот же приём "выезжающей" иконки, что
+   и у .btn-arrow на CTA-кнопках: пункты меню говорят на одном языке с ними. */
+.mobile-menu-link-arrow {
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.mobile-menu-link:hover {
-  background: var(--color-surface-elevated);
-  color: var(--color-primary);
+.mobile-menu-link:hover,
+.mobile-menu-link:focus-visible {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--color-primary-dark);
 }
 
-.mobile-menu-link:hover::before {
-  transform: scaleY(1);
+.mobile-menu-link:hover .mobile-menu-link-arrow,
+.mobile-menu-link:focus-visible .mobile-menu-link-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .mobile-menu.is-open .mobile-menu-link {
@@ -1149,16 +1162,16 @@ img {
 }
 
 .mobile-menu.is-open .mobile-menu-link:nth-child(1) {
-  transition-delay: 0.1s;
+  transition-delay: 0.08s;
 }
 .mobile-menu.is-open .mobile-menu-link:nth-child(2) {
-  transition-delay: 0.16s;
+  transition-delay: 0.13s;
 }
 .mobile-menu.is-open .mobile-menu-link:nth-child(3) {
-  transition-delay: 0.22s;
+  transition-delay: 0.18s;
 }
 .mobile-menu.is-open .mobile-menu-link:nth-child(4) {
-  transition-delay: 0.28s;
+  transition-delay: 0.23s;
 }
 
 /* Мобильные и планшеты — гамбургер вместо горизонтального меню (по запросу). */
@@ -1511,7 +1524,8 @@ img {
   .hamburger-line {
     transition: none;
   }
-  .mobile-menu-link {
+  .mobile-menu-link,
+  .mobile-menu-link-arrow {
     opacity: 1;
     transform: none;
     transition: none;
