@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { AppetiteMark } from "./AppetiteMark";
 
 const NAV_LINKS = [
@@ -45,6 +46,7 @@ export function Header() {
           </Link>
           <Link to="/register" className="btn btn-primary btn-sm">
             Регистрация
+            <ArrowRight size={15} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
           </Link>
           <button
             className="hamburger-btn"
@@ -73,18 +75,20 @@ export function Header() {
       </div>
 
       <div className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
-        {NAV_LINKS.map((link) => (
-          <NavLink
-            key={link.href}
-            href={link.href}
-            label={link.label}
-            className="mobile-menu-link"
-            onClick={() => setMenuOpen(false)}
-          />
-        ))}
-        <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
-          Войти
-        </Link>
+        <nav className="mobile-menu-inner">
+          {NAV_LINKS.map((link) => (
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              className="mobile-menu-link"
+              onClick={() => setMenuOpen(false)}
+            />
+          ))}
+          <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+            Войти
+          </Link>
+        </nav>
       </div>
     </header>
   );

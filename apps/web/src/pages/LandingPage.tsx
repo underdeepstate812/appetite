@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { Search, CreditCard, ShoppingBag } from "lucide-react";
+import { Search, CreditCard, ShoppingBag, ArrowRight, ArrowUpRight } from "lucide-react";
 import { PhoneMockup } from "../components/PhoneMockup";
 import { OffersRibbon } from "../components/OffersRibbon";
 import { IconBadge } from "../components/IconBadge";
@@ -89,6 +89,7 @@ export function LandingPage() {
                 onMouseLeave={magneticLeave}
               >
                 Начать бесплатно
+                <ArrowRight size={17} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
               </Link>
               <a
                 href="#how"
@@ -97,6 +98,7 @@ export function LandingPage() {
                 onMouseLeave={magneticLeave}
               >
                 Как это работает
+                <ArrowUpRight size={17} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
               </a>
             </div>
             <div style={{ display: "flex", gap: 32, marginTop: 48 }}>
@@ -318,12 +320,15 @@ const phoneWrapStyle: CSSProperties = {
 
 const stepGhostNumberStyle: CSSProperties = {
   position: "absolute",
-  top: -18,
-  right: -6,
-  fontFamily: "var(--font-display)",
-  fontSize: 96,
-  fontWeight: 700,
-  color: "rgba(15,118,110,0.07)",
+  top: -22,
+  right: -4,
+  // Unbounded вместо Onest только здесь — декоративная типографика watermark-цифры,
+  // не читаемый текст, поэтому геометричный дисплейный шрифт уместен и не мешает
+  // доступности (тот же приём, что и на странице оферты).
+  fontFamily: '"Unbounded", var(--font-display)',
+  fontSize: 116,
+  fontWeight: 800,
+  color: "rgba(15,118,110,0.09)",
   lineHeight: 1,
   zIndex: 0,
   userSelect: "none",
