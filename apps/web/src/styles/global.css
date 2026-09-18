@@ -154,9 +154,22 @@ img {
 }
 
 .btn-primary {
+  position: relative;
+  overflow: hidden;
   background: var(--color-primary);
   color: var(--color-on-primary);
   box-shadow: var(--shadow-float);
+}
+
+/* Тактильный глянец сверху — та же диагональная подсветка, что и на стекле
+   экрана в PhoneMockup (glassGlareStyle), только вертикальная и мягче: кнопка
+   и телефон говорят одним языком материала, а не плоская заливка отдельно. */
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
 }
 
 .btn-primary:not(:disabled):hover {
@@ -174,6 +187,9 @@ img {
   background: var(--color-surface-elevated);
   color: var(--color-ink);
   border-color: var(--color-border);
+  /* Лёгкая тень уже в покое — иначе рядом со стеклянно-глянцевым primary она
+     читалась плоской "приклеенной" наклейкой. */
+  box-shadow: 0 2px 10px rgba(18, 16, 13, 0.05);
 }
 
 .btn-secondary:not(:disabled):hover {
@@ -967,6 +983,16 @@ img {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* --- Карта в мокапе телефона (LeafletMapView) --- */
+
+/* Стандартные тайлы OSM слишком пёстрые (жёлтые/оранжевые дороги, плотная
+   разметка) и спорят с маркерами — приглушаем только слой тайлов (не весь
+   контейнер, чтобы яркие тил/красные пины остались сочными), тот же приём,
+   что у карт Uber/DoorDash/Airbnb: карта отступает на второй план. */
+.leaflet-tile-pane {
+  filter: saturate(0.5) brightness(1.12) contrast(0.92);
 }
 
 /* --- Auth-страницы --- */

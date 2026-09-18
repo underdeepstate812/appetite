@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { NearbyOffer } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 import { LeafletMapView } from "./LeafletMapView";
+import { FireIcon } from "./FireIcon";
 
 /**
  * Центр карты мокапа — сейчас всегда Петербург (единственный пилотный регион),
@@ -14,6 +15,14 @@ const SPB_CENTER = { lat: 59.9311, lng: 30.3609 };
 const MAP_ZOOM = 14;
 const RADIUS_KM = 20;
 const PIN_COUNT = 4;
+/**
+ * Карта в мокапе всегда показывает один и тот же кадр (SPB_CENTER, зум 14) —
+ * запрос идёт с радиусом 20км "для витрины", но случайно выбранный оффер за
+ * пределами видимого при этом зуме кадра давал маркер вообще без пина в кадре
+ * (реальный баг: пустая карта без единого маркера при неудачной выборке).
+ * Сначала отбираем только то, что физически попадёт в видимый кадр.
+ */
+const MAX_MARKER_DISTANCE_KM = 4;
 /** Порог "горящей" скидки — тот же, что и в ленте предложений (OffersRibbon). */
 const HOT_DISCOUNT_THRESHOLD = 60;
 
@@ -58,7 +67,9 @@ export function PhoneMockup() {
     offersApi
       .nearby({ ...SPB_CENTER, radiusKm: RADIUS_KM })
       .then((data) => {
-        if (!cancelled) setOffers(weightedSample(data, PIN_COUNT));
+        const inFrame = data.filter((offer) => offer.distanceKm <= MAX_MARKER_DISTANCE_KM);
+        const pool = inFrame.length > 0 ? inFrame : data;
+        if (!cancelled) setOffers(weightedSample(pool, PIN_COUNT));
       })
       .catch(() => {
         // Витрина недоступна (backend не поднят и т.п.) — тихо остаёмся с пустой
@@ -94,10 +105,14 @@ export function PhoneMockup() {
         {/* лёгкий блик стекла поверх экрана */}
         <div style={glassGlareStyle} />
 
-        {/* хедер экрана приложения */}
+        {/* хедер экрана приложения — лого на стеклянном чипе, а не голым
+            текстом прямо на карте: под разными тайлами оно иначе то тонет,
+            то спорит с дорогами на заднем плане. */}
         <div style={appHeaderStyle}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: "var(--color-primary)" }}>
-            Appetite
+          <span style={wordmarkChipStyle}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, color: "var(--color-primary)" }}>
+              Appetite
+            </span>
           </span>
           <div style={bellDotStyle} />
         </div>
@@ -188,6 +203,9 @@ function MiniCard({
         </span>
         <span
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
             fontSize: 9.5,
             fontWeight: 800,
             color: "#fff",
@@ -197,6 +215,7 @@ function MiniCard({
             flexShrink: 0,
           }}
         >
+          {hot ? <FireIcon size={9} /> : null}
           {discount}
         </span>
       </div>
@@ -274,6 +293,16 @@ const appHeaderStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   zIndex: 1,
+};
+
+const wordmarkChipStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "5px 12px",
+  borderRadius: 999,
+  background: "rgba(255, 253, 249, 0.75)",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 2px 8px rgba(18,16,13,0.12)",
 };
 
 const bellDotStyle: CSSProperties = {
