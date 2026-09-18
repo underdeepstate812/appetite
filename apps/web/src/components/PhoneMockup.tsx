@@ -77,16 +77,76 @@ export function PhoneMockup() {
 
   return (
     <div style={frameStyle}>
-      <div style={notchStyle} />
+      {/* Боковые кнопки — на корпусе, не на экране, поэтому висят вне screenStyle. */}
+      <div style={{ ...sideButtonStyle, left: -2, top: 96, height: 28 }} />
+      <div style={{ ...sideButtonStyle, left: -2, top: 136, height: 46 }} />
+      <div style={{ ...sideButtonStyle, left: -2, top: 192, height: 46 }} />
+      <div style={{ ...sideButtonStyle, right: -2, top: 148, height: 64 }} />
+
+      <div style={islandStyle}>
+        <div style={cameraDotStyle} />
+      </div>
+
       <div style={screenStyle}>
-        {/* карта */}
+        {/* карта — стилизованный СПб: Нева, набережные, кварталы, парк */}
         <svg viewBox="0 0 260 460" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <rect width="260" height="460" fill="var(--color-surface)" />
-          <path d="M-10 90 C 60 60,120 130,270 100" stroke="var(--color-border)" strokeWidth="9" fill="none" />
-          <path d="M-10 230 C 70 200,110 300,270 260" stroke="var(--color-border)" strokeWidth="8" fill="none" />
-          <path d="M50 -10 C 30 140,90 220,70 350" stroke="var(--color-border)" strokeWidth="7" fill="none" />
-          <path d="M190 -10 C 205 150,150 230,180 380" stroke="var(--color-border)" strokeWidth="7" fill="none" />
+
+          {/* городские кварталы — лёгкая текстура застройки под улицами */}
+          <g fill="var(--color-border)" opacity="0.5">
+            <rect x="14" y="30" width="34" height="26" rx="3" />
+            <rect x="56" y="24" width="22" height="40" rx="3" />
+            <rect x="100" y="34" width="30" height="22" rx="3" />
+            <rect x="146" y="26" width="26" height="30" rx="3" />
+            <rect x="20" y="160" width="26" height="34" rx="3" />
+            <rect x="150" y="150" width="32" height="24" rx="3" />
+            <rect x="196" y="180" width="24" height="30" rx="3" />
+            <rect x="18" y="290" width="30" height="24" rx="3" />
+            <rect x="90" y="310" width="26" height="30" rx="3" />
+            <rect x="170" y="300" width="28" height="22" rx="3" />
+            <rect x="200" y="360" width="26" height="30" rx="3" />
+            <rect x="60" y="380" width="30" height="24" rx="3" />
+          </g>
+
+          {/* парк */}
+          <ellipse cx="205" cy="90" rx="38" ry="26" fill="rgba(93,138,86,0.16)" />
+          <ellipse cx="228" cy="70" rx="20" ry="16" fill="rgba(93,138,86,0.14)" />
+
+          {/* Нева — широкой лентой через весь экран, как настоящая река */}
+          <path
+            d="M-20 340 C 40 300, 70 270, 130 250 C 190 230, 210 190, 190 140 C 175 105, 150 70, 165 -20"
+            stroke="rgba(15,118,110,0.16)"
+            strokeWidth="34"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-20 340 C 40 300, 70 270, 130 250 C 190 230, 210 190, 190 140 C 175 105, 150 70, 165 -20"
+            stroke="rgba(15,118,110,0.28)"
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+          />
+
+          {/* магистрали */}
+          <path d="M-10 90 C 60 60,120 130,270 100" stroke="var(--color-border)" strokeWidth="9" fill="none" strokeLinecap="round" />
+          <path d="M-10 230 C 70 200,110 300,270 260" stroke="var(--color-border)" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <path d="M50 -10 C 30 140,90 220,70 350" stroke="var(--color-border)" strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d="M190 -10 C 205 150,150 230,180 380" stroke="var(--color-border)" strokeWidth="7" fill="none" strokeLinecap="round" />
+
+          {/* второстепенные улицы — плотнее сетка, честнее ощущение города */}
+          <g stroke="var(--color-border)" strokeWidth="3" fill="none" opacity="0.75" strokeLinecap="round">
+            <path d="M0 60 L 260 46" />
+            <path d="M0 180 L 260 170" />
+            <path d="M0 320 L 260 300" />
+            <path d="M20 0 L 34 460" />
+            <path d="M120 0 L 108 460" />
+            <path d="M230 0 L 244 460" />
+          </g>
         </svg>
+
+        {/* лёгкий блик стекла поверх экрана */}
+        <div style={glassGlareStyle} />
 
         {/* хедер экрана приложения */}
         <div style={appHeaderStyle}>
@@ -224,32 +284,61 @@ function MiniCard({
 const frameStyle: CSSProperties = {
   width: "100%",
   aspectRatio: "280 / 560",
-  background: "var(--color-ink)",
-  borderRadius: 38,
-  padding: 8,
-  boxShadow: "0 20px 50px rgba(18,16,13,0.25)",
+  // Металлический корпус вместо плоской заливки — градиент имитирует то, как
+  // свет скользит по титановому/алюминиевому ободу настоящего телефона.
+  background: "linear-gradient(160deg, #3f3f42 0%, #1c1c1e 40%, #030303 100%)",
+  borderRadius: 46,
+  padding: 9,
+  boxShadow: "0 30px 60px rgba(18,16,13,0.32), 0 2px 0 rgba(255,255,255,0.06) inset",
   position: "relative",
 };
 
-const notchStyle: CSSProperties = {
+const sideButtonStyle: CSSProperties = {
   position: "absolute",
-  top: 18,
+  width: 3,
+  background: "linear-gradient(90deg, #0a0a0a, #333)",
+  borderRadius: 2,
+};
+
+const islandStyle: CSSProperties = {
+  position: "absolute",
+  top: 16,
   left: "50%",
   transform: "translateX(-50%)",
-  width: "34%",
-  height: 14,
-  background: "var(--color-ink)",
-  borderRadius: 8,
-  zIndex: 2,
+  width: 76,
+  height: 22,
+  background: "#000",
+  borderRadius: 14,
+  zIndex: 3,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  paddingRight: 6,
+  boxShadow: "0 0 0 1px rgba(255,255,255,0.04) inset",
+};
+
+const cameraDotStyle: CSSProperties = {
+  width: 7,
+  height: 7,
+  borderRadius: "50%",
+  background: "radial-gradient(circle at 35% 35%, #3a4a55, #0a0f12)",
 };
 
 const screenStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   height: "100%",
-  borderRadius: 30,
+  borderRadius: 38,
   overflow: "hidden",
   background: "var(--color-background)",
+  boxShadow: "0 0 0 1px rgba(0,0,0,0.05) inset",
+};
+
+const glassGlareStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.10) 50%, transparent 58%)",
+  pointerEvents: "none",
 };
 
 const appHeaderStyle: CSSProperties = {
