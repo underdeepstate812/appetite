@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { Flame, UtensilsCrossed, Croissant, Flower2, ShoppingBasket, Heart, MapPin, Clock } from "lucide-react";
+import { UtensilsCrossed, Croissant, Flower2, ShoppingBasket, Heart, MapPin, Clock } from "lucide-react";
 import { useReveal } from "../hooks/useReveal";
+import { FireIcon } from "./FireIcon";
 
 type Category = "food" | "bakery" | "flowers" | "groceries";
 
@@ -236,7 +237,7 @@ function OfferTile({
     >
       {hot ? (
         <span className="offer-tile-hot">
-          <Flame size={13} strokeWidth={2.4} className="offer-tile-hot-flame" aria-hidden="true" /> Горит
+          <FireIcon size={13} /> Горит
         </span>
       ) : null}
 
@@ -252,7 +253,9 @@ function OfferTile({
       </button>
 
       <div className={`offer-tile-photo${hot ? " is-hot" : ""}`}>
-        <Icon size={40} strokeWidth={1.5} color={hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
+        <span className="offer-tile-photo-plate" aria-hidden="true">
+          <Icon size={32} strokeWidth={1.5} color={hot ? "var(--color-danger)" : "var(--color-primary)"} aria-hidden="true" />
+        </span>
         <span className="offer-tile-logo" aria-hidden="true">
           {offer.shop.charAt(0)}
         </span>
@@ -273,7 +276,7 @@ function OfferTile({
         </span>
         {hot ? (
           <span className="offer-tile-countdown">
-            <Flame size={12} strokeWidth={2.4} aria-hidden="true" /> {formatCountdown(secondsLeft)}
+            <FireIcon size={12} /> {formatCountdown(secondsLeft)}
           </span>
         ) : (
           <span>

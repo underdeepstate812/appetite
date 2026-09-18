@@ -527,20 +527,96 @@ img {
   }
 }
 
-@keyframes flameFlicker {
+@keyframes fireFlicker1 {
   0%,
   100% {
-    transform: scale(1) rotate(0deg);
+    scale: 1 1;
+    rotate: 0deg;
+    opacity: 0.94;
   }
   30% {
-    transform: scale(1.14) rotate(-7deg);
+    scale: 0.9 1.1;
+    rotate: -4deg;
+    opacity: 1;
   }
-  55% {
-    transform: scale(0.92) rotate(5deg);
+  60% {
+    scale: 1.06 0.9;
+    rotate: 3deg;
+    opacity: 0.9;
   }
-  80% {
-    transform: scale(1.06) rotate(-3deg);
+}
+
+@keyframes fireFlicker2 {
+  0%,
+  100% {
+    scale: 1 1;
+    rotate: 0deg;
   }
+  40% {
+    scale: 0.88 1.18;
+    rotate: 5deg;
+  }
+  70% {
+    scale: 1.08 0.85;
+    rotate: -4deg;
+  }
+}
+
+@keyframes fireFlicker3 {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  35% {
+    scale: 0.82 1.22;
+  }
+  65% {
+    scale: 1.1 0.8;
+  }
+}
+
+/* Живое пламя — три наложенных "языка" тёплого градиента вместо статичной
+   SVG-иконки. Анимируются только scale/rotate/opacity (отдельные CSS-свойства,
+   не transform-шорткат — так каждый слой можно крутить независимо и при этом
+   держать его отцентрованным через постоянный translate), без layout-трат. */
+.fire-icon {
+  position: relative;
+  display: inline-block;
+  width: var(--fire-size, 14px);
+  height: var(--fire-size, 14px);
+  flex-shrink: 0;
+}
+
+.fire-flame {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  border-radius: 0% 60% 60% 60% / 0% 60% 60% 100%;
+}
+
+.fire-flame-1 {
+  width: 72%;
+  height: 92%;
+  background: radial-gradient(circle at 50% 25%, #ffcf6b 0%, #ff8a3d 55%, #e8380d 100%);
+  animation: fireFlicker1 1.15s ease-in-out infinite;
+}
+
+.fire-flame-2 {
+  width: 52%;
+  height: 66%;
+  background: radial-gradient(circle at 50% 25%, #fff3c4 0%, #ffb03d 60%, #ff5a1f 100%);
+  animation: fireFlicker2 0.9s ease-in-out infinite;
+  animation-delay: 0.12s;
+}
+
+.fire-flame-3 {
+  width: 32%;
+  height: 42%;
+  background: radial-gradient(circle at 50% 20%, #fffdf0 0%, #ffe08a 70%, #ff9a3d 100%);
+  animation: fireFlicker3 0.75s ease-in-out infinite;
+  animation-delay: 0.25s;
 }
 
 .live-dot {
@@ -639,7 +715,9 @@ img {
   gap: 10px;
   background: var(--color-surface-elevated);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
+  /* Тот же фирменный силуэт, что у кнопок и карточек шагов — не типовая
+     равномерная скруглость. */
+  border-radius: var(--radius-signature);
   box-shadow: var(--shadow-card);
   padding: 18px;
   opacity: 0;
@@ -680,26 +758,25 @@ img {
   animation-play-state: paused;
 }
 
+/* Раньше бейдж висел на -11px над карточкой — при overflow-x:auto у ленты
+   браузер по спецификации CSS обязан заодно перевести overflow-y в auto (не
+   может остаться "visible", когда сосед по оси не visible), и это обрезало
+   бейдж сверху. Теперь бейдж целиком внутри карточки, поверх фото. */
 .offer-tile-hot {
   position: absolute;
-  top: -11px;
-  left: 16px;
+  top: 10px;
+  left: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background: var(--color-danger);
   color: #fff;
   font-size: 11px;
   font-weight: 800;
-  padding: 4px 10px 4px 8px;
+  padding: 5px 10px 5px 7px;
   border-radius: var(--radius-full);
   box-shadow: 0 4px 10px rgba(214, 67, 46, 0.35);
   z-index: 1;
-}
-
-.offer-tile-hot-flame {
-  animation: flameFlicker 1.4s ease-in-out infinite;
-  transform-origin: 50% 90%;
 }
 
 .offer-tile-countdown {
@@ -751,7 +828,9 @@ img {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  /* Верхние углы фото повторяют верхние углы самой карточки (4px / 18px) —
+     тот же приём, что у step-accent в "Как это работает". */
+  border-radius: 4px 18px 0 0;
   background: linear-gradient(160deg, var(--color-primary-soft), var(--color-surface));
   transition: transform 0.2s ease;
 }
@@ -760,9 +839,28 @@ img {
   transform: scale(1.03);
 }
 
+/* Иконка категории сидит на собственной стеклянной "тарелке", а не голая на
+   градиенте — тот же язык, что у IconBadge в остальных секциях сайта, чтобы
+   фото-зона читалась как оформленный элемент, а не заглушка. */
+.offer-tile-photo-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 253, 249, 0.55);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 6px 16px rgba(18, 16, 13, 0.06);
+  transition: background 0.3s ease;
+}
+
 .offer-tile-photo.is-hot {
   background: linear-gradient(160deg, var(--color-danger-soft), var(--color-surface));
   animation: hotPulse 2.4s ease-in-out infinite;
+}
+
+.offer-tile-photo.is-hot .offer-tile-photo-plate {
+  background: rgba(255, 253, 249, 0.7);
 }
 
 .offer-tile-logo {
@@ -1533,7 +1631,7 @@ img {
   .live-dot,
   .offer-tile-photo.is-hot,
   .offer-tile.is-hot,
-  .offer-tile-hot-flame {
+  .fire-flame {
     animation: none;
   }
   html {
