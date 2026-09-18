@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { AppetiteMark } from "./AppetiteMark";
@@ -9,23 +9,53 @@ const NAV_LINKS = [
   { href: "#faq", label: "Вопросы" },
 ];
 
-function NavLink({ href, label, className, onClick }: { href: string; label: string; className: string; onClick: () => void }) {
+function NavLink({
+  href,
+  label,
+  className,
+  onClick,
+  onMouseEnter,
+}: {
+  href: string;
+  label: string;
+  className: string;
+  onClick: () => void;
+  onMouseEnter?: (event: ReactMouseEvent<HTMLElement>) => void;
+}) {
   if (href.startsWith("#")) {
     return (
-      <a href={href} className={className} onClick={onClick}>
+      <a href={href} className={className} onClick={onClick} onMouseEnter={onMouseEnter}>
         {label}
       </a>
     );
   }
   return (
-    <Link to={href} className={className} onClick={onClick}>
+    <Link to={href} className={className} onClick={onClick} onMouseEnter={onMouseEnter}>
       {label}
     </Link>
   );
 }
 
+/* Позиция и ширина капсулы читаются с самой наведённой ссылки (getBoundingClientRect),
+   а не захардкожены — значит верстка/лейбл может меняться, а подсветка всегда точно
+   обведёт нужный пункт. Тот же "магнитный" приём, что и у фокуса в macOS/tvOS: не
+   плоское подчёркивание, а один объект, который плавно переезжает между стоп-точками. */
+type Highlight = { left: number; width: number; opacity: number };
+
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const [highlight, setHighlight] = useState<Highlight>({ left: 0, width: 0, opacity: 0 });
+
+  const moveHighlight = (event: ReactMouseEvent<HTMLElement>) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const navBox = nav.getBoundingClientRect();
+    const linkBox = event.currentTarget.getBoundingClientRect();
+    setHighlight({ left: linkBox.left - navBox.left, width: linkBox.width, opacity: 1 });
+  };
+
+  const hideHighlight = () => setHighlight((prev) => ({ ...prev, opacity: 0 }));
 
   return (
     <header className="site-header">
@@ -34,9 +64,21 @@ export function Header() {
           <AppetiteMark size={26} /> Appetite
         </Link>
 
-        <nav className="site-nav-desktop">
+        <nav ref={navRef} className="site-nav-desktop" onMouseLeave={hideHighlight}>
+          <span
+            className="site-nav-highlight"
+            style={{ transform: `translateX(${highlight.left}px)`, width: highlight.width, opacity: highlight.opacity }}
+            aria-hidden="true"
+          />
           {NAV_LINKS.map((link) => (
-            <NavLink key={link.href} href={link.href} label={link.label} className="site-nav-link" onClick={() => {}} />
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              className="site-nav-link"
+              onClick={() => {}}
+              onMouseEnter={moveHighlight}
+            />
           ))}
         </nav>
 

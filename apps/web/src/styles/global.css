@@ -963,43 +963,44 @@ img {
 }
 
 .site-nav-desktop {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 2px;
 }
 
-/* Точка-"остановка" над ссылкой вместо линии подчёркивания — тот же язык
-   маршрута, что и у остановок в "Как это работает": хедер как первая точка
-   пути, каждая ссылка — следующая. */
+/* Капсула-подсветка едет между пунктами и меняет ширину под каждый лейбл —
+   один "живой" объект вместо статичной линии (macOS/tvOS-приём фокуса), но
+   форма — фирменный срезанный угол, а не типовая pill, чтобы не съехать в
+   тот самый шаблонный SaaS-навбар, от которого раньше сознательно ушли. */
+.site-nav-highlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--radius-signature);
+  background: var(--color-primary-soft);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s ease;
+}
+
 .site-nav-link {
   position: relative;
+  z-index: 1;
   color: var(--color-ink-muted);
   text-decoration: none;
   font-size: 15px;
   font-weight: 500;
-  padding: 6px 0 8px;
-  transition: color 0.2s ease;
-}
-
-.site-nav-link::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  transform: translateX(-50%) scale(0);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 9px 16px;
+  border-radius: var(--radius-signature);
+  transition: color 0.25s ease;
 }
 
 .site-nav-link:hover {
-  color: var(--color-ink);
-}
-
-.site-nav-link:hover::before {
-  transform: translateX(-50%) scale(1);
+  color: var(--color-primary-dark);
 }
 
 .site-header-actions {
@@ -1179,6 +1180,9 @@ img {
   grid-template-columns: 1.4fr 1fr 1fr 1fr;
   gap: 32px;
   padding: 56px 0 32px;
+  /* Доп. отступ слева поверх стандартных полей .container — колонки чуть
+     "вдыхают" от края, а не стоят вровень с остальными секциями страницы. */
+  padding-left: clamp(0px, 4vw, 40px);
 }
 
 .footer-col-title {
@@ -1208,6 +1212,7 @@ img {
   z-index: 1;
   border-top: 1px solid rgba(255, 253, 249, 0.12);
   padding: 20px 0;
+  padding-left: clamp(0px, 4vw, 40px);
   font-size: 13px;
   color: rgba(255, 253, 249, 0.5);
   display: flex;
