@@ -32,7 +32,13 @@
           "locationWhenInUsePermission": "Appetite использует геопозицию, чтобы показывать предложения рядом с тобой."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Appetite использует доступ к галерее, чтобы ты мог поставить фото на аватар профиля."
+        }
+      ]
     ]
   }
 }

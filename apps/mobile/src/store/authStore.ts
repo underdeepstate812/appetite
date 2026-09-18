@@ -20,6 +20,8 @@ interface AuthState {
   register: (input: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
+  /** Профиль/аватар обновились на backend — подменяем локальную копию без полного relogin. */
+  setUser: (user: User) => void;
 }
 
 async function persistTokens(accessToken: string, refreshToken: string) {
@@ -110,6 +112,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       return false;
     }
   },
+
+  setUser: (user) => set({ user }),
 }));
 
 configureApiClient({

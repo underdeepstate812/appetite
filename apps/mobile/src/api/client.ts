@@ -1,5 +1,16 @@
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000/api/v1";
 
+// Origin бэкенда (без /api/v1) — статику (/uploads/...) backend отдаёт вне
+// версионированного префикса. URL.origin в RN исторически не реализован — режем регэкспом.
+const API_ORIGIN = BASE_URL.match(/^(https?:\/\/[^/]+)/)?.[1] ?? BASE_URL;
+
+/** Относительный путь из API (/uploads/avatars/x.jpg) → полный URL для <Image source={{ uri }} />. */
+export function resolveAssetUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${API_ORIGIN}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     public statusCode: number,
@@ -44,15 +55,18 @@ export function configureApiClient(config: {
 async function request<T>(path: string, options: RequestOptions = {}, isRetry = false): Promise<T> {
   const { auth = true, headers, body, ...rest } = options;
   const token = auth ? getAccessToken() : null;
+  // FormData (аватар и т.п.) отправляем как есть — fetch сам проставит Content-Type
+  // с правильным multipart boundary, задать его вручную здесь и сломать нельзя.
+  const isFormData = body instanceof FormData;
 
   const response = await fetch(`${BASE_URL}${path}`, {
     ...rest,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   if (response.status === 401 && auth && !isRetry) {
