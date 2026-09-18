@@ -39,4 +39,8 @@ export class CreateOfferDto {
 
   @IsDateString()
   pickupEnd!: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

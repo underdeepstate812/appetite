@@ -35,6 +35,14 @@ export function computeDiscountPercent(baseDiscountPercent: number, hoursToEnd: 
 
 export const DISCOUNT_CRON_EXPRESSION = "*/15 * * * *";
 
+/** Российский мобильный номер: +7 и ровно 10 цифр после кода страны. */
+export const RU_PHONE_REGEX = /^\+7\d{10}$/;
+
+export const PASSWORD_MIN_LENGTH = 8;
+/** Минимум 8 символов + заглавная, строчная, цифра и спецсимвол — единое правило для backend и обеих фронт-форм. */
+export const STRONG_PASSWORD_REGEX =
+  /^(?=.*[a-zа-яё])(?=.*[A-ZА-ЯЁ])(?=.*\d)(?=.*[^A-Za-zА-Яа-яЁё\d]).{8,}$/;
+
 export const PICKUP_CODE_LENGTH = 6;
 
 /** Эко-баллы за 1 кг спасённого веса (EcoTransaction.points = weightSavedKg * ECO_POINTS_PER_KG). */

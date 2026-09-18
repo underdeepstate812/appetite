@@ -53,7 +53,7 @@ export class AuthService {
     const code = randomInt(100000, 1000000).toString();
     await this.redis.set(otpCodeKey(dto.phone), code, "EX", OTP_TTL_SECONDS);
     await this.redis.set(otpCooldownKey(dto.phone), "1", "EX", OTP_RESEND_COOLDOWN_SECONDS);
-    await this.sms.send(dto.phone, `Код подтверждения Apetite: ${code}`);
+    await this.sms.send(dto.phone, `Код подтверждения Appetite: ${code}`);
     return { success: true };
   }
 
@@ -102,13 +102,17 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const identifier = dto.identifier.trim();
+    const isEmail = identifier.includes("@");
+    const user = isEmail
+      ? await this.prisma.user.findUnique({ where: { email: identifier } })
+      : await this.prisma.user.findUnique({ where: { phone: identifier } });
     if (!user) {
-      throw new UnauthorizedException("Неверный email или пароль");
+      throw new UnauthorizedException("Неверный email/телефон или пароль");
     }
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) {
-      throw new UnauthorizedException("Неверный email или пароль");
+      throw new UnauthorizedException("Неверный email/телефон или пароль");
     }
 
     const tokens = await this.issueTokens(user.id, user.email, user.role);

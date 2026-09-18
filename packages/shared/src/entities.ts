@@ -1,4 +1,5 @@
 import {
+  BusinessApplicationStatus,
   BusinessStatus,
   NotificationType,
   OfferCategory,
@@ -47,6 +48,8 @@ export interface Business {
   status: BusinessStatus;
   /** Комиссия платформы для заведения, % (по умолчанию — платформенная константа). */
   commissionPercent: number;
+  /** Логотип заведения — опционально, без него показывается плейсхолдер с инициалом. */
+  logoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +68,8 @@ export interface Offer {
   discountPercent: number;
   /** Стартовая скидка, которую задал владелец бизнеса (минимум MIN_BASE_PERCENT = 25%). */
   baseDiscountPercent: number;
+  /** Фото товара — опционально, без него показывается плейсхолдер по категории. */
+  imageUrl?: string | null;
   quantityTotal: number;
   quantityLeft: number;
   /** Вес одной единицы товара в кг — основа для эко-баллов и "спасённых кг". */
@@ -101,7 +106,22 @@ export interface NearbyOffer extends Offer {
   businessAddress: string;
   businessLat: number;
   businessLng: number;
+  businessLogoUrl?: string | null;
   distanceKm: number;
+}
+
+/** Заявка на подключение с публичной формы "Для бизнеса" — см. BusinessApplicationStatus. */
+export interface BusinessApplication {
+  id: string;
+  name: string;
+  category: OfferCategory;
+  address: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  ofertaAccepted: boolean;
+  status: BusinessApplicationStatus;
+  createdAt: string;
 }
 
 export interface EcoTransaction {

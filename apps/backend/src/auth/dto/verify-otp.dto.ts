@@ -1,8 +1,9 @@
 import { IsString, Length, Matches } from "class-validator";
+import { RU_PHONE_REGEX } from "@apetite/shared";
 
 export class VerifyOtpDto {
   @IsString()
-  @Matches(/^\+?[1-9]\d{6,14}$/, { message: "Некорректный номер телефона" })
+  @Matches(RU_PHONE_REGEX, { message: "Телефон должен быть в формате +7XXXXXXXXXX" })
   phone!: string;
 
   @IsString()

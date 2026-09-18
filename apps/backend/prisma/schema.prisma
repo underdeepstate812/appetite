@@ -102,6 +102,8 @@ model Business {
   status            BusinessStatus @default(PENDING)
   /// % комиссии платформы для этого заведения (по умолчанию — платформенная константа).
   commissionPercent Int            @default(25)
+  /// Логотип заведения — опционально, до загрузки показывается плейсхолдер с инициалом.
+  logoUrl           String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -128,6 +130,8 @@ model Offer {
   discountPercent Int           @default(50)
   /// Стартовая скидка, которую задаёт владелец бизнеса при создании оффера (минимум 25%).
   baseDiscountPercent Int       @default(50)
+  /// Фото товара — опционально, до загрузки показывается плейсхолдер по категории.
+  imageUrl        String?
   quantityTotal   Int
   quantityLeft    Int
   /// Вес одной единицы товара, кг — основа для эко-баллов и "спасённых кг".
@@ -222,4 +226,29 @@ model Notification {
 
   @@index([userId, read])
   @@map("notifications")
+}
+
+enum BusinessApplicationStatus {
+  NEW
+  REVIEWED
+}
+
+/// Заявка на подключение с публичной формы (веб-лендинг, "Для бизнеса") — НЕ создаёт
+/// аккаунт/заведение напрямую (само-регистрация бизнесов вне скоупа беты, ШАГ 0),
+/// только фиксирует лид с принятой офертой для ручного онбординга админом.
+model BusinessApplication {
+  id             String                     @id @default(uuid())
+  name           String
+  category       OfferCategory
+  address        String
+  contactName    String
+  contactEmail   String
+  contactPhone   String
+  /// Пользователь поставил галочку согласия с публичной офертой — обязательное условие подачи.
+  ofertaAccepted Boolean                    @default(false)
+  status         BusinessApplicationStatus  @default(NEW)
+  createdAt      DateTime                   @default(now())
+
+  @@index([status])
+  @@map("business_applications")
 }

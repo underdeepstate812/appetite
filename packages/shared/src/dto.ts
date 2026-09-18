@@ -12,8 +12,19 @@ export interface AuthTokens {
 }
 
 export interface LoginRequest {
-  email: string;
+  /** Email или телефон в формате +7XXXXXXXXXX — backend сам определяет, что это. */
+  identifier: string;
   password: string;
+}
+
+export interface BusinessApplicationRequest {
+  name: string;
+  category: OfferCategory;
+  address: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  ofertaAccepted: boolean;
 }
 
 export interface RegisterRequest {

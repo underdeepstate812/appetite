@@ -47,4 +47,8 @@ export class UpdateOfferDto {
   @IsOptional()
   @IsEnum(OfferStatus)
   status?: OfferStatus;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

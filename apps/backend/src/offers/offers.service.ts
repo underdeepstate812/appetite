@@ -32,6 +32,7 @@ interface NearbyOfferRow {
   businessAddress: string;
   businessLat: number;
   businessLng: number;
+  businessLogoUrl: string | null;
   distanceKm: number;
 }
 
@@ -59,6 +60,7 @@ export class OffersService {
         discountedPrice,
         discountPercent,
         baseDiscountPercent: dto.baseDiscountPercent,
+        imageUrl: dto.imageUrl,
         quantityTotal: dto.quantityTotal,
         quantityLeft: dto.quantityTotal,
         weightKg: dto.weightKg,
@@ -119,6 +121,7 @@ export class OffersService {
           b."address" AS "businessAddress",
           b."lat" AS "businessLat",
           b."lng" AS "businessLng",
+          b."logoUrl" AS "businessLogoUrl",
           (
             6371 * acos(
               LEAST(1, GREATEST(-1,
@@ -149,6 +152,7 @@ export class OffersService {
       category: dto.category,
       weightKg: dto.weightKg,
       status: dto.status,
+      imageUrl: dto.imageUrl,
     };
     if (dto.pickupStart) data.pickupStart = new Date(dto.pickupStart);
 

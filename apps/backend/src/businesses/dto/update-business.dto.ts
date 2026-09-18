@@ -27,6 +27,10 @@ export class UpdateBusinessDto {
   @IsLongitude()
   lng?: number;
 
+  @IsOptional()
+  @IsString()
+  logoUrl?: string;
+
   /** Меняется только модератором — сервис игнорирует поле, если запрос не от ADMIN. */
   @IsOptional()
   @IsEnum(BusinessStatus)

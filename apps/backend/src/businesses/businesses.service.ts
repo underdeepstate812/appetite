@@ -40,6 +40,7 @@ export class BusinessesService {
           address: dto.address,
           lat: dto.lat,
           lng: dto.lng,
+          logoUrl: dto.logoUrl,
           // Ручной онбординг админом (ШАГ 0) — заведение уже провалидировано, сразу ACTIVE.
           status: BusinessStatus.ACTIVE,
         },

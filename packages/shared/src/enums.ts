@@ -58,3 +58,9 @@ export enum PaymentStatus {
   SUCCEEDED = "SUCCEEDED",
   FAILED = "FAILED",
 }
+
+/** Статус заявки на подключение бизнеса (публичная форма, ручной обзор админом). */
+export enum BusinessApplicationStatus {
+  NEW = "NEW",
+  REVIEWED = "REVIEWED",
+}
