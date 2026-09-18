@@ -439,11 +439,31 @@ img {
 
 /* Остановки "приходят" по очереди вслед за линией маршрута — 1 уже виден,
    пока 2 и 3 ещё в пути, эффект прокладывания курса, а не одновременной вспышки. */
+.how-route.is-visible .route-stop:nth-child(1) .route-node {
+  animation: routePing 0.8s ease-out;
+  animation-delay: 0.45s;
+}
 .how-route.is-visible .route-stop:nth-child(2) .route-node {
   transition-delay: 0.3s;
+  animation: routePing 0.8s ease-out;
+  animation-delay: 0.75s;
 }
 .how-route.is-visible .route-stop:nth-child(3) .route-node {
   transition-delay: 0.6s;
+  animation: routePing 0.8s ease-out;
+  animation-delay: 1.05s;
+}
+
+/* Кольцо-"пинг" один раз при появлении узла — как подтверждение "точка на
+   маршруте зафиксирована" (тот же приём, что и у live-dot/hotPulse, но не
+   бесконечный: сигнал один раз, а не декоративное дыхание навечно). */
+@keyframes routePing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(15, 118, 110, 0);
+  }
 }
 .how-route.is-visible .route-stop:nth-child(2) .route-node-number {
   transition-delay: 0.55s;
@@ -961,12 +981,30 @@ img {
   overflow: hidden;
 }
 
+/* Мягкое световое пятно за карточкой — не голый белый фон, лёгкий штрих
+   глубины в фирменном тил-тоне, а не серый декоративный шум. */
+.auth-page::before {
+  content: "";
+  position: absolute;
+  top: -160px;
+  right: -140px;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-primary-soft) 0%, transparent 70%);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .auth-card {
   width: 100%;
   max-width: 420px;
   padding: 36px 32px;
   position: relative;
   z-index: 1;
+  /* Тот же фирменный срезанный угол, что и у кнопок/карточек офферов. */
+  border-radius: var(--radius-signature);
 }
 
 .strength-meter {
@@ -1012,25 +1050,15 @@ img {
 
 /* --- Header --- */
 
+/* Плавающий навбар вместо шва на всю ширину — сейчас это доминирующий приём
+   в премиальных сайтах 2025/2026 (Linear, Framer и т.п.): хедер отступает от
+   края, а не липнет к нему. Сама .site-header — только позиционирующий слой
+   (sticky + отступ), видимую "таблетку" со стеклом несёт .site-header-inner. */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255, 253, 249, 0.9);
-  backdrop-filter: blur(8px);
-}
-
-/* Тот же тил-градиент-"шов", что и у верхнего края футера — общий сигнатурный
-   штрих вместо нейтральной серой линии, страница как будто прошита одной нитью. */
-.site-header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-  opacity: 0.55;
+  padding: 14px 16px 0;
 }
 
 .site-header-inner {
@@ -1039,6 +1067,16 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 249, 0.78);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(18, 16, 13, 0.08);
+  transition: box-shadow 0.3s ease;
 }
 
 .site-logo {
@@ -1180,10 +1218,12 @@ img {
    относительно вьюпорта, top считается от известной высоты хедера. */
 .mobile-menu {
   position: fixed;
-  top: calc(var(--header-height) + 10px);
+  /* +24px = 14px верхний отступ плавающего хедера + прежние 10px зазора. */
+  top: calc(var(--header-height) + 24px);
   left: 12px;
   right: 12px;
   z-index: 60;
+  isolation: isolate;
   border-radius: var(--radius-lg);
   background: rgba(255, 253, 249, 0.78);
   backdrop-filter: blur(24px) saturate(1.6);
@@ -1197,6 +1237,31 @@ img {
   visibility: hidden;
   pointer-events: none;
   transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.26s ease, visibility 0s linear 0.38s;
+}
+
+/* Блик по верхней кромке стекла — свет, "цепляющийся" за грань панели,
+   классический штрих премиального гласморфизма 2025/2026. */
+.mobile-menu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 40%);
+  pointer-events: none;
+}
+
+/* Та же зерно-текстура, что и у .grain-panel (Footer/BusinessRegisterPage),
+   но задана напрямую своим ::after — класс .grain-panel сам выставляет
+   position:relative и, будучи объявлен в файле ПОЗЖЕ, перебивал бы
+   position:fixed у .mobile-menu (одинаковая специфичность, чужой :fixed
+   ломался на :relative → портал улетал в самый низ страницы). */
+.mobile-menu::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .mobile-menu.is-open {
@@ -1611,6 +1676,7 @@ img {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
   }
   .route-track-fill {
     width: 100%;
