@@ -332,105 +332,167 @@ img {
   color: var(--color-primary);
 }
 
-/* --- Bento-сетка ("как это работает") --- */
+/* --- "Как это работает": маршрут из трёх остановок, а не карточная сетка ---
+   Та же метафора, что у карты в мокапе телефона (точки на пути), только здесь
+   путь горизонтальный (десктоп) или вертикальный (мобильный) и соединяет три
+   шага пунктирной линией, которая "прокладывается" тил-заливкой при появлении. */
 
-.bento-grid {
+.how-route {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 28px;
 }
 
-.bento-large {
-  grid-column: span 6;
+.route-track {
+  position: absolute;
+  top: 46px;
+  left: calc(100% / 6);
+  right: calc(100% / 6);
+  height: 2px;
+  background-image: repeating-linear-gradient(to right, var(--color-border) 0 6px, transparent 6px 13px);
+  z-index: 0;
 }
 
-.bento-small {
-  grid-column: span 3;
+.route-track-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: var(--color-primary);
+  transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.how-route.is-visible .route-track-fill {
+  width: 100%;
+  transition-delay: 0.1s;
+}
+
+.route-stop {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.route-node-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.route-node {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--color-surface-elevated);
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.route-stop:hover .route-node {
+  border-color: var(--color-primary);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.16);
+}
+
+.route-node-number {
+  position: absolute;
+  top: -3px;
+  right: 3px;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: "Unbounded", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-background);
+  opacity: 0;
+  transform: scale(0);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.route-stop-body h3 {
+  transition: color 0.2s ease;
+}
+
+.route-stop:hover .route-stop-body h3 {
+  color: var(--color-primary);
+}
+
+/* Остановки "приходят" по очереди вслед за линией маршрута — 1 уже виден,
+   пока 2 и 3 ещё в пути, эффект прокладывания курса, а не одновременной вспышки. */
+.how-route.is-visible .route-stop:nth-child(2) .route-node {
+  transition-delay: 0.3s;
+}
+.how-route.is-visible .route-stop:nth-child(3) .route-node {
+  transition-delay: 0.6s;
+}
+.how-route.is-visible .route-stop:nth-child(2) .route-node-number {
+  transition-delay: 0.55s;
+}
+.how-route.is-visible .route-stop:nth-child(3) .route-node-number {
+  transition-delay: 0.85s;
+}
+
+.how-route.is-visible .route-node {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.how-route.is-visible .route-node-number {
+  opacity: 1;
+  transform: scale(1);
 }
 
 @media (max-width: 760px) {
-  .bento-grid {
+  .how-route {
     grid-template-columns: 1fr;
+    row-gap: 36px;
   }
-  .bento-large,
-  .bento-small {
-    grid-column: span 1;
+  .route-track {
+    top: 6px;
+    bottom: 6px;
+    left: 46px;
+    right: auto;
+    width: 2px;
+    height: auto;
+    background-image: repeating-linear-gradient(to bottom, var(--color-border) 0 6px, transparent 6px 13px);
   }
-}
-
-/* Шаг-карточки больше не появляются одним блоком — каждая всплывает по
-   очереди, а тонкая линия сверху "дорисовывается" следом, как будто шаг
-   только что зафиксировался. */
-.bento-grid > .card {
-  position: relative;
-  /* Тот же фирменный силуэт, что и у кнопок — карточки и CTA говорят одним
-     языком формы, а не двумя случайными решениями. */
-  border-radius: var(--radius-signature);
-  opacity: 0;
-  transform: translateY(22px) scale(0.97);
-  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.bento-grid.reveal {
-  opacity: 1;
-  transform: none;
-  transition: none;
-}
-
-.bento-grid.is-visible > .card:nth-child(1) {
-  transition-delay: 0.05s;
-}
-.bento-grid.is-visible > .card:nth-child(2) {
-  transition-delay: 0.15s;
-}
-.bento-grid.is-visible > .card:nth-child(3) {
-  transition-delay: 0.25s;
-}
-
-.bento-grid.is-visible > .card {
-  opacity: 1;
-  transform: none;
-}
-
-/* Специфичность reveal-правила (.bento-grid.is-visible > .card) выше, чем у
-   .card-hover:hover — без этого переопределения hover-подъём карточки не
-   срабатывал бы после появления. */
-.bento-grid.is-visible > .card-hover:hover {
-  transform: translateY(-4px);
-}
-
-.step-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  width: 0%;
-  background: var(--color-primary);
-  /* Верхние углы полосы повторяют верхние углы самой карточки (4px / 18px). */
-  border-radius: 4px 18px 0 0;
-  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.bento-grid.is-visible > .card:nth-child(1) .step-accent {
-  width: 100%;
-  transition-delay: 0.25s;
-}
-.bento-grid.is-visible > .card:nth-child(2) .step-accent {
-  width: 100%;
-  transition-delay: 0.35s;
-}
-.bento-grid.is-visible > .card:nth-child(3) .step-accent {
-  width: 100%;
-  transition-delay: 0.45s;
-}
-
-.step-icon-badge {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.card-hover:hover .step-icon-badge {
-  transform: scale(1.08) rotate(-4deg);
+  .route-track-fill {
+    width: 100%;
+    height: 0%;
+  }
+  .how-route.is-visible .route-track-fill {
+    height: 100%;
+    width: 100%;
+  }
+  .route-stop {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 20px;
+  }
+  .route-node-wrap {
+    margin-bottom: 0;
+  }
 }
 
 /* --- Лента предложений: живая, тянется драгом, фильтруется --- */
@@ -1313,15 +1375,17 @@ img {
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .bento-grid > .card,
+  .route-node,
+  .route-node-number,
   .offer-tile,
   .faq-item {
     opacity: 1;
     transform: none;
     transition: none;
   }
-  .step-accent {
+  .route-track-fill {
     width: 100%;
+    height: 100%;
     transition: none;
   }
   .faq-panel,

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Search, CreditCard, ShoppingBag, ArrowRight, ArrowUpRight } from "lucide-react";
 import { PhoneMockup } from "../components/PhoneMockup";
 import { OffersRibbon } from "../components/OffersRibbon";
-import { IconBadge } from "../components/IconBadge";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
 
@@ -119,41 +118,30 @@ export function LandingPage() {
       <section id="how" style={{ padding: "96px 0" }}>
         <div className="container">
           <SectionHeading eyebrow="Как это работает" title="Три шага до вкусной скидки" />
-          <div ref={stepsRef} className="reveal bento-grid">
-            {STEPS.map((step, index) =>
-              index === 0 ? (
-                <div key={step.title} className="card card-hover bento-large" style={bentoLargeStyle}>
-                  <span className="step-accent" aria-hidden="true" />
-                  <IconBadge icon={step.icon} size="lg" className="step-icon-badge" />
-                  <div>
-                    <p className="eyebrow" style={{ marginBottom: 6 }}>
-                      Шаг 1
-                    </p>
-                    <h3 style={{ fontSize: 22, marginBottom: 8 }}>{step.title}</h3>
-                    <p style={{ fontSize: 15, color: "var(--color-ink-muted)", lineHeight: 1.6, maxWidth: 480 }}>
-                      {step.text}
-                    </p>
+          {/* Не карточная сетка, а маршрут — тот же язык, что и у карты в PhoneMockup:
+              три остановки соединены линией, которая "прокладывается" при появлении
+              секции, будто приложение только что построило путь до скидки. */}
+          <div ref={stepsRef} className="reveal how-route">
+            <div className="route-track" aria-hidden="true">
+              <span className="route-track-fill" />
+            </div>
+            {STEPS.map((step, index) => (
+              <div key={step.title} className="route-stop">
+                <div className="route-node-wrap">
+                  <div className="route-node">
+                    <step.icon size={26} strokeWidth={2} color="var(--color-primary)" aria-hidden="true" />
                   </div>
+                  <span className="route-node-number">{String(index + 1).padStart(2, "0")}</span>
                 </div>
-              ) : (
-                <div
-                  key={step.title}
-                  className="card card-hover bento-small"
-                  style={{ padding: "28px 28px 32px", position: "relative", overflow: "hidden" }}
-                >
-                  <span className="step-accent" aria-hidden="true" />
-                  <span style={stepGhostNumberStyle}>{index + 1}</span>
-                  <div style={{ marginBottom: 16, position: "relative" }}>
-                    <IconBadge icon={step.icon} className="step-icon-badge" />
-                  </div>
+                <div className="route-stop-body">
                   <p className="eyebrow" style={{ marginBottom: 6 }}>
                     Шаг {index + 1}
                   </p>
-                  <h3 style={{ fontSize: 20, marginBottom: 8 }}>{step.title}</h3>
-                  <p style={{ fontSize: 14, color: "var(--color-ink-muted)", lineHeight: 1.6 }}>{step.text}</p>
+                  <h3 style={{ fontSize: 19, marginBottom: 8 }}>{step.title}</h3>
+                  <p style={{ fontSize: 14.5, color: "var(--color-ink-muted)", lineHeight: 1.6 }}>{step.text}</p>
                 </div>
-              )
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -316,30 +304,6 @@ const phoneWrapStyle: CSSProperties = {
   width: 280,
   maxWidth: "80vw",
   margin: "0 auto",
-};
-
-const stepGhostNumberStyle: CSSProperties = {
-  position: "absolute",
-  top: -22,
-  right: -4,
-  // Unbounded вместо Onest только здесь — декоративная типографика watermark-цифры,
-  // не читаемый текст, поэтому геометричный дисплейный шрифт уместен и не мешает
-  // доступности (тот же приём, что и на странице оферты).
-  fontFamily: '"Unbounded", var(--font-display)',
-  fontSize: 116,
-  fontWeight: 800,
-  color: "rgba(15,118,110,0.09)",
-  lineHeight: 1,
-  zIndex: 0,
-  userSelect: "none",
-};
-
-const bentoLargeStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 32,
-  padding: "36px 40px",
-  flexWrap: "wrap",
 };
 
 const businessCardStyle: CSSProperties = {
