@@ -920,7 +920,19 @@ img {
   z-index: 50;
   background: rgba(255, 253, 249, 0.9);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border);
+}
+
+/* Тот же тил-градиент-"шов", что и у верхнего края футера — общий сигнатурный
+   штрих вместо нейтральной серой линии, страница как будто прошита одной нитью. */
+.site-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.55;
 }
 
 .site-header-inner {
@@ -942,38 +954,52 @@ img {
   text-decoration: none;
 }
 
+.site-logo svg {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.site-logo:hover svg {
+  transform: rotate(-10deg) scale(1.06);
+}
+
 .site-nav-desktop {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 30px;
 }
 
+/* Точка-"остановка" над ссылкой вместо линии подчёркивания — тот же язык
+   маршрута, что и у остановок в "Как это работает": хедер как первая точка
+   пути, каждая ссылка — следующая. */
 .site-nav-link {
   position: relative;
   color: var(--color-ink-muted);
   text-decoration: none;
   font-size: 15px;
   font-weight: 500;
-  padding: 4px 0;
+  padding: 6px 0 8px;
+  transition: color 0.2s ease;
 }
 
-.site-nav-link::after {
+.site-nav-link::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: 0;
-  height: 2px;
+  top: -2px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
   background: var(--color-primary);
-  transition: right 0.25s ease;
+  transform: translateX(-50%) scale(0);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .site-nav-link:hover {
   color: var(--color-ink);
 }
 
-.site-nav-link:hover::after {
-  right: 0;
+.site-nav-link:hover::before {
+  transform: translateX(-50%) scale(1);
 }
 
 .site-header-actions {
@@ -988,11 +1014,17 @@ img {
   height: 44px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-signature);
   border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
   color: var(--color-ink);
   cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* Раскрытие меню — grid-rows 0fr→1fr (тот же приём, что и у FAQ-аккордеона),
@@ -1091,10 +1123,15 @@ img {
 
 /* --- Footer --- */
 
+/* Тёмная "подвальная" плита вместо светлой — тот же ink+grain приём, что и у
+   панели "Для бизнеса" и оферты: страница закрывается контрастным пластом,
+   на котором тил-акценты и водяной знак читаются сильнее, чем на бумаге. */
 .site-footer {
   position: relative;
-  background: var(--color-surface);
-  color: var(--color-ink-muted);
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--color-ink);
+  color: rgba(255, 253, 249, 0.68);
   margin-top: 96px;
 }
 
@@ -1104,18 +1141,40 @@ img {
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
 }
 
+/* Гигантский призрак имени бренда в углу — тот же приём глубины, что у
+   doc-ghost-number на странице оферты, только в зеркальной, светлой версии
+   под тёмный фон. Декоративно, поэтому aria-hidden. */
+.footer-ghost-mark {
+  position: absolute;
+  right: -0.05em;
+  bottom: -0.3em;
+  font-family: "Unbounded", var(--font-display);
+  font-weight: 800;
+  font-size: clamp(72px, 11vw, 168px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: rgba(255, 253, 249, 0.045);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
 .footer-logo {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 19px;
-  color: var(--color-ink);
+  color: var(--color-background);
 }
 
 .footer-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr;
   gap: 32px;
@@ -1123,30 +1182,34 @@ img {
 }
 
 .footer-col-title {
-  color: var(--color-ink);
+  color: rgba(255, 253, 249, 0.85);
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.02em;
   margin-bottom: 14px;
 }
 
 .footer-link {
   display: block;
-  color: var(--color-ink-muted);
+  color: rgba(255, 253, 249, 0.68);
   text-decoration: none;
   font-size: 14px;
   padding: 6px 0;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .footer-link:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-soft);
+  transform: translateX(3px);
 }
 
 .footer-bottom {
-  border-top: 1px solid var(--color-border);
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 253, 249, 0.12);
   padding: 20px 0;
   font-size: 13px;
-  color: var(--color-ink-muted);
+  color: rgba(255, 253, 249, 0.5);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;

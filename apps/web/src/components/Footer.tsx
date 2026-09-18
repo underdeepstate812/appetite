@@ -2,7 +2,10 @@ import { AppetiteMark } from "./AppetiteMark";
 
 export function Footer() {
   return (
-    <footer className="site-footer">
+    <footer className="site-footer grain-panel">
+      <span className="footer-ghost-mark" aria-hidden="true">
+        Appetite
+      </span>
       <div className="container footer-grid">
         <div>
           <p className="footer-logo" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
