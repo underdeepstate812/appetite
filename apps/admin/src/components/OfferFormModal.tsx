@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { DISCOUNT_RULES, OfferCategory, OfferStatus, type Offer } from "@apetite/shared";
+import { DISCOUNT_RULES, OfferCategory, OfferStatus, type Business, type Offer } from "@apetite/shared";
 import { Modal } from "./Modal";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
 import { CATEGORY_LABELS } from "../constants";
+import { computeNetPayout, isInTrial } from "../utils/commission";
 
 interface OfferFormModalProps {
-  businessId: string;
+  business: Business;
   /** Если передан — режим редактирования, иначе создание нового оффера. */
   offer?: Offer;
   onClose: () => void;
@@ -36,7 +37,7 @@ function defaultPickupEnd(): string {
   return toDatetimeLocal(date.toISOString());
 }
 
-export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFormModalProps) {
+export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormModalProps) {
   const isEdit = !!offer;
   const [title, setTitle] = useState(offer?.title ?? "");
   const [description, setDescription] = useState(offer?.description ?? "");
@@ -53,8 +54,25 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Та же живая подсказка, что и в QuickOfferCreate — цена на витрине против того, что
+  // реально дойдёт до заведения после комиссии (utils/commission.ts).
+  const priceNum = Number(originalPriceRub);
+  const discountNum = Number(baseDiscountPercent);
+  const displayPrice = priceNum > 0 && discountNum >= 0 ? Math.round(priceNum * (1 - discountNum / 100) * 100) / 100 : null;
+  const netPayout = displayPrice !== null ? computeNetPayout(displayPrice, business) : null;
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    const start = new Date(pickupStart).getTime();
+    const end = new Date(pickupEnd).getTime();
+    if (end <= start) {
+      setError("Конец окна самовывоза должен быть позже начала");
+      return;
+    }
+    if (!isEdit && end <= Date.now()) {
+      setError("Окно самовывоза уже закончилось — выбери конец в будущем");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -72,7 +90,7 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
         });
       } else {
         await offersApi.create({
-          businessId,
+          businessId: business.id,
           title,
           description: description || undefined,
           category,
@@ -154,6 +172,24 @@ export function OfferFormModal({ businessId, offer, onClose, onSaved }: OfferFor
             </span>
           </div>
         </div>
+
+        {displayPrice !== null && netPayout !== null ? (
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: -6 }}>
+            Цена на витрине: <strong style={{ color: "var(--color-text)" }}>{displayPrice.toFixed(0)} ₽</strong>
+            {" · "}
+            {isInTrial(business) ? (
+              <>
+                ты получишь <strong style={{ color: "var(--color-primary)" }}>{netPayout.toFixed(0)} ₽</strong> — пробный
+                период, комиссия не удерживается
+              </>
+            ) : (
+              <>
+                ты получишь <strong style={{ color: "var(--color-primary)" }}>{netPayout.toFixed(0)} ₽</strong> за
+                вычетом комиссии платформы {business.commissionPercent}%
+              </>
+            )}
+          </p>
+        ) : null}
 
         <div className="field">
           <label htmlFor="weight">Вес, кг</label>

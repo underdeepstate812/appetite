@@ -45,15 +45,21 @@ async function request<T>(path: string, options: RequestOptions = {}, isRetry = 
   const { auth = true, headers, body, ...rest } = options;
   const token = auth ? getAccessToken() : null;
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...rest,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    // fetch бросает TypeError("Failed to fetch"), когда до сервера не дошли — вместо него показываем понятный текст.
+    throw new ApiError(0, "Нет соединения с сервером. Проверь интернет и попробуй ещё раз.");
+  }
 
   if (response.status === 401 && auth && !isRetry) {
     const refreshed = await refreshTokens();

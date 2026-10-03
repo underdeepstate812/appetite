@@ -14,13 +14,20 @@
   --color-surface: #f4efe4;
   --color-surface-elevated: #ffffff;
   --color-text: #12100d;
-  --color-text-muted: #7a7267;
+  /* Затемнено с #7a7267: на --color-surface давало 4.13:1 — ниже AA (4.5:1) для обычного текста
+     (axe-core: color-contrast). #6e675d держит ≥4.5:1 на всех фонах приложения при том же оттенке. */
+  --color-text-muted: #6e675d;
   --color-border: rgba(18, 16, 13, 0.12);
-  --color-danger: #d6432e;
+  /* Оба цвета — везде ТЕКСТ на светлом фоне (soft-подложка или белая карточка), фонов-заливок
+     под ними нет: значения затемнены прямо здесь, а не только в тексте, чтобы не тянуть отдельный
+     -ink токен, как в apps/web. Раньше держали 2.6–4.5:1 — ниже AA (4.5:1) (axe-core: color-contrast);
+     реально попадали, например, в статус "Раскуплен"/"На модерации" (badge-warning) и кнопку
+     "Удалить" (btn-danger), которых не было в момент автосканирования, но которые встречаются в проде. */
+  --color-danger: #9a2e1c;
   --color-danger-soft: rgba(214, 67, 46, 0.1);
   --color-success: #0f766e;
   --color-success-soft: #d7f3ef;
-  --color-warning: #c98a12;
+  --color-warning: #8d610d;
   --color-warning-soft: #fbf0da;
   --color-on-primary: #fffdf9;
 
@@ -249,4 +256,41 @@ button {
   padding: 48px 16px;
   text-align: center;
   color: var(--color-text-muted);
+}
+
+
+/* --- Каркас панели: сайдбар слева на десктопе, верхняя полоса с прокручиваемым меню на телефоне ---
+   Владелец заведения выдаёт заказы по PIN прямо на кассе, часто с телефона — панель не должна разъезжаться. */
+.admin-shell { display: flex; min-height: 100vh; }
+.admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-elevated);
+  border-right: 1px solid var(--color-border);
+}
+.admin-brand { padding: 20px 20px 8px; }
+.admin-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px; }
+.admin-sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--color-border); }
+.admin-logout { margin-top: 12px; width: 100%; }
+.admin-main { flex: 1; min-width: 0; padding: 32px; max-width: 1100px; }
+
+@media (max-width: 860px) {
+  .admin-shell { flex-direction: column; }
+  .admin-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .admin-brand { padding: 12px 16px 4px; }
+  .admin-nav { order: 3; flex: 1 0 100%; flex-direction: row; overflow-x: auto; padding: 4px 12px 10px; }
+  .admin-sidebar-footer { margin: 0 0 0 auto; padding: 8px 16px; border-top: none; display: flex; align-items: center; gap: 12px; }
+  .admin-sidebar-footer p { margin: 0; }
+  .admin-sidebar-email { display: none; }
+  .admin-logout { margin-top: 0; width: auto; }
+  .admin-main { padding: 16px; }
 }

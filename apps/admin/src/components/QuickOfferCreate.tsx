@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Zap } from "lucide-react";
-import { DISCOUNT_RULES, OfferCategory } from "@apetite/shared";
+import { DISCOUNT_RULES, OfferCategory, type Business } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
+import { computeNetPayout, isInTrial } from "../utils/commission";
 
 interface QuickOfferCreateProps {
-  businessId: string;
+  business: Business;
   onCreated: () => void;
 }
 
@@ -15,7 +16,7 @@ interface QuickOfferCreateProps {
  * Остальное — сознательные дефолты (категория "Еда", 1 шт, самовывоз в
  * ближайшие 2 часа) — их всегда можно донастроить через "Изменить" в таблице.
  */
-export function QuickOfferCreate({ businessId, onCreated }: QuickOfferCreateProps) {
+export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps) {
   const [title, setTitle] = useState("");
   const [priceRub, setPriceRub] = useState("");
   const [discountPercent, setDiscountPercent] = useState(String(DISCOUNT_RULES.DEFAULT_BASE_PERCENT));
@@ -23,6 +24,13 @@ export function QuickOfferCreate({ businessId, onCreated }: QuickOfferCreateProp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justCreated, setJustCreated] = useState(false);
+
+  // Цена на витрине (то, что платит покупатель) — из неё же считаем, сколько реально
+  // упадёт на счёт заведения после удержания комиссии платформы (см. utils/commission.ts).
+  const price = Number(priceRub);
+  const discount = Number(discountPercent);
+  const displayPrice = price > 0 && discount >= 0 ? Math.round(price * (1 - discount / 100) * 100) / 100 : null;
+  const netPayout = displayPrice !== null ? computeNetPayout(displayPrice, business) : null;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -32,7 +40,7 @@ export function QuickOfferCreate({ businessId, onCreated }: QuickOfferCreateProp
       const now = new Date();
       const pickupEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
       await offersApi.create({
-        businessId,
+        businessId: business.id,
         title,
         category: OfferCategory.FOOD,
         originalPriceRub: Number(priceRub),
@@ -122,6 +130,24 @@ export function QuickOfferCreate({ businessId, onCreated }: QuickOfferCreateProp
           {saving ? "Публикуем..." : justCreated ? "Готово ✓" : "Опубликовать"}
         </button>
       </div>
+
+      {displayPrice !== null && netPayout !== null ? (
+        <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+          Цена на витрине: <strong style={{ color: "var(--color-text)" }}>{displayPrice.toFixed(0)} ₽</strong>
+          {" · "}
+          {isInTrial(business) ? (
+            <>
+              Ты получишь <strong style={{ color: "var(--color-primary)" }}>{netPayout.toFixed(0)} ₽</strong> — пробный
+              период, комиссия не удерживается
+            </>
+          ) : (
+            <>
+              Ты получишь <strong style={{ color: "var(--color-primary)" }}>{netPayout.toFixed(0)} ₽</strong> за вычетом
+              комиссии платформы {business.commissionPercent}%
+            </>
+          )}
+        </p>
+      ) : null}
 
       {error ? <p className="form-error">{error}</p> : null}
     </form>

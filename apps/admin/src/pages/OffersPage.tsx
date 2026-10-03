@@ -7,6 +7,7 @@ import { LoadingView, EmptyView, ErrorView } from "../components/StateViews";
 import { OfferFormModal } from "../components/OfferFormModal";
 import { QuickOfferCreate } from "../components/QuickOfferCreate";
 import { CATEGORY_LABELS } from "../constants";
+import { computeNetPayout, isInTrial } from "../utils/commission";
 
 export function OffersPage() {
   const business = useBusinessStore((state) => state.business);
@@ -61,7 +62,7 @@ export function OffersPage() {
         </button>
       </div>
 
-      <QuickOfferCreate businessId={business.id} onCreated={() => void load()} />
+      <QuickOfferCreate business={business} onCreated={() => void load()} />
 
       {error ? (
         <ErrorView label={error} />
@@ -78,6 +79,7 @@ export function OffersPage() {
                 <th>Категория</th>
                 <th>Цена</th>
                 <th>Скидка</th>
+                <th>Вы получаете</th>
                 <th>Остаток</th>
                 <th>Самовывоз</th>
                 <th>Статус</th>
@@ -96,6 +98,12 @@ export function OffersPage() {
                     </span>
                   </td>
                   <td>−{offer.discountPercent}%</td>
+                  <td>
+                    {computeNetPayout(offer.discountedPrice / 100, business).toFixed(0)} ₽
+                    {isInTrial(business) ? (
+                      <span style={{ display: "block", fontSize: 11, color: "var(--color-text-muted)" }}>без комиссии</span>
+                    ) : null}
+                  </td>
                   <td>
                     {offer.quantityLeft} / {offer.quantityTotal}
                   </td>
@@ -132,7 +140,7 @@ export function OffersPage() {
 
       {modalState ? (
         <OfferFormModal
-          businessId={business.id}
+          business={business}
           offer={modalState.mode === "edit" ? modalState.offer : undefined}
           onClose={() => setModalState(null)}
           onSaved={() => {
