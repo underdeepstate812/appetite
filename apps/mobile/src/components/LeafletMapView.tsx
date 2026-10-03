@@ -3,7 +3,7 @@ import { View } from "react-native";
 import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { heatColor } from "../theme/heat";
-import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { getOfferUrgencyRatio } from "@apetite/shared";
 import { useNow } from "../hooks/useNow";
 import { LEAFLET_ATTRIBUTION_PREFIX } from "../utils/leafletAttribution";
 
@@ -121,7 +121,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
         // Цвет пина — от оставшегося времени (та же шкала "жара", что у OfferCard/FuseTimer):
         // мята — времени много, дальше янтарь, ember, и красный только в последние ~30 минут.
         // Размер/скорость пульса — отдельный сигнал, от величины скидки (pinTierFor).
-        const ratio = getUrgencyRatio(getTimeLeft(offer.pickupEnd, now));
+        const ratio = getOfferUrgencyRatio(offer, now);
         const dotColor = heatColor(ratio, theme.mode);
         const glowColor = `${dotColor}80`; // ~50% alpha для стартового кольца пульса
         const icon = L.divIcon({

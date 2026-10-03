@@ -14,11 +14,13 @@ import { OfferCategory, type NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { heatColor } from "../theme/heat";
 import { useNow } from "../hooks/useNow";
-import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { getTimeLeft } from "../utils/time";
+import { getOfferUrgencyRatio } from "@apetite/shared";
 import { isHotOffer } from "../utils/offers";
 import { contour, hashString } from "../utils/contour";
 import { DiscountStamp } from "./DiscountStamp";
 import { FuseTimer, TimeLeftText } from "./FuseTimer";
+import { resolveAssetUrl } from "../api/client";
 
 const CATEGORY_ICON = {
   [OfferCategory.FOOD]: UtensilsCrossed,
@@ -47,7 +49,7 @@ export function OfferCard({ offer, onPress }: OfferCardProps) {
   const theme = useTheme();
   const now = useNow();
   const timeLeft = getTimeLeft(offer.pickupEnd, now);
-  const ratio = getUrgencyRatio(timeLeft);
+  const ratio = getOfferUrgencyRatio(offer, now);
   const closed = timeLeft.isPast;
   const hot = isHotOffer(offer, now);
   const dark = theme.mode === "dark";
@@ -123,7 +125,7 @@ export function OfferCard({ offer, onPress }: OfferCardProps) {
               ))}
             </Svg>
             {offer.imageUrl ? (
-              <Image source={{ uri: offer.imageUrl }} style={styles.thumbImage} resizeMode="cover" />
+              <Image source={{ uri: resolveAssetUrl(offer.imageUrl) ?? undefined }} style={styles.thumbImage} resizeMode="cover" />
             ) : (
               <Icon size={26} color={accent} strokeWidth={1.7} />
             )}

@@ -8,15 +8,17 @@ import { getTimeLeft, getUrgencyRatio } from "./time";
  */
 export const HOT_URGENCY_RATIO = 0.55;
 
-type Sortable = Pick<NearbyOffer, "pickupEnd" | "discountPercent" | "distanceKm">;
+type Sortable = Pick<NearbyOffer, "pickupEnd" | "discountPercent" | "distanceKm"> & { featured?: boolean };
 
-export function isHotOffer(offer: Pick<NearbyOffer, "pickupEnd">, now: number = Date.now()): boolean {
+/** «Горячее предложение дня» (featured) горит всегда, пока окно открыто: по времени оно «спокойное» (живёт сутки). */
+export function isHotOffer(offer: Pick<NearbyOffer, "pickupEnd"> & { featured?: boolean }, now: number = Date.now()): boolean {
   const timeLeft = getTimeLeft(offer.pickupEnd, now);
-  return !timeLeft.isPast && getUrgencyRatio(timeLeft) >= HOT_URGENCY_RATIO;
+  if (timeLeft.isPast) return false;
+  return !!offer.featured || getUrgencyRatio(timeLeft) >= HOT_URGENCY_RATIO;
 }
 
 /**
- * Порядок витрины: сначала горящие, внутри каждой группы — по убыванию скидки,
+ * Порядок витрины: сначала «предложение дня» (featured), затем горящие, внутри каждой группы — по убыванию скидки,
  * при равной скидке раньше тот, у кого раньше конец самовывоза, затем ближайший.
  * Предложения, у которых окно самовывоза уже закрылось (архивация на бэкенде идёт
  * с задержкой), уходят в самый конец — они не должны вытеснять живые.
@@ -27,6 +29,7 @@ export function sortHotFirst<T extends Sortable>(offers: T[], now: number = Date
     .map((offer) => ({ offer, hot: isHotOffer(offer, now), closed: getTimeLeft(offer.pickupEnd, now).isPast }))
     .sort((a, b) => {
       if (a.closed !== b.closed) return a.closed ? 1 : -1;
+      if (!!a.offer.featured !== !!b.offer.featured) return a.offer.featured ? -1 : 1;
       if (a.hot !== b.hot) return a.hot ? -1 : 1;
       if (a.offer.discountPercent !== b.offer.discountPercent) return b.offer.discountPercent - a.offer.discountPercent;
       const endDiff = new Date(a.offer.pickupEnd).getTime() - new Date(b.offer.pickupEnd).getTime();

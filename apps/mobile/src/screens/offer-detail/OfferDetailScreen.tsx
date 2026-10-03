@@ -9,7 +9,7 @@ import { Button } from "../../components/Button";
 import { DiscountStamp } from "../../components/DiscountStamp";
 import { TimeLeftText } from "../../components/FuseTimer";
 import { isHotOffer } from "../../utils/offers";
-import { getTimeLeft, getUrgencyRatio } from "../../utils/time";
+import { getOfferUrgencyRatio } from "@apetite/shared";
 import { LoadingView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
@@ -71,7 +71,7 @@ export function OfferDetailScreen({ route, navigation }: Props) {
         <Text style={[styles.originalPrice, { color: theme.colors.textMuted }]}>
           {(offer.originalPrice / 100).toFixed(0)} ₽
         </Text>
-        <DiscountStamp percent={offer.discountPercent} ratio={getUrgencyRatio(getTimeLeft(offer.pickupEnd))} />
+        <DiscountStamp percent={offer.discountPercent} ratio={getOfferUrgencyRatio(offer)} />
       </View>
 
       <Text style={[theme.typography.body, { color: theme.colors.text, marginTop: theme.spacing.md }]}>

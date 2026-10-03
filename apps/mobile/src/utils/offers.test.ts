@@ -55,3 +55,22 @@ describe("sortHotFirst", () => {
     expect(input).toEqual(copy);
   });
 });
+
+describe("featured offer ('предложение дня')", () => {
+  const featured = (id: string, minutesLeft: number, discountPercent: number) => ({ ...offer(id, minutesLeft, discountPercent), featured: true });
+
+  it("is hot for its whole 24h window although by time alone it is calm", () => {
+    expect(isHotOffer(offer("a", 24 * 60, 70), NOW)).toBe(false);
+    expect(isHotOffer(featured("a", 24 * 60, 70), NOW)).toBe(true);
+  });
+
+  it("is not hot once the window has closed", () => {
+    expect(isHotOffer(featured("a", -5, 70), NOW)).toBe(false);
+  });
+
+  it("goes first, ahead of a regular offer that is about to burn out", () => {
+    const burning = offer("burning", 20, 70, 0.1);
+    const day = featured("day", 24 * 60, 70);
+    expect(sortHotFirst([burning, day], NOW).map((o) => o.id)).toEqual(["day", "burning"]);
+  });
+});
