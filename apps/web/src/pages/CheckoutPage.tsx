@@ -8,7 +8,7 @@ import { offersApi } from "../api/offers";
 import { OfferPhoto } from "../components/OfferPhoto";
 import { PaymentMethodSelector, type PaymentMethod } from "../components/PaymentMethodSelector";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { formatClock, formatRub } from "../utils/format";
+import { formatPickupWindow, formatRub } from "../utils/format";
 import { readPaymentMethod, writePaymentMethod } from "../utils/paymentPrefs";
 import { placeOrder } from "../utils/placeOrder";
 
@@ -201,7 +201,7 @@ export function CheckoutPage() {
                 </p>
               ) : null}
               <p className="checkout-offer-meta">
-                <Clock size={13} aria-hidden="true" /> Самовывоз {formatClock(offer.pickupStart)}–{formatClock(offer.pickupEnd)}
+                <Clock size={13} aria-hidden="true" /> Самовывоз {formatPickupWindow(offer.pickupStart, offer.pickupEnd)}
               </p>
             </div>
           </div>

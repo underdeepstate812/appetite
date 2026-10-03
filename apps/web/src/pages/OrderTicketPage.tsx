@@ -8,7 +8,7 @@ import { offersApi } from "../api/offers";
 import { ordersApi } from "../api/orders";
 import { OrderTimeline } from "../components/OrderTimeline";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { formatClock, formatRub } from "../utils/format";
+import { formatClock, formatPickupEnd, formatRub } from "../utils/format";
 
 /** Пока заказ ждёт самовывоза, статус меняется на стороне заведения (подтвердило/выдало) — подтягиваем его сами. */
 const POLL_MS = 10_000;
@@ -151,7 +151,7 @@ export function OrderTicketPage() {
               {copied ? "Скопировано" : "Скопировать код"}
             </button>
             <p className="pickup-footnote">
-              Забрать до {formatClock(offer.pickupEnd)}
+              Забрать {formatPickupEnd(offer.pickupEnd)}
               {windowOpen ? "" : ` · окно откроется в ${formatClock(offer.pickupStart)}`}
             </p>
           </section>

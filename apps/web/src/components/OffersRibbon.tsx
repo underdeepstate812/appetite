@@ -369,19 +369,21 @@ function OfferTile({
 
   // Тикаем только те офферы, что вообще способны загореться — незачем
   // гонять интервал у карточки со скидкой 40%, она никогда не станет "hot".
-  const tracked = offer.discount >= HOT_DISCOUNT_THRESHOLD;
+  // «Предложение дня» (featured) горит всегда и живёт сутки — обратный отсчёт до конца ему не нужен (он бы показывал 1439:59).
+  const featured = !!offer.featured;
+  const tracked = !featured && offer.discount >= HOT_DISCOUNT_THRESHOLD;
   const secondsLeft = useCountdown(offer.minutesLeft, tracked);
-  const hot = tracked && secondsLeft <= HOT_MINUTES_THRESHOLD * 60;
+  const hot = featured || (tracked && secondsLeft <= HOT_MINUTES_THRESHOLD * 60);
 
   return (
     <article
-      className={`offer-tile${hot ? " is-hot" : ""}`}
+      className={`offer-tile${hot ? " is-hot" : ""}${featured ? " is-featured" : ""}`}
       style={{ "--tile-delay": `${Math.min(index, 6) * 60}ms` } as CSSProperties}
       aria-hidden={duplicate || undefined}
     >
       {hot ? (
         <span className="offer-tile-hot">
-          <FireIcon size={13} /> Горит
+          <FireIcon size={13} /> {featured ? "Предложение дня" : "Горит"}
         </span>
       ) : null}
 
@@ -422,7 +424,7 @@ function OfferTile({
         <span>
           <MapPin size={12} strokeWidth={2.2} aria-hidden="true" /> {offer.distance}
         </span>
-        {hot ? (
+        {hot && !featured ? (
           <span className="offer-tile-countdown">
             <FireIcon size={12} /> {formatCountdown(secondsLeft)}
           </span>

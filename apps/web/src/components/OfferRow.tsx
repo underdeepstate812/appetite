@@ -1,4 +1,4 @@
-import { getTimeLeft, getUrgencyRatio, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
+import { getOfferUrgencyRatio, getTimeLeft, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
 import { OfferPhoto } from "./OfferPhoto";
 import { FireIcon } from "./FireIcon";
 import { formatDistance, formatRub, formatTimeLeft } from "../utils/format";
@@ -13,18 +13,23 @@ interface OfferRowProps {
 
 export function OfferRow({ offer, selected, now, onSelect }: OfferRowProps) {
   const timeLeft = getTimeLeft(offer.pickupEnd, now);
-  const ratio = getUrgencyRatio(timeLeft);
+  const ratio = getOfferUrgencyRatio(offer, now);
   const hot = isHotOffer(offer, now);
 
   return (
     <button
       type="button"
-      className={`offer-row${selected ? " is-selected" : ""}${hot ? " is-hot" : ""}`}
+      className={`offer-row${selected ? " is-selected" : ""}${hot ? " is-hot" : ""}${offer.featured ? " is-featured" : ""}`}
       onClick={onSelect}
       aria-pressed={selected}
     >
       <OfferPhoto offer={offer} className="offer-row-photo" />
       <span className="offer-row-main">
+        {offer.featured ? (
+          <span className="offer-row-promo">
+            <FireIcon size={11} /> Предложение дня · 24 часа
+          </span>
+        ) : null}
         <span className="offer-row-shop">
           {offer.businessName} · {formatDistance(offer.distanceKm)}
         </span>

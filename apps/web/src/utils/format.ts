@@ -19,3 +19,18 @@ export function formatTimeLeft(totalMinutes: number): string {
   if (hours === 0) return `${minutes} мин`;
   return `${hours} ч ${String(minutes).padStart(2, "0")} мин`;
 }
+
+const isSameLocalDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
+
+/** «до 18:35» — а если окно закрывается не сегодня, то «до завтра 18:35» (суточное «предложение дня»). */
+export function formatPickupEnd(endIso: string, now: number = Date.now()): string {
+  const end = new Date(endIso).getTime();
+  return isSameLocalDay(now, end) ? `до ${formatClock(endIso)}` : `до завтра ${formatClock(endIso)}`;
+}
+
+/** «17:35–18:35» или, если окно переходит на другой день, «17:35 — завтра 18:35». */
+export function formatPickupWindow(startIso: string, endIso: string): string {
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  return isSameLocalDay(start, end) ? `${formatClock(startIso)}–${formatClock(endIso)}` : `${formatClock(startIso)} — завтра ${formatClock(endIso)}`;
+}

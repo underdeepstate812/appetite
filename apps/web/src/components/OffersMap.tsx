@@ -47,10 +47,10 @@ interface OffersMapProps {
 type LeafletModule = typeof import("leaflet");
 
 function pinIcon(L: LeafletModule, offer: NearbyOffer, selected: boolean) {
-  const { size, color, fontSize, text } = pinSpec(offer, selected);
+  const { size, color, fontSize, text, featured } = pinSpec(offer, selected);
   return L.divIcon({
     className: "map-pin-host",
-    html: `<div class="map-pin${selected ? " is-selected" : ""}" style="width:${size}px;height:${size}px;background:${color}"><span style="font-size:${fontSize}px">${text}</span></div>`,
+    html: `<div class="map-pin${selected ? " is-selected" : ""}${featured ? " is-featured" : ""}" style="width:${size}px;height:${size}px;background:${color}"><span style="font-size:${fontSize}px">${text}</span></div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
   });
@@ -144,7 +144,7 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
         icon: pinIcon(L, offer, selected),
         title: `${offer.title} — ${offer.businessName}, −${offer.discountPercent}%`,
         alt: offer.title,
-        zIndexOffset: selected ? 1000 : offer.discountPercent,
+        zIndexOffset: selected ? 1000 : offer.featured ? 900 : offer.discountPercent,
         keyboard: true,
       }).addTo(map);
       marker.on("click", (event) => {
@@ -176,7 +176,7 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     markersRef.current.forEach(({ marker, offer }, id) => {
       const selected = id === selectedId;
       marker.setIcon(pinIcon(L, offer, selected));
-      marker.setZIndexOffset(selected ? 1000 : offer.discountPercent);
+      marker.setZIndexOffset(selected ? 1000 : offer.featured ? 900 : offer.discountPercent);
     });
     const current = selectedId ? markersRef.current.get(selectedId) : undefined;
     if (current) {

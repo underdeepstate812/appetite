@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { NearbyOffer, OfferCategory } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 
-export const DEFAULT_RADIUS_KM = 10;
+/** Весь город: самые дальние районы (Ульянка, Лахта, Купчино) лежат в 14–15 км от центра. */
+export const DEFAULT_RADIUS_KM = 20;
 /** Витрина живёт временем (скидка растёт, окна закрываются) — тихо обновляем раз в минуту. */
 const REFRESH_MS = 60_000;
 

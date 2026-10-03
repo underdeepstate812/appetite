@@ -48,8 +48,8 @@ function buildPin(offer: NearbyOffer, onActivate: () => void): PinParts {
 }
 
 function applyPin(parts: PinParts, offer: NearbyOffer, selected: boolean) {
-  const { size, color, fontSize, text } = pinSpec(offer, selected);
-  parts.pin.className = `map-pin${selected ? " is-selected" : ""}`;
+  const { size, color, fontSize, text, featured } = pinSpec(offer, selected);
+  parts.pin.className = `map-pin${selected ? " is-selected" : ""}${featured ? " is-featured" : ""}`;
   parts.pin.style.width = `${size}px`;
   parts.pin.style.height = `${size}px`;
   parts.pin.style.background = color;
@@ -147,7 +147,7 @@ export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, s
       const selected = offer.id === selectedRef.current;
       applyPin(parts, offer, selected);
       const marker = new api.YMapMarker(
-        { coordinates: [offer.businessLng, offer.businessLat], zIndex: selected ? 1000 : offer.discountPercent, onClick: activate },
+        { coordinates: [offer.businessLng, offer.businessLat], zIndex: selected ? 1000 : offer.featured ? 900 : offer.discountPercent, onClick: activate },
         parts.anchor
       );
       map.addChild(marker);
@@ -186,7 +186,7 @@ export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, s
     markersRef.current.forEach(({ marker, parts, offer }, id) => {
       const selected = id === selectedId;
       applyPin(parts, offer, selected);
-      marker.update({ zIndex: selected ? 1000 : offer.discountPercent });
+      marker.update({ zIndex: selected ? 1000 : offer.featured ? 900 : offer.discountPercent });
     });
     const current = selectedId ? markersRef.current.get(selectedId) : undefined;
     const container = containerRef.current;

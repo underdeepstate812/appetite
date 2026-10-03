@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getTimeLeft, getUrgencyRatio, heatColor, type NearbyOffer } from "@apetite/shared";
+import { getOfferUrgencyRatio, heatColor, type NearbyOffer } from "@apetite/shared";
 import { LEAFLET_ATTRIBUTION_PREFIX } from "../utils/leafletAttribution";
 
 const LEAFLET_CSS_ID = "appetite-leaflet-css";
@@ -171,7 +171,7 @@ export function LeafletMapView({ center, zoom = 13, offers, drift = false }: Lea
         // красный в последние ~30 минут) — два независимых сигнала вместо одного смешанного.
         const hot = offer.discountPercent >= 60;
         const size = hot ? 44 : 38;
-        const ratio = getUrgencyRatio(getTimeLeft(offer.pickupEnd));
+        const ratio = getOfferUrgencyRatio(offer);
         const color = heatColor(ratio, "light");
         const icon = L.divIcon({
           className: "appetite-phone-marker",

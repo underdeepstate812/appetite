@@ -1,7 +1,7 @@
 import { Check, ChefHat, ShoppingBag } from "lucide-react";
 import { heatColor } from "@apetite/shared";
 import { useNow } from "../hooks/useNow";
-import { formatClock, formatTimeLeft } from "../utils/format";
+import { formatPickupEnd, formatTimeLeft } from "../utils/format";
 import { getOrderStage, getReadiness, type OrderStage } from "../utils/orderStage";
 
 interface Props {
@@ -36,7 +36,7 @@ export function OrderTimeline({ pickupStart, pickupEnd, acceptedAt }: Props) {
   const fuseColor = isReady ? heatColor(1 - windowRemaining, "light") : "var(--color-primary)";
 
   let hint: string;
-  if (isReady) hint = `Заберите до ${formatClock(pickupEnd)}`;
+  if (isReady) hint = `Заберите ${formatPickupEnd(pickupEnd, now)}`;
   else if (!acceptedAt) hint = "Ждём подтверждения от заведения";
   else hint = `Начало через ${formatTimeLeft(Math.max(0, Math.ceil((start - now) / 60000)))}`;
 

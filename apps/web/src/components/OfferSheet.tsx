@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock, MapPin, Store, X } from "lucide-react";
-import { getTimeLeft, getUrgencyRatio, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
+import { getOfferUrgencyRatio, getTimeLeft, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
 import { OfferPhoto } from "./OfferPhoto";
 import { FireIcon } from "./FireIcon";
 import { useAuth } from "../store/auth";
 import { useNow } from "../hooks/useNow";
 import { CATEGORY_META } from "../utils/categories";
-import { formatClock, formatDistance, formatRub, formatTimeLeft } from "../utils/format";
+import { formatDistance, formatPickupWindow, formatRub, formatTimeLeft } from "../utils/format";
 import { isHotOffer } from "../utils/offers";
 
 interface OfferSheetProps {
@@ -22,7 +22,7 @@ export function OfferSheet({ offer, onClose }: OfferSheetProps) {
   const { user } = useAuth();
   const now = useNow(30000);
   const timeLeft = getTimeLeft(offer.pickupEnd, now);
-  const ratio = getUrgencyRatio(timeLeft);
+  const ratio = getOfferUrgencyRatio(offer, now);
   const hot = isHotOffer(offer, now);
   const soldOut = offer.quantityLeft <= 0;
   const closed = timeLeft.isPast;
@@ -43,8 +43,8 @@ export function OfferSheet({ offer, onClose }: OfferSheetProps) {
           −{offer.discountPercent}%
         </span>
         {hot ? (
-          <span className="offer-sheet-hot">
-            <FireIcon size={12} /> Горит
+          <span className={`offer-sheet-hot${offer.featured ? " is-featured" : ""}`}>
+            <FireIcon size={12} /> {offer.featured ? "Предложение дня" : "Горит"}
           </span>
         ) : null}
       </div>
@@ -73,7 +73,7 @@ export function OfferSheet({ offer, onClose }: OfferSheetProps) {
               <Clock size={14} aria-hidden="true" /> Самовывоз
             </dt>
             <dd>
-              {formatClock(offer.pickupStart)}–{formatClock(offer.pickupEnd)}
+              {formatPickupWindow(offer.pickupStart, offer.pickupEnd)}
               <span className="offer-sheet-left" style={{ color: timeInk }}>
                 {closed ? " · окно закрыто" : ` · ещё ${formatTimeLeft(timeLeft.totalMinutes)}`}
               </span>
