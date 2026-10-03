@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { BusinessStatus, OfferCategory, OfferStatus, OrderStatus, PrismaClient, Role } from "@prisma/client";
 import { computeDiscountPercent, PLATFORM_COMMISSION_PERCENT } from "@apetite/shared";
+import { CITY_OFFERS } from "./city-offers";
 
 /**
  * «Витрина» — те же 19 предложений, что бегут лентой на главной странице сайта. Раньше лента была
@@ -28,13 +29,18 @@ interface ShowcaseItem {
   originalPriceRub: number;
   /** Желаемая итоговая скидка на витрине, %: стартовая скидка подбирается так, чтобы с надбавкой за время получилось это число. */
   targetDiscount: number;
-  distanceKm: number;
+  /** Расстояние от центра города — для ленты-витрины (место подбирается «золотым углом»). */
+  distanceKm?: number;
   /** Часов до конца окна самовывоза на момент синхронизации. */
   hoursToEnd: number;
   quantityTotal: number;
   weightKg: number;
-  /** Файл из seed-images (локальное фото) либо готовый URL. */
-  image: { file: string } | { url: string };
+  /** Файл из seed-images (локальное фото) либо готовый URL; без него витрина покажет плашку категории. */
+  image?: { file: string } | { url: string };
+  description?: string;
+  /** Точное место (городская витрина). Без него координаты считаются от distanceKm. */
+  place?: { address: string; lat: number; lng: number };
+  featured?: boolean;
 }
 
 const { FOOD, BAKERY, FLOWERS, GROCERIES } = OfferCategory;
@@ -60,6 +66,25 @@ export const SHOWCASE: ShowcaseItem[] = [
   { shop: "Свежий Корнер", title: "Овощи и фрукты, набор дня", category: GROCERIES, originalPriceRub: 650, targetDiscount: 60, distanceKm: 0.3, hoursToEnd: 0.95, quantityTotal: 8, weightKg: 1.5, image: { url: unsplash("photo-1542838132-92c53300491e") } },
   { shop: "Маркет Дня", title: "Молочная линейка, набор", category: GROCERIES, originalPriceRub: 380, targetDiscount: 45, distanceKm: 0.8, hoursToEnd: 3.1, quantityTotal: 6, weightKg: 1.2, image: { url: unsplash("photo-1542838132-92c53300491e") } },
 ];
+
+/** Все предложения витрины: лента на главной (у центра) + городская витрина по районам. */
+function allShowcaseItems(): ShowcaseItem[] {
+  const fromCity: ShowcaseItem[] = CITY_OFFERS.map((o) => ({
+    shop: o.shop,
+    title: o.title,
+    description: o.description,
+    category: o.category,
+    originalPriceRub: o.originalPriceRub,
+    targetDiscount: o.targetDiscount,
+    hoursToEnd: o.hoursToEnd,
+    quantityTotal: o.quantityTotal,
+    weightKg: o.weightKg,
+    image: o.image,
+    place: { address: o.address, lat: o.lat, lng: o.lng },
+    featured: o.featured,
+  }));
+  return [...SHOWCASE, ...fromCity];
+}
 
 function slugify(name: string): string {
   const map: Record<string, string> = { а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "h", ц: "c", ч: "ch", ш: "sh", щ: "sch", ы: "y", э: "e", ю: "yu", я: "ya" };
@@ -89,7 +114,8 @@ function discountFor(item: ShowcaseItem) {
   return { baseDiscountPercent: base, discountPercent: computeDiscountPercent(base, item.hoursToEnd) };
 }
 
-function resolveImageUrl(image: ShowcaseItem["image"]): string {
+function resolveImageUrl(image: ShowcaseItem["image"]): string | undefined {
+  if (!image) return undefined;
   if ("url" in image) return image.url;
   mkdirSync(UPLOADS_DIR, { recursive: true });
   const source = join(__dirname, "seed-images", image.file);
@@ -107,7 +133,7 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
   const now = Date.now();
   let synced = 0;
 
-  for (const [index, item] of SHOWCASE.entries()) {
+  for (const [index, item] of allShowcaseItems().entries()) {
     const email = `showcase.${slugify(item.shop)}@apetite.ru`;
     const owner = await prisma.user.upsert({
       where: { email },
@@ -115,11 +141,11 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
       create: { email, passwordHash, name: `${item.shop} (владелец)`, role: Role.BUSINESS },
     });
 
-    const { lat, lng } = placeAround(item.distanceKm, index);
+    const { lat, lng } = item.place ?? placeAround(item.distanceKm ?? 1, index);
     const existingBusiness = await prisma.business.findFirst({ where: { ownerUserId: owner.id, name: item.shop } });
     const businessData = {
       category: item.category,
-      address: `Санкт-Петербург, ${item.shop}`,
+      address: item.place?.address ?? `Санкт-Петербург, ${item.shop}`,
       lat,
       lng,
       status: BusinessStatus.ACTIVE,
@@ -150,6 +176,8 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
           discountPercent,
           baseDiscountPercent,
           imageUrl: resolveImageUrl(item.image),
+          description: item.description,
+          featured: item.featured ?? false,
           quantityTotal: item.quantityTotal,
           quantityLeft,
           status: quantityLeft > 0 ? OfferStatus.ACTIVE : OfferStatus.SOLD_OUT,
@@ -166,6 +194,8 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
           discountPercent,
           baseDiscountPercent,
           imageUrl: resolveImageUrl(item.image),
+          description: item.description,
+          featured: item.featured ?? false,
           quantityTotal: item.quantityTotal,
           quantityLeft: item.quantityTotal,
           weightKg: item.weightKg,

@@ -80,6 +80,8 @@ export interface Offer {
   pickupStart: string;
   pickupEnd: string;
   status: OfferStatus;
+  /** «Горячее предложение дня»: показывается самым горячим и первым независимо от оставшегося времени. */
+  featured: boolean;
   createdAt: string;
   updatedAt: string;
 }

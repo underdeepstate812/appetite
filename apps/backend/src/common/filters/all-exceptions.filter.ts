@@ -47,6 +47,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         typeof body === "string"
           ? body
           : ((body as { message?: string | string[] }).message ?? exception.message);
+      // multer отвечает по-английски — пользователю нужно понятное сообщение.
+      if (exception.getStatus() === HttpStatus.PAYLOAD_TOO_LARGE && message === "File too large") {
+        return { status: HttpStatus.PAYLOAD_TOO_LARGE, message: "Файл слишком большой — максимум 5 МБ" };
+      }
       return { status: exception.getStatus(), message };
     }
 

@@ -7,6 +7,7 @@ import { ConfigService } from "@nestjs/config";
 import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module";
 import { configureApp } from "./app.setup";
+import { uploadsRoot } from "./offers/offer-photo";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -15,7 +16,8 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   configureApp(app, {
     apiPrefix: config.get<string>("API_PREFIX", "api/v1"),
-    uploadsDir: join(process.cwd(), "uploads"),
+    uploadsDir: uploadsRoot(),
+    presetsDir: join(process.cwd(), "assets", "offer-presets"),
     trustProxy: config.get<string>("TRUST_PROXY"),
   });
 

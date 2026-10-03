@@ -1,3 +1,4 @@
+import { IsOfferImageUrl } from "./is-offer-image-url";
 import { IsDateString, IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID, Max, Min, MinLength } from "class-validator";
 import { OfferCategory } from "@prisma/client";
 import { DISCOUNT_RULES } from "@apetite/shared";
@@ -41,6 +42,6 @@ export class CreateOfferDto {
   pickupEnd!: string;
 
   @IsOptional()
-  @IsString()
-  imageUrl?: string;
+  @IsOfferImageUrl()
+  imageUrl?: string | null;
 }

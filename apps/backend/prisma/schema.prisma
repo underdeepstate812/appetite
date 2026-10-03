@@ -151,6 +151,9 @@ model Offer {
   pickupStart     DateTime
   pickupEnd       DateTime
   status          OfferStatus   @default(ACTIVE)
+  /// «Горячее предложение дня»: витрина показывает его самым горячим и первым независимо от оставшегося времени
+  /// (обычный «жар» считается по времени до конца окна, а у суточного оффера он всегда нулевой).
+  featured        Boolean       @default(false)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

@@ -7,6 +7,8 @@ export interface AppSetupOptions {
   apiPrefix: string;
   /** Каталог со статикой (аватарки), раздаётся по /uploads. */
   uploadsDir: string;
+  /** Каталог с библиотекой фото офферов по умолчанию, раздаётся по /presets (необязателен). */
+  presetsDir?: string;
   /** Значение TRUST_PROXY: за reverse-proxy без него req.ip — адрес прокси, и лимиты по IP общие на всех. */
   trustProxy?: string;
 }
@@ -31,6 +33,7 @@ export function configureApp(app: NestExpressApplication, options: AppSetupOptio
   // Аватарки (users/me/avatar) — вне версионированного префикса, как и /health,
   // мобильный клиент строит URL прямо от origin backend: `${API_ORIGIN}/uploads/...`.
   app.useStaticAssets(options.uploadsDir, { prefix: "/uploads" });
+  if (options.presetsDir) app.useStaticAssets(options.presetsDir, { prefix: "/presets" });
 
   // Бета без продовой отдельной инфры: web-клиенты (mobile web, ШАГ 10 admin) обращаются
   // с других портов/хостов — открываем CORS широко, токены передаются заголовком, не cookie.

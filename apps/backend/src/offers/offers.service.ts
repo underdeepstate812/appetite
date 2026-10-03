@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { OfferStatus, Prisma, Role } from "@prisma/client";
 import { computeDiscountPercent, Paginated } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
@@ -8,6 +8,8 @@ import { ListOffersQueryDto } from "./dto/list-offers.query";
 import { NearbyOffersQueryDto } from "./dto/nearby-offers.query";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
 import { assertValidPickupWindow } from "./pickup-window";
+import { deleteUploadedOfferPhoto, detectImageKind, saveOfferPhoto } from "./offer-photo";
+import { OFFER_PHOTO_PRESETS } from "./offer-photo-presets";
 
 const DEFAULT_PAGE_SIZE = 20;
 const NEARBY_RESULTS_LIMIT = 100;
@@ -72,6 +74,16 @@ export class OffersService {
         status: OfferStatus.ACTIVE,
       },
     });
+  }
+
+  photoPresets() {
+    return OFFER_PHOTO_PRESETS;
+  }
+
+  async uploadPhoto(buffer: Buffer) {
+    const kind = detectImageKind(buffer);
+    if (!kind) throw new BadRequestException("Разрешены только изображения JPEG, PNG или WebP");
+    return { imageUrl: await saveOfferPhoto(buffer, kind) };
   }
 
   async findAll(query: ListOffersQueryDto): Promise<Paginated<unknown>> {
@@ -184,14 +196,25 @@ export class OffersService {
       data.discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
     }
 
-    return this.prisma.offer.update({ where: { id }, data });
+    const updated = await this.prisma.offer.update({ where: { id }, data });
+    // Фото заменили или сняли — старый загруженный файл больше не нужен (фото из библиотеки/Unsplash общие, их не трогаем).
+    if (dto.imageUrl !== undefined && dto.imageUrl !== offer.imageUrl) await this.deletePhotoIfUnused(offer.imageUrl);
+    return updated;
   }
 
   async remove(id: string, requester: RequestUser) {
     const offer = await this.findOneWithBusiness(id);
     this.assertOwnerOrAdmin(offer.business.ownerUserId, requester);
     await this.prisma.offer.delete({ where: { id } });
+    await this.deletePhotoIfUnused(offer.imageUrl);
     return { success: true };
+  }
+
+  /** Удаляет загруженный файл, только если на него не ссылается другой оффер. */
+  private async deletePhotoIfUnused(url: string | null) {
+    if (!url) return;
+    const stillUsed = await this.prisma.offer.count({ where: { imageUrl: url } });
+    if (stillUsed === 0) await deleteUploadedOfferPhoto(url);
   }
 
   private async findOneWithBusiness(id: string) {

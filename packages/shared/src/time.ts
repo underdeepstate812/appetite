@@ -36,3 +36,15 @@ export function getUrgencyRatio(timeLeft: TimeLeft): number {
   const MELT_WINDOW_MINUTES = 180;
   return Math.min(1, Math.max(0, (MELT_WINDOW_MINUTES - timeLeft.totalMinutes) / MELT_WINDOW_MINUTES));
 }
+
+/**
+ * «Жар» оффера для витрины (0..1). Обычный оффер горит по оставшемуся времени; «горячее предложение дня»
+ * (featured) живёт сутки, поэтому по времени оно всегда «спокойное» — для него жар максимальный всегда.
+ */
+export function getOfferUrgencyRatio(
+  offer: { pickupEnd: string; featured?: boolean },
+  now: number = Date.now()
+): number {
+  if (offer.featured) return 1;
+  return getUrgencyRatio(getTimeLeft(offer.pickupEnd, now));
+}
