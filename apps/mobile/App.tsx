@@ -3,13 +3,16 @@ import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer, type NavigationContainerRef } from "@react-navigation/native";
+import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeProvider";
 import { buildNavigationTheme } from "./src/theme/navigationTheme";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { linking } from "./src/navigation/linking";
 import { useAuthStore } from "./src/store/authStore";
 import { useLanguageStore } from "./src/store/languageStore";
 import { usePushNotifications } from "./src/hooks/usePushNotifications";
+import { ConfirmHost } from "./src/components/ConfirmHost";
 import type { RootStackParamList } from "./src/navigation/types";
 
 function AppContent() {
@@ -19,9 +22,12 @@ function AppContent() {
   usePushNotifications(navigationRef, !!user);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={buildNavigationTheme(theme)}>
-      <RootNavigator />
-    </NavigationContainer>
+    <>
+      <NavigationContainer ref={navigationRef} theme={buildNavigationTheme(theme)} linking={Platform.OS === "web" ? linking : undefined}>
+        <RootNavigator />
+      </NavigationContainer>
+      <ConfirmHost />
+    </>
   );
 }
 

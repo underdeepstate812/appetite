@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { OfferCategory } from "@apetite/shared";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -12,8 +12,8 @@ import { HomeHeader } from "../../components/HomeHeader";
 import { HomeMapPreview } from "../../components/HomeMapPreview";
 import { SegmentedControl } from "../../components/SegmentedControl";
 import { CategoryFilterBar } from "../../components/CategoryFilterBar";
-import { BentoOfferGrid } from "../../components/BentoOfferGrid";
-import { BentoOfferGridSkeleton } from "../../components/BentoOfferGridSkeleton";
+import { OfferList } from "../../components/OfferList";
+import { OfferListSkeleton } from "../../components/OfferListSkeleton";
 import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
 import { NotificationsBellButton } from "../../components/NotificationsBellButton";
 import { EmptyView, ErrorView } from "../../components/StateViews";
@@ -64,7 +64,10 @@ export function HomeScreen({ navigation }: Props) {
   const isInitialLoading = locationLoading || (offers === null && !error);
 
   return (
-    <Screen>
+    // Весь экран — один скролл: шапка, баннер, карта и фильтры уезжают вверх вместе
+    // со списком. Раньше список скроллился внутри остатка высоты под ними, и когда
+    // сверху ещё и баннер геопозиции, на этот остаток приходились считанные пиксели.
+    <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
       <View style={styles.headerBlock}>
         <HomeHeader
           locationLabel={locationLabel}
@@ -110,40 +113,22 @@ export function HomeScreen({ navigation }: Props) {
       </Text>
 
       {error ? (
-        <ErrorView label={error} />
+        <ErrorView label={error} onRetry={refresh} />
+      ) : isInitialLoading ? (
+        <OfferListSkeleton />
+      ) : visibleOffers.length === 0 ? (
+        <EmptyView label={tab === "now" ? t("home.emptyNow") : t("home.emptyEvening")} />
       ) : (
-        // flex:1 + minHeight:0 — без minHeight:0 react-native-web не даёт этому
-        // контейнеру сжаться до остатка высоты экрана (флексбокс-контейнер по
-        // умолчанию не может стать меньше высоты своего контента), из-за чего
-        // ScrollView разрастается на всю высоту контента вместо того, чтобы
-        // скроллиться внутри себя — офферы ниже первого экрана были недостижимы.
-        <View style={styles.scrollArea}>
-          <ScrollView
-            style={styles.scrollArea}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-            contentContainerStyle={visibleOffers.length === 0 && !isInitialLoading ? styles.grow : undefined}
-            showsVerticalScrollIndicator={false}
-          >
-            {isInitialLoading ? (
-              <BentoOfferGridSkeleton />
-            ) : visibleOffers.length === 0 ? (
-              <EmptyView label={tab === "now" ? t("home.emptyNow") : t("home.emptyEvening")} />
-            ) : (
-              <BentoOfferGrid
-                offers={visibleOffers}
-                onPressOffer={(offer) => navigation.navigate("OfferDetail", { offerId: offer.id })}
-              />
-            )}
-          </ScrollView>
-        </View>
+        <OfferList
+          offers={visibleOffers}
+          onPressOffer={(offer) => navigation.navigate("OfferDetail", { offerId: offer.id })}
+        />
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  grow: { flexGrow: 1 },
   headerBlock: { marginBottom: 8 },
   greetingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  scrollArea: { flex: 1, minHeight: 0 },
 });

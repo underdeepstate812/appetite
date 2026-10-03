@@ -1,27 +1,12 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { CardGrid } from "./CardGrid";
 import { OfferSkeletonCard } from "./OfferSkeletonCard";
 
-/** Форма загрузки повторяет BentoOfferGrid (1 хиро-тайл + 2х2 сетка) — не мигает-перестраивается, когда приходят реальные данные. */
-export function BentoOfferGridSkeleton() {
+/** Форма загрузки повторяет OfferList — та же сетка, два ряда, ничего не перестраивается, когда приходят данные. */
+export function OfferListSkeleton() {
   return (
-    <View>
-      <View style={styles.featuredWrap}>
-        <OfferSkeletonCard />
-      </View>
-      <View style={styles.grid}>
-        {[0, 1, 2, 3].map((key) => (
-          <View key={key} style={styles.cell}>
-            <OfferSkeletonCard />
-          </View>
-        ))}
-      </View>
-    </View>
+    <CardGrid>
+      {(columns) => Array.from({ length: Math.min(columns * 2, 8) }, (_, key) => <OfferSkeletonCard key={key} />)}
+    </CardGrid>
   );
 }
-
-const styles = StyleSheet.create({
-  featuredWrap: { marginBottom: 12 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  cell: { width: "48%", marginBottom: 12 },
-});

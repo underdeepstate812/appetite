@@ -5,7 +5,9 @@
     "cancel": "Cancel",
     "save": "Save",
     "error": "Something went wrong",
-    "km": "km"
+    "km": "km",
+    "back": "Back",
+    "networkError": "Can't reach the server. Check your connection and try again"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -18,8 +20,7 @@
     "loginButton": "Sign in",
     "registerButton": "Sign up",
     "noAccount": "No account? Sign up",
-    "haveAccount": "Already have an account? Sign in",
-    "demoHint": "Demo login: user@apetite.ru / password123"
+    "haveAccount": "Already have an account? Sign in"
   },
   "nav": {
     "home": "Now",
@@ -44,7 +45,6 @@
     "greeting": "Hi, {{name}}!",
     "greetingFallback": "Hi there!",
     "hotDiscounts": "Hot deals nearby",
-    "featuredEyebrow": "Grab it fast",
     "mapNearbyCafes": "Cafes nearby: {{count}}",
     "mapNearbyRestaurants": "Restaurants: {{count}}",
     "openMap": "Open map",
@@ -91,11 +91,13 @@
     "paymentSbp": "Fast Payments (SBP)",
     "paymentSbpHint": "Pay by QR via your bank",
     "cooking": "Cooking up your order",
-    "cookingHint": "Processing payment — just a couple of seconds"
+    "cookingHint": "Processing payment — just a couple of seconds",
+    "paymentConfirmed": "Payment confirmed",
+    "paymentConfirmedHint": "Handing your order to the venue…"
   },
   "orderConfirmation": {
-    "title": "Order placed!",
-    "subtitle": "Show this code at pickup",
+    "title": "Order accepted",
+    "subtitle": "Payment went through — show this code at the counter",
     "pickupCodeLabel": "Pickup code",
     "pickupWindowLabel": "Pick up by",
     "doneButton": "Go to my orders"
@@ -114,26 +116,22 @@
     "confirmed": "Paid",
     "preparing": "Preparing",
     "ready": "Ready to collect",
+    "waitingAcceptanceHint": "Waiting for the business to confirm",
     "preparingHint": "Starts in {{hours}}h {{minutes}}m",
     "preparingHintMinutes": "Starts in {{minutes}}m",
-    "readyHint": "Pick up by {{time}}"
+    "readyHint": "Pick up by {{time}}",
+    "readiness": "Ready {{percent}}%"
   },
   "orderDetail": {
     "title": "Order",
     "pickupCodeLabel": "Pickup code",
-    "cancelButton": "Cancel order",
-    "cancelConfirmTitle": "Cancel this order?",
-    "cancelConfirmMessage": "The item will become available to other buyers again.",
-    "cancelConfirmYes": "Yes, cancel",
-    "cancelConfirmNo": "No",
-    "statusCompletedNote": "Order picked up, thank you! 🎉",
+    "statusCompletedNote": "Order picked up, thank you!",
     "statusExpiredNote": "Pickup window has closed",
     "statusCancelledNote": "Order cancelled"
   },
   "profile": {
     "title": "Profile",
     "memberSince": "Member since {{date}}",
-    "ecoTeaser": "{{points}} points · {{kg}} kg saved",
     "logout": "Log out",
     "themeLabel": "Appearance",
     "themeSystem": "System",
@@ -158,7 +156,12 @@
     "saveError": "Couldn't save changes",
     "nameTooShort": "Name must be at least 2 characters",
     "emailInvalid": "Invalid email",
-    "saved": "Saved"
+    "saved": "Saved",
+    "statPoints": "Points",
+    "statKg": "Kg saved",
+    "statOrders": "Orders",
+    "routeTitle": "Your route",
+    "settingsTitle": "Settings"
   },
   "eco": {
     "title": "Eco profile",

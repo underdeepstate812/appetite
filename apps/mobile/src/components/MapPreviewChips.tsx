@@ -6,14 +6,14 @@ import Flame from "lucide-react-native/icons/flame";
 import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
 import { useNow } from "../hooks/useNow";
-import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { isHotOffer } from "../utils/offers";
 
 /**
  * Две статы поверх карты, как в брифе ("Кафе рядом: 3" / "Рестораны: 5") — но
  * честные к реальной модели данных: в схеме нет разделения на "кафе" vs
  * "рестораны" (см. OfferCategory — FOOD/BAKERY/FLOWERS/GROCERIES), поэтому
  * показываем то, что реально можно посчитать: число уникальных заведений и
- * число "горящих" (urgency ≥ 0.55) предложений рядом.
+ * число "горящих" (isHotOffer) предложений рядом.
  */
 export function MapPreviewChips({ offers }: { offers: NearbyOffer[] }) {
   const { t } = useTranslation();
@@ -21,14 +21,14 @@ export function MapPreviewChips({ offers }: { offers: NearbyOffer[] }) {
   const now = useNow();
 
   const venueCount = new Set(offers.map((offer) => offer.businessName)).size;
-  const hotCount = offers.filter((offer) => getUrgencyRatio(getTimeLeft(offer.pickupEnd, now)) >= 0.55).length;
+  const hotCount = offers.filter((offer) => isHotOffer(offer, now)).length;
 
   return (
     <View style={styles.row} pointerEvents="none">
       <Chip icon={<Store size={13} color={theme.colors.text} strokeWidth={2.2} />} label={t("home.chipVenuesNearby", { count: venueCount })} bg={theme.colors.surfaceElevated} textColor={theme.colors.text} />
       {hotCount > 0 ? (
         // danger (красный), не primary — "горящие" предложения это urgency,
-        // не бренд-акцент (см. тот же принцип в OfferCard.featuredEyebrow).
+        // не бренд-акцент (тот же принцип, что у красной рамки и пламени в OfferCard).
         <Chip
           icon={<Flame size={13} color="#FFFFFF" strokeWidth={2.2} />}
           label={t("home.chipHotDeals", { count: hotCount })}

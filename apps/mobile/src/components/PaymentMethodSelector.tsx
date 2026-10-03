@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Check from "lucide-react-native/icons/check";
 import { useTheme } from "../theme/ThemeProvider";
 import { CardIcon, FastPaymentIcon } from "./icons/PaymentIcons";
 
@@ -40,8 +41,10 @@ export function PaymentMethodSelector({ value, onChange, cardLabel, sbpLabel, ca
               {
                 backgroundColor: selected ? theme.colors.primarySoft : theme.colors.surface,
                 borderColor: selected ? theme.colors.primary : theme.colors.border,
-                borderRadius: theme.radii.md,
+                borderRadius: theme.radii.lg,
+                cursor: "pointer",
               },
+              selected && { boxShadow: `0 8px 20px ${theme.colors.primary}${theme.mode === "dark" ? "2e" : "26"}` },
             ]}
           >
             <View style={[styles.iconWrap, { backgroundColor: theme.colors.surfaceElevated }]}>
@@ -59,7 +62,9 @@ export function PaymentMethodSelector({ value, onChange, cardLabel, sbpLabel, ca
                 { borderColor: selected ? theme.colors.primary : theme.colors.border },
                 selected && { backgroundColor: theme.colors.primary },
               ]}
-            />
+            >
+              {selected ? <Check size={13} color={theme.colors.onPrimary} strokeWidth={3.2} /> : null}
+            </View>
           </Pressable>
         );
       })}
@@ -72,5 +77,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", padding: 12, borderWidth: 1.5, minHeight: 60 },
   iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   labelWrap: { flex: 1, marginLeft: 12 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
 });

@@ -5,7 +5,7 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { useLocation } from "../../hooks/useLocation";
 import { useNearbyOffers, DEFAULT_RADIUS_KM } from "../../hooks/useNearbyOffers";
 import { Screen } from "../../components/Screen";
-import { OfferCard } from "../../components/OfferCard";
+import { OfferList } from "../../components/OfferList";
 import { LocationPermissionBanner } from "../../components/LocationPermissionBanner";
 import { LeafletMapView } from "../../components/LeafletMapView";
 import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
@@ -16,8 +16,9 @@ type Props = MainTabScreenProps<"Map">;
 /**
  * react-native-maps не реализует web (его собственный MapView.web.ts — заглушка
  * react-native-web UnimplementedView) — здесь настоящая карта на Leaflet/OpenStreetMap
- * (бесплатно, без API-ключа), список под ней остаётся для быстрого сканирования по
- * расстоянию. Native-вариант — MapScreen.native.tsx (react-native-maps).
+ * (бесплатно, без API-ключа), под ней компактный список для быстрого сканирования:
+ * горящие первыми, затем по убыванию скидки (расстояние — в самой карточке).
+ * Native-вариант — MapScreen.native.tsx (react-native-maps, без списка).
  */
 export function MapScreen({ navigation }: Props) {
   const { t } = useTranslation();
@@ -34,7 +35,7 @@ export function MapScreen({ navigation }: Props) {
     );
   }
 
-  const sorted = [...(offers ?? [])].sort((a, b) => a.distanceKm - b.distanceKm);
+  const list = offers ?? [];
 
   return (
     <Screen>
@@ -46,28 +47,30 @@ export function MapScreen({ navigation }: Props) {
         <View style={{ marginBottom: theme.spacing.sm }}>
           <LeafletMapView
             center={{ lat: location.lat, lng: location.lng }}
-            offers={sorted}
+            offers={list}
             onSelectOffer={(offerId) => navigation.navigate("OfferDetail", { offerId })}
           />
         </View>
       ) : null}
       {error ? (
-        <ErrorView label={error} />
+        <ErrorView label={error} onRetry={refresh} />
       ) : (
+        // flex:1 + minHeight:0 — иначе на react-native-web ScrollView не сжимается до
+        // остатка высоты экрана и растёт на всю высоту контента: список за пределами
+        // первого экрана оказывается недостижим (тот же механизм, что в HomeScreen).
         <ScrollView
+          style={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-          contentContainerStyle={sorted.length === 0 ? styles.grow : undefined}
+          contentContainerStyle={list.length === 0 ? styles.grow : undefined}
+          showsVerticalScrollIndicator={false}
         >
-          {sorted.length === 0 ? (
+          {list.length === 0 ? (
             <EmptyView label={t("home.emptyNow")} />
           ) : (
-            sorted.map((offer) => (
-              <OfferCard
-                key={offer.id}
-                offer={offer}
-                onPress={() => navigation.navigate("OfferDetail", { offerId: offer.id })}
-              />
-            ))
+            <OfferList
+              offers={list}
+              onPressOffer={(offer) => navigation.navigate("OfferDetail", { offerId: offer.id })}
+            />
           )}
         </ScrollView>
       )}
@@ -77,4 +80,5 @@ export function MapScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   grow: { flexGrow: 1 },
+  list: { flex: 1, minHeight: 0 },
 });

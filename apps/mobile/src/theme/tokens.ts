@@ -1,61 +1,88 @@
+import type { TextStyle } from "react-native";
+
+/**
+ * Палитра "Жар": время = температура. Тёмная тема — глубокий бирюзово-чёрный (не нейтральный
+ * #121212), светлая — тёплая бумага (как на сайте). Единственный "живой" акцент — ember:
+ * шкала heat от мяты через бирюзу и янтарь к красному, красный только для срочности.
+ * Пары текст/фон посчитаны по WCAG (≥4.5:1 для основного и приглушённого текста).
+ */
 const palette = {
-  // Второй рефреш акцента: terracotta-orange → teal. Ориентир — Deliveroo
-  // (#00CCBC): в их дизайн-системе бренд-цвет строго закреплён за
-  // CTA/брендом, а red owns error/urgency-семантику отдельно — тот же принцип
-  // применяем здесь: primary больше НЕ пересекается по смыслу с "горячим"
-  // предложением/таймером (danger ниже), их теперь физически нельзя спутать
-  // (~175° teal против ~5° red — почти противоположные точки на круге).
-  // #0F766E (не самый яркий teal) — за счёт этого держит ≥4.5:1 с белым
-  // текстом кнопки (проверено расчётом по WCAG, чего почти-белый бирюзовый
-  // не даёт: сам Deliveroo упоминает, что перешёл с белого на тёмный текст
-  // на teal именно из-за контраста).
   primary: "#0F766E",
   primaryDark: "#2DD4BF",
   // Мягкая заливка под акцентом (бейджи/карточки статуса) — тон, не полноцветная заливка.
-  primarySoft: "#CCFBF1",
-  primarySoftDark: "#134E4A",
-  secondary: "#2E7D5B",
-  secondaryDark: "#4CAF7D",
-  background: "#FFFFFF",
-  backgroundDark: "#121212",
-  surface: "#F7F5F3",
-  surfaceDark: "#1E1E1E",
+  primarySoft: "#D5F5EF",
+  primarySoftDark: "#12332F",
+  secondary: "#1F7A55",
+  secondaryDark: "#4CC38A",
+  background: "#FFFCF6",
+  backgroundDark: "#0B1110",
+  surface: "#F6F1E8",
+  surfaceDark: "#121A19",
   // На ступень выше surface — для вложенных карточек/выделенных блоков.
   surfaceElevated: "#FFFFFF",
-  surfaceElevatedDark: "#262626",
-  text: "#1A1A1A",
-  textDark: "#F2F2F2",
-  textMuted: "#6B6B6B",
-  textMutedDark: "#A0A0A0",
-  border: "#E5E1DC",
-  borderDark: "#2E2E2E",
-  danger: "#D64545",
-  dangerDark: "#E86A6A",
-  dangerSoft: "#FBE6E6",
-  dangerSoftDark: "#3A2323",
-  success: "#2E7D5B",
-  successDark: "#4CAF7D",
-  successSoft: "#E3F3EB",
-  successSoftDark: "#1E3329",
-  warning: "#C98A12",
-  warningDark: "#E0A61A",
-  warningSoft: "#FBF0DA",
-  warningSoftDark: "#3A2F16",
+  surfaceElevatedDark: "#18221F",
+  text: "#16201E",
+  textDark: "#EDF5F3",
+  textMuted: "#5B6B67",
+  textMutedDark: "#93A7A2",
+  border: "#E7DFD1",
+  borderDark: "#24302D",
+  danger: "#B42318",
+  dangerDark: "#F0665A",
+  dangerSoft: "#FBE3DE",
+  dangerSoftDark: "#3A1F1B",
+  success: "#1A6F4D",
+  successDark: "#4CC38A",
+  successSoft: "#DDF1E6",
+  successSoftDark: "#173226",
+  warning: "#96590A",
+  warningDark: "#F5B83D",
+  warningSoft: "#FBEBCB",
+  warningSoftDark: "#362A10",
+  ember: "#B5380A",
+  emberDark: "#FF8A3D",
+  emberSoft: "#FDE6D6",
+  emberSoftDark: "#3A2114",
 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 } as const;
-export const radii = { sm: 6, md: 12, lg: 20, full: 999 } as const;
-
-export const typography = {
-  h1: { fontSize: 28, fontWeight: "700" as const },
-  h2: { fontSize: 22, fontWeight: "700" as const },
-  h3: { fontSize: 18, fontWeight: "600" as const },
-  body: { fontSize: 15, fontWeight: "400" as const },
-  bodyBold: { fontSize: 15, fontWeight: "600" as const },
-  caption: { fontSize: 13, fontWeight: "400" as const },
-} as const;
+export const radii = { sm: 8, md: 14, lg: 18, xl: 28, full: 999 } as const;
 
 export type ThemeMode = "light" | "dark";
+
+/**
+ * Display-гарнитура Unbounded (как на сайте) — только для цифр и коротких заголовков; текст
+ * остаётся системным. Загружаем ОДИН вес (700): это ~770 КБ экономии против трёх весов, а
+ * иерархию дают размер и цвет. medium/bold/heavy — совместимые алиасы одного начертания.
+ */
+export interface DisplayFonts {
+  medium: TextStyle;
+  bold: TextStyle;
+  heavy: TextStyle;
+}
+
+// Кастомная гарнитура на native задаётся именем файла-веса, а fontWeight должен быть
+// "normal": иначе Android откатывается на системный шрифт, а web дорисовывает faux-bold.
+const UNBOUNDED_BOLD: TextStyle = { fontFamily: "Unbounded_700Bold", fontWeight: "normal" };
+const UNBOUNDED: DisplayFonts = { medium: UNBOUNDED_BOLD, bold: UNBOUNDED_BOLD, heavy: UNBOUNDED_BOLD };
+
+// Пока шрифт не загрузился (или не загрузился совсем) — обычные системные веса.
+const SYSTEM_DISPLAY: DisplayFonts = {
+  medium: { fontWeight: "600" },
+  bold: { fontWeight: "700" },
+  heavy: { fontWeight: "800" },
+};
+
+function buildTypography(fonts: DisplayFonts) {
+  return {
+    h1: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3, ...fonts.bold },
+    h2: { fontSize: 17, lineHeight: 23, letterSpacing: -0.2, ...fonts.bold },
+    h3: { fontSize: 15, lineHeight: 21, letterSpacing: -0.1, ...fonts.medium },
+    body: { fontSize: 15, fontWeight: "400" as const },
+    bodyBold: { fontSize: 15, fontWeight: "600" as const },
+    caption: { fontSize: 13, fontWeight: "400" as const },
+  };
+}
 
 export interface Theme {
   mode: ThemeMode;
@@ -75,15 +102,20 @@ export interface Theme {
     successSoft: string;
     warning: string;
     warningSoft: string;
+    /** Живой акцент: горячая точка на предмете, где время или внимание "горит". */
+    ember: string;
+    emberSoft: string;
     onPrimary: string;
   };
+  fonts: DisplayFonts;
   spacing: typeof spacing;
   radii: typeof radii;
-  typography: typeof typography;
+  typography: ReturnType<typeof buildTypography>;
 }
 
-export function buildTheme(mode: ThemeMode): Theme {
+export function buildTheme(mode: ThemeMode, displayFontLoaded = false): Theme {
   const isDark = mode === "dark";
+  const fonts = displayFontLoaded ? UNBOUNDED : SYSTEM_DISPLAY;
   return {
     mode,
     colors: {
@@ -102,10 +134,13 @@ export function buildTheme(mode: ThemeMode): Theme {
       successSoft: isDark ? palette.successSoftDark : palette.successSoft,
       warning: isDark ? palette.warningDark : palette.warning,
       warningSoft: isDark ? palette.warningSoftDark : palette.warningSoft,
-      onPrimary: "#FFFFFF",
+      ember: isDark ? palette.emberDark : palette.ember,
+      emberSoft: isDark ? palette.emberSoftDark : palette.emberSoft,
+      onPrimary: isDark ? "#04211D" : "#FFFFFF",
     },
+    fonts,
     spacing,
     radii,
-    typography,
+    typography: buildTypography(fonts),
   };
 }

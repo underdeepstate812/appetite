@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
+import { heatColor } from "../theme/heat";
+import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { useNow } from "../hooks/useNow";
+import { LEAFLET_ATTRIBUTION_PREFIX } from "../utils/leafletAttribution";
 
 const LEAFLET_CSS_ID = "apetite-leaflet-css";
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
@@ -48,6 +52,7 @@ interface LeafletMapViewProps {
  */
 export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: LeafletMapViewProps) {
   const theme = useTheme();
+  const now = useNow();
   const containerRef = useRef<View>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<import("leaflet").Marker[]>([]);
@@ -77,6 +82,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
       if (!domNode || mapRef.current) return;
 
       const map = L.map(domNode, { attributionControl: true }).setView([center.lat, center.lng], 13);
+      map.attributionControl.setPrefix(LEAFLET_ATTRIBUTION_PREFIX);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors",
@@ -112,7 +118,12 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
 
       offers.forEach((offer) => {
         const tier = pinTierFor(offer.discountPercent);
-        const glowColor = `${theme.colors.primary}80`; // ~50% alpha для стартового кольца пульса
+        // Цвет пина — от оставшегося времени (та же шкала "жара", что у OfferCard/FuseTimer):
+        // мята — времени много, дальше янтарь, ember, и красный только в последние ~30 минут.
+        // Размер/скорость пульса — отдельный сигнал, от величины скидки (pinTierFor).
+        const ratio = getUrgencyRatio(getTimeLeft(offer.pickupEnd, now));
+        const dotColor = heatColor(ratio, theme.mode);
+        const glowColor = `${dotColor}80`; // ~50% alpha для стартового кольца пульса
         const icon = L.divIcon({
           className: "apetite-marker",
           html: `
@@ -121,7 +132,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
                 width:${tier.dot}px;
                 height:${tier.dot}px;
                 border-radius:50%;
-                background:radial-gradient(circle at 35% 30%, ${theme.colors.primary}, ${theme.colors.primary});
+                background:radial-gradient(circle at 35% 30%, ${dotColor}, ${dotColor});
                 border:2px solid ${theme.colors.background};
                 --pin-glow-color:${glowColor};
                 --pin-glow-spread:${tier.glow}px;
@@ -151,7 +162,7 @@ export function LeafletMapView({ center, offers, onSelectOffer, height = 280 }: 
     return () => {
       cancelled = true;
     };
-  }, [offers, theme, onSelectOffer, mapReady]);
+  }, [offers, theme, onSelectOffer, mapReady, now]);
 
   return <View ref={containerRef} style={{ height, borderRadius: theme.radii.md, overflow: "hidden" }} />;
 }

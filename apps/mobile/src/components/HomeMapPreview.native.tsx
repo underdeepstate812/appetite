@@ -40,7 +40,7 @@ export function HomeMapPreview({
             coordinate={{ latitude: offer.businessLat, longitude: offer.businessLng }}
             onPress={() => onSelectOffer(offer.id)}
           >
-            <PulsingMapPin discountPercent={offer.discountPercent} />
+            <PulsingMapPin discountPercent={offer.discountPercent} pickupEnd={offer.pickupEnd} />
           </Marker>
         ))}
       </MapView>

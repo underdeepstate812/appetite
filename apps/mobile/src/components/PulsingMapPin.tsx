@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
+import { heatColor } from "../theme/heat";
+import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { useNow } from "../hooks/useNow";
 
 /** Чем больше скидка, тем крупнее пин и заметнее пульсирующее кольцо — та же логика тиров, что в LeafletMapView (web), выражена через RN Animated вместо CSS keyframes. */
 function pinTierFor(discountPercent: number) {
@@ -9,9 +12,13 @@ function pinTierFor(discountPercent: number) {
   return { dot: 14, ringMax: 1.7, duration: 2600 };
 }
 
-export function PulsingMapPin({ discountPercent }: { discountPercent: number }) {
+export function PulsingMapPin({ discountPercent, pickupEnd }: { discountPercent: number; pickupEnd: string }) {
   const theme = useTheme();
+  const now = useNow();
   const tier = pinTierFor(discountPercent);
+  // Цвет — от оставшегося времени (шкала "жара", как у OfferCard/FuseTimer/LeafletMapView),
+  // размер/скорость пульса — отдельно, от величины скидки (pinTierFor).
+  const dotColor = heatColor(getUrgencyRatio(getTimeLeft(pickupEnd, now)), theme.mode);
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -34,7 +41,7 @@ export function PulsingMapPin({ discountPercent }: { discountPercent: number }) 
             width: tier.dot,
             height: tier.dot,
             borderRadius: tier.dot / 2,
-            backgroundColor: theme.colors.primary,
+            backgroundColor: dotColor,
             transform: [{ scale }],
             opacity,
           },
@@ -47,7 +54,7 @@ export function PulsingMapPin({ discountPercent }: { discountPercent: number }) 
             width: tier.dot,
             height: tier.dot,
             borderRadius: tier.dot / 2,
-            backgroundColor: theme.colors.primary,
+            backgroundColor: dotColor,
             borderColor: theme.colors.background,
           },
         ]}

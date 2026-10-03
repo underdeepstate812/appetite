@@ -21,7 +21,8 @@ export function LoginScreen({ navigation }: Props) {
   const isLoading = useAuthStore((state) => state.isLoading);
 
   const [mode, setMode] = useState<LoginMode>("email");
-  const [email, setEmail] = useState("user@apetite.ru");
+  // Демо-аккаунт подставляем только в dev-сборке: в продакшене поле пустое, а подсказка с паролем не показывается.
+  const [email, setEmail] = useState(__DEV__ ? "user@apetite.ru" : "");
   const [phone, setPhone] = useState("+7");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +100,8 @@ export function LoginScreen({ navigation }: Props) {
         {t("auth.noAccount")}
       </Text>
 
-      <Text style={[styles.hint, { color: theme.colors.textMuted }]}>{t("auth.demoHint")}</Text>
+      {/* Только dev-сборка: в продакшен-бандл эта ветка (и пароль) не попадает. */}
+      {__DEV__ ? <Text style={[styles.hint, { color: theme.colors.textMuted }]}>Demo: user@apetite.ru / password123</Text> : null}
     </Screen>
   );
 }

@@ -19,7 +19,7 @@ export function MapScreen({ navigation }: Props) {
   const theme = useTheme();
   const { location, loading: locationLoading, status: locationStatus, requestPermission, openSettings } =
     useLocation();
-  const { offers, error } = useNearbyOffers(location, { radiusKm: DEFAULT_RADIUS_KM });
+  const { offers, error, refresh } = useNearbyOffers(location, { radiusKm: DEFAULT_RADIUS_KM });
 
   if (locationLoading || !location || (offers === null && !error)) {
     return (
@@ -32,7 +32,7 @@ export function MapScreen({ navigation }: Props) {
   if (error) {
     return (
       <Screen>
-        <ErrorView label={error} />
+        <ErrorView label={error} onRetry={refresh} />
       </Screen>
     );
   }
@@ -58,7 +58,7 @@ export function MapScreen({ navigation }: Props) {
             description={`${offer.businessName} · -${offer.discountPercent}%`}
             onPress={() => navigation.navigate("OfferDetail", { offerId: offer.id })}
           >
-            <PulsingMapPin discountPercent={offer.discountPercent} />
+            <PulsingMapPin discountPercent={offer.discountPercent} pickupEnd={offer.pickupEnd} />
           </Marker>
         ))}
       </MapView>

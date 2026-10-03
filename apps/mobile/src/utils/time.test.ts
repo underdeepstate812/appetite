@@ -1,74 +1,33 @@
-import { getTimeLeft, getUrgencyLevel, getUrgencyRatio } from "./time";
+import { getReadiness, getTimeLeft, getUrgencyRatio } from "./time";
 
 const NOW = new Date("2026-01-01T12:00:00.000Z").getTime();
+const at = (minutes: number) => new Date(NOW + minutes * 60_000).toISOString();
 
-function isoMinutesFromNow(minutes: number): string {
-  return new Date(NOW + minutes * 60_000).toISOString();
-}
-
-describe("getTimeLeft", () => {
-  it("splits the remaining time into hours and minutes", () => {
-    const result = getTimeLeft(isoMinutesFromNow(150), NOW);
-    expect(result).toEqual({ totalMinutes: 150, hours: 2, minutes: 30, isPast: false });
+describe("getReadiness", () => {
+  it("is 0 at the moment of ordering and grows linearly up to the start of the pickup window", () => {
+    expect(getReadiness(at(0), at(60), NOW)).toBe(0);
+    expect(getReadiness(at(-30), at(30), NOW)).toBeCloseTo(0.5, 5);
+    expect(getReadiness(at(-45), at(15), NOW)).toBeCloseTo(0.75, 5);
   });
 
-  it("floors partial minutes instead of rounding", () => {
-    const target = new Date(NOW + 90_000).toISOString(); // 1.5 minutes
-    expect(getTimeLeft(target, NOW).totalMinutes).toBe(1);
+  it("is ready (1) once the window has opened", () => {
+    expect(getReadiness(at(-90), at(-10), NOW)).toBe(1);
+    expect(getReadiness(undefined, at(0), NOW)).toBe(1);
   });
 
-  it("clamps totalMinutes at 0 once the deadline has passed, never negative", () => {
-    const result = getTimeLeft(isoMinutesFromNow(-30), NOW);
-    expect(result.totalMinutes).toBe(0);
-    expect(result.isPast).toBe(true);
+  it("stays at 0 when the order time is unknown and the window is still ahead", () => {
+    expect(getReadiness(undefined, at(30), NOW)).toBe(0);
   });
 
-  it("treats the exact deadline instant as past", () => {
-    expect(getTimeLeft(isoMinutesFromNow(0), NOW).isPast).toBe(true);
+  it("does not go negative for a nonsensical order time in the future", () => {
+    expect(getReadiness(at(20), at(10), NOW)).toBe(0);
   });
 });
 
-describe("getUrgencyLevel", () => {
-  it("is past once the deadline has passed", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(-1), NOW))).toBe("past");
-  });
-
-  it("is urgent under an hour left", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(59), NOW))).toBe("urgent");
-  });
-
-  it("is soon between one and two hours left", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(90), NOW))).toBe("soon");
-  });
-
-  it("is normal beyond two hours left", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(150), NOW))).toBe("normal");
-  });
-
-  it("treats the exact 60-minute boundary as soon, not urgent", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(60), NOW))).toBe("soon");
-  });
-
-  it("treats the exact 120-minute boundary as normal, not soon", () => {
-    expect(getUrgencyLevel(getTimeLeft(isoMinutesFromNow(120), NOW))).toBe("normal");
-  });
-});
-
-describe("getUrgencyRatio", () => {
-  it("is 1 (max heat) once past", () => {
-    expect(getUrgencyRatio(getTimeLeft(isoMinutesFromNow(-5), NOW))).toBe(1);
-  });
-
-  it("is 0 (calm) at the start of the 3-hour window or beyond", () => {
-    expect(getUrgencyRatio(getTimeLeft(isoMinutesFromNow(180), NOW))).toBe(0);
-    expect(getUrgencyRatio(getTimeLeft(isoMinutesFromNow(400), NOW))).toBe(0);
-  });
-
-  it("rises smoothly as the deadline approaches", () => {
-    const farRatio = getUrgencyRatio(getTimeLeft(isoMinutesFromNow(150), NOW));
-    const nearRatio = getUrgencyRatio(getTimeLeft(isoMinutesFromNow(30), NOW));
-    expect(nearRatio).toBeGreaterThan(farRatio);
-    expect(farRatio).toBeCloseTo(30 / 180, 5);
-    expect(nearRatio).toBeCloseTo(150 / 180, 5);
+describe("urgency helpers", () => {
+  it("maps the time left in the 3 hour window to a 0..1 heat ratio", () => {
+    expect(getUrgencyRatio(getTimeLeft(at(180), NOW))).toBe(0);
+    expect(getUrgencyRatio(getTimeLeft(at(90), NOW))).toBeCloseTo(0.5, 5);
+    expect(getUrgencyRatio(getTimeLeft(at(-1), NOW))).toBe(1);
   });
 });

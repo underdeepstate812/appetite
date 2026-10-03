@@ -5,7 +5,9 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "error": "Что-то пошло не так",
-    "km": "км"
+    "km": "км",
+    "back": "Назад",
+    "networkError": "Нет соединения с сервером. Проверь интернет и попробуй ещё раз"
   },
   "auth": {
     "loginTitle": "Вход",
@@ -18,8 +20,7 @@
     "loginButton": "Войти",
     "registerButton": "Зарегистрироваться",
     "noAccount": "Нет аккаунта? Зарегистрироваться",
-    "haveAccount": "Уже есть аккаунт? Войти",
-    "demoHint": "Демо-доступ: user@apetite.ru / password123"
+    "haveAccount": "Уже есть аккаунт? Войти"
   },
   "nav": {
     "home": "Сейчас",
@@ -44,7 +45,6 @@
     "greeting": "Привет, {{name}}!",
     "greetingFallback": "Привет!",
     "hotDiscounts": "Хот-скидки рядом",
-    "featuredEyebrow": "Успей забрать",
     "mapNearbyCafes": "Кафе рядом: {{count}}",
     "mapNearbyRestaurants": "Рестораны: {{count}}",
     "openMap": "Открыть карту",
@@ -91,11 +91,13 @@
     "paymentSbp": "СБП",
     "paymentSbpHint": "Оплата по QR через банк",
     "cooking": "Готовим твой заказ",
-    "cookingHint": "Оплата обрабатывается — это займёт пару секунд"
+    "cookingHint": "Оплата обрабатывается — это займёт пару секунд",
+    "paymentConfirmed": "Оплата подтверждена",
+    "paymentConfirmedHint": "Передаём заказ заведению…"
   },
   "orderConfirmation": {
-    "title": "Заказ оформлен!",
-    "subtitle": "Покажи этот код на кассе",
+    "title": "Заказ принят",
+    "subtitle": "Оплата прошла — покажи код на кассе",
     "pickupCodeLabel": "Код самовывоза",
     "pickupWindowLabel": "Забрать до",
     "doneButton": "К моим заказам"
@@ -114,26 +116,22 @@
     "confirmed": "Оплачено",
     "preparing": "Готовится",
     "ready": "Можно забирать",
+    "waitingAcceptanceHint": "Ждём подтверждения от заведения",
     "preparingHint": "Начало через {{hours}} ч {{minutes}} мин",
     "preparingHintMinutes": "Начало через {{minutes}} мин",
-    "readyHint": "Заберите до {{time}}"
+    "readyHint": "Заберите до {{time}}",
+    "readiness": "Готовность {{percent}}%"
   },
   "orderDetail": {
     "title": "Заказ",
     "pickupCodeLabel": "Код самовывоза",
-    "cancelButton": "Отменить заказ",
-    "cancelConfirmTitle": "Отменить заказ?",
-    "cancelConfirmMessage": "Место снова станет доступно другим покупателям.",
-    "cancelConfirmYes": "Да, отменить",
-    "cancelConfirmNo": "Нет",
-    "statusCompletedNote": "Заказ выдан, спасибо! 🎉",
+    "statusCompletedNote": "Заказ выдан, спасибо!",
     "statusExpiredNote": "Время самовывоза истекло",
     "statusCancelledNote": "Заказ отменён"
   },
   "profile": {
     "title": "Профиль",
     "memberSince": "С нами с {{date}}",
-    "ecoTeaser": "{{points}} баллов · {{kg}} кг спасено",
     "logout": "Выйти",
     "themeLabel": "Тема оформления",
     "themeSystem": "Системная",
@@ -158,7 +156,12 @@
     "saveError": "Не удалось сохранить изменения",
     "nameTooShort": "Имя — минимум 2 символа",
     "emailInvalid": "Некорректный email",
-    "saved": "Сохранено"
+    "saved": "Сохранено",
+    "statPoints": "Баллы",
+    "statKg": "Кг спасено",
+    "statOrders": "Заказов",
+    "routeTitle": "Твой маршрут",
+    "settingsTitle": "Настройки"
   },
   "eco": {
     "title": "Эко-профиль",

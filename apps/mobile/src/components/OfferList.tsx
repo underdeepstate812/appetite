@@ -1,49 +1,37 @@
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useMemo } from "react";
 import type { NearbyOffer } from "@apetite/shared";
+import { useNow } from "../hooks/useNow";
+import { sortHotFirst } from "../utils/offers";
+import { CardGrid } from "./CardGrid";
 import { OfferCard } from "./OfferCard";
 import { StaggerReveal } from "./StaggerReveal";
 
 /**
- * Bento-сетка вместо однородного вертикального списка: самый "горячий" оффер
- * (максимальная скидка / меньше всего времени) — на всю ширину хиро-тайлом,
- * остальные — в 2-колоночной сетке. Асимметрия — суть bento-паттерна, ровная
- * сетка 2x2 выглядела бы как typical dashboard, не как "живая" витрина.
+ * Компактные карточки в сетке фиксированной ширины (CardGrid): на телефоне одна
+ * колонка, на широком экране добавляются колонки, а не растягиваются карточки.
+ * Прежняя bento-сетка с крупным хиро-тайлом занимала рядом с картой почти весь
+ * экран, поэтому карточка остаётся компактной строкой. Порядок — сначала
+ * горящие, внутри группы по убыванию скидки (см. sortHotFirst). Сортировка
+ * пересчитывается по тикам useNow, поэтому оффер, который "загорелся", сам
+ * поднимается наверх.
  */
-export function BentoOfferGrid({
+export function OfferList({
   offers,
   onPressOffer,
 }: {
   offers: NearbyOffer[];
   onPressOffer: (offer: NearbyOffer) => void;
 }) {
-  if (offers.length === 0) return null;
-
-  const featured = offers.reduce((hottest, offer) => (offer.discountPercent > hottest.discountPercent ? offer : hottest));
-  const rest = offers.filter((offer) => offer.id !== featured.id);
+  const now = useNow();
+  const sorted = useMemo(() => sortHotFirst(offers, now), [offers, now]);
 
   return (
-    <View>
-      <StaggerReveal index={0}>
-        <View style={styles.featuredWrap}>
-          <OfferCard offer={featured} onPress={() => onPressOffer(featured)} featured />
-        </View>
-      </StaggerReveal>
-      <View style={styles.grid}>
-        {rest.map((offer, index) => (
-          <View key={offer.id} style={styles.cell}>
-            <StaggerReveal index={index + 1}>
-              <OfferCard offer={offer} onPress={() => onPressOffer(offer)} />
-            </StaggerReveal>
-          </View>
-        ))}
-      </View>
-    </View>
+    <CardGrid>
+      {sorted.map((offer, index) => (
+        <StaggerReveal key={offer.id} index={index} fill>
+          <OfferCard offer={offer} onPress={() => onPressOffer(offer)} />
+        </StaggerReveal>
+      ))}
+    </CardGrid>
   );
 }
-
-const styles = StyleSheet.create({
-  featuredWrap: { marginBottom: 12 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  cell: { width: "48%", marginBottom: 12 },
-});

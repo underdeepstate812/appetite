@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import type { LoginRequest, RegisterRequest, User } from "@apetite/shared";
 import { authApi } from "../api/auth";
-import { configureApiClient } from "../api/client";
+import { ApiError, configureApiClient } from "../api/client";
 import { tokenStorage } from "./tokenStorage";
 
 const ACCESS_TOKEN_KEY = "apetite.accessToken";
 const REFRESH_TOKEN_KEY = "apetite.refreshToken";
+const USER_CACHE_KEY = "apetite.user";
 
 interface AuthState {
   user: User | null;
@@ -32,7 +33,29 @@ async function persistTokens(accessToken: string, refreshToken: string) {
 }
 
 async function clearTokens() {
-  await Promise.all([tokenStorage.removeItem(ACCESS_TOKEN_KEY), tokenStorage.removeItem(REFRESH_TOKEN_KEY)]);
+  await Promise.all([
+    tokenStorage.removeItem(ACCESS_TOKEN_KEY),
+    tokenStorage.removeItem(REFRESH_TOKEN_KEY),
+    tokenStorage.removeItem(USER_CACHE_KEY),
+  ]);
+}
+
+/** Последняя известная копия профиля — чтобы без сети приложение открывалось, а не выкидывало на экран входа. */
+async function cacheUser(user: User) {
+  try {
+    await tokenStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+  } catch {
+    // кэш — best-effort
+  }
+}
+
+async function readCachedUser(): Promise<User | null> {
+  try {
+    const raw = await tokenStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -55,10 +78,18 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ accessToken, refreshToken });
     try {
       const user = await authApi.me();
+      await cacheUser(user);
       set({ user, isHydrated: true });
-    } catch {
-      await clearTokens();
-      set({ accessToken: null, refreshToken: null, user: null, isHydrated: true });
+    } catch (error) {
+      // Токены стираем только когда сервер ответил, что они недействительны (401/403). Нет сети, таймаут
+      // или 5xx — не повод разлогинивать: раньше любой сбой на старте выкидывал на экран входа.
+      const rejected = error instanceof ApiError && (error.statusCode === 401 || error.statusCode === 403);
+      if (rejected) {
+        await clearTokens();
+        set({ accessToken: null, refreshToken: null, user: null, isHydrated: true });
+        return;
+      }
+      set({ user: await readCachedUser(), isHydrated: true });
     }
   },
 
@@ -67,6 +98,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       const data = await authApi.login(input);
       await persistTokens(data.accessToken, data.refreshToken);
+      await cacheUser(data.user);
       set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isLoading: false });
     } catch (error) {
       set({ isLoading: false, error: error instanceof Error ? error.message : "Ошибка входа" });
@@ -79,6 +111,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       const data = await authApi.register(input);
       await persistTokens(data.accessToken, data.refreshToken);
+      await cacheUser(data.user);
       set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isLoading: false });
     } catch (error) {
       set({ isLoading: false, error: error instanceof Error ? error.message : "Ошибка регистрации" });
@@ -113,7 +146,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    set({ user });
+    void cacheUser(user);
+  },
 }));
 
 configureApiClient({
