@@ -7,8 +7,10 @@ import { ApiError } from "../api/client";
 import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../utils/validation";
 import { Select } from "../components/Select";
 import { Stamp } from "../components/Stamp";
+import { BackButton } from "../components/BackButton";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const CATEGORY_LABELS: Record<OfferCategory, string> = {
   [OfferCategory.FOOD]: "Кафе / ресторан",
@@ -28,6 +30,7 @@ const STEPS = [
 const UNBOUNDED: CSSProperties = { fontFamily: '"Unbounded", var(--font-display)' };
 
 export function BusinessRegisterPage() {
+  usePageTitle("Для бизнеса — Appetite");
   const [name, setName] = useState("");
   const [category, setCategory] = useState<OfferCategory>(OfferCategory.FOOD);
   const [address, setAddress] = useState("");
@@ -113,6 +116,9 @@ export function BusinessRegisterPage() {
 
   return (
     <div style={{ padding: "48px 0 96px" }}>
+      <div className="container" style={{ marginBottom: 4 }}>
+        <BackButton />
+      </div>
       <div className="container" style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "flex-start" }}>
         {/* Манифест: почему стоит подключиться — цифры и шаги, не форма. */}
         <div
@@ -171,7 +177,13 @@ export function BusinessRegisterPage() {
                 {commissionCount}%
               </p>
               <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
-                комиссия — фиксированная, без сюрпризов
+                агентское вознаграждение (без учёта НДС), без сюрпризов
+              </p>
+            </div>
+            <div>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>0 ₽</p>
+              <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
+                первые 20–30 дней — подключение и комиссия бесплатно
               </p>
             </div>
           </div>

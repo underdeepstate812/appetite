@@ -1,19 +1,8 @@
-import type { NearbyOffer } from "@apetite/shared";
-import { apiClient } from "./client";
-
-export interface NearbyOffersQuery {
-  lat: number;
-  lng: number;
-  radiusKm: number;
-}
+import type { NearbyOffer, NearbyOffersQuery, Offer } from "@apetite/shared";
+import { apiClient, toQueryString } from "./client";
 
 export const offersApi = {
-  nearby: (query: NearbyOffersQuery) => {
-    const params = new URLSearchParams({
-      lat: String(query.lat),
-      lng: String(query.lng),
-      radiusKm: String(query.radiusKm),
-    });
-    return apiClient.get<NearbyOffer[]>(`/offers/nearby?${params.toString()}`);
-  },
+  nearby: (query: NearbyOffersQuery) =>
+    apiClient.get<NearbyOffer[]>(`/offers/nearby${toQueryString(query)}`, { auth: false }),
+  get: (id: string) => apiClient.get<Offer>(`/offers/${id}`, { auth: false }),
 };

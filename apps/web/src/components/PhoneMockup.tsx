@@ -1,8 +1,26 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import type { NearbyOffer } from "@apetite/shared";
+import { UtensilsCrossed, Croissant, Flower2, ShoppingBasket, Clock, type LucideIcon } from "lucide-react";
+import { OfferCategory, getTimeLeft, getUrgencyRatio, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
 import { offersApi } from "../api/offers";
+import { resolveAssetUrl } from "../api/client";
 import { LeafletMapView } from "./LeafletMapView";
 import { FireIcon } from "./FireIcon";
+
+/** Та же раскладка по категориям, что в OffersRibbon/мобильном OfferCard — если у оффера
+    нет реального фото (imageUrl), показываем тинт-плашку с иконкой категории, а не заглушку. */
+const CATEGORY_ICON: Record<OfferCategory, LucideIcon> = {
+  [OfferCategory.FOOD]: UtensilsCrossed,
+  [OfferCategory.BAKERY]: Croissant,
+  [OfferCategory.FLOWERS]: Flower2,
+  [OfferCategory.GROCERIES]: ShoppingBasket,
+};
+
+/** "2 ч 15 мин" / "40 мин" — тот же формат, что offerCard.timeLeftHours/timeLeftMinutes в mobile. */
+function formatTimeLeft(pickupEnd: string): string {
+  const timeLeft = getTimeLeft(pickupEnd);
+  if (timeLeft.isPast) return "Забор завершён";
+  return timeLeft.hours > 0 ? `${timeLeft.hours} ч ${timeLeft.minutes} мин` : `${timeLeft.minutes} мин`;
+}
 
 /**
  * Центр карты мокапа — сейчас всегда Петербург (единственный пилотный регион),
@@ -16,13 +34,20 @@ const MAP_ZOOM = 14;
 const RADIUS_KM = 20;
 const PIN_COUNT = 4;
 /**
- * Карта в мокапе всегда показывает один и тот же кадр (SPB_CENTER, зум 14) —
- * запрос идёт с радиусом 20км "для витрины", но случайно выбранный оффер за
- * пределами видимого при этом зуме кадра давал маркер вообще без пина в кадре
- * (реальный баг: пустая карта без единого маркера при неудачной выборке).
- * Сначала отбираем только то, что физически попадёт в видимый кадр.
+ * Карта в мокапе показывает один кадр (SPB_CENTER, зум 14) — это примерно 1,2 × 2,4 км, из них нижняя часть
+ * закрыта шторкой. Оффер за пределами кадра давал маркер вообще без пина в кадре (реальный баг: пустая карта),
+ * а при дрейфе камеры (см. LeafletMapView) пины у самого края уезжали бы за него. Поэтому берём только офферы
+ * из «безопасного» прямоугольника вокруг центра — с запасом на размах дрейфа.
  */
-const MAX_MARKER_DISTANCE_KM = 4;
+const FRAME_HALF_WIDTH_KM = 0.45;
+const FRAME_HALF_HEIGHT_KM = 0.75;
+const KM_PER_LAT_DEGREE = 111;
+
+function isInsideFrame(offer: Pick<NearbyOffer, "businessLat" | "businessLng">): boolean {
+  const dyKm = (offer.businessLat - SPB_CENTER.lat) * KM_PER_LAT_DEGREE;
+  const dxKm = (offer.businessLng - SPB_CENTER.lng) * KM_PER_LAT_DEGREE * Math.cos((SPB_CENTER.lat * Math.PI) / 180);
+  return Math.abs(dxKm) <= FRAME_HALF_WIDTH_KM && Math.abs(dyKm) <= FRAME_HALF_HEIGHT_KM;
+}
 /** Порог "горящей" скидки — тот же, что и в ленте предложений (OffersRibbon). */
 const HOT_DISCOUNT_THRESHOLD = 60;
 
@@ -67,8 +92,9 @@ export function PhoneMockup() {
     offersApi
       .nearby({ ...SPB_CENTER, radiusKm: RADIUS_KM })
       .then((data) => {
-        const inFrame = data.filter((offer) => offer.distanceKm <= MAX_MARKER_DISTANCE_KM);
-        const pool = inFrame.length > 0 ? inFrame : data;
+        const inFrame = data.filter(isInsideFrame);
+        // Нет ни одного оффера в кадре — берём ближайшие к центру: лучше пины у края, чем пустая карта.
+        const pool = inFrame.length > 0 ? inFrame : [...data].sort((x, y) => x.distanceKm - y.distanceKm);
         if (!cancelled) setOffers(weightedSample(pool, PIN_COUNT));
       })
       .catch(() => {
@@ -99,8 +125,8 @@ export function PhoneMockup() {
       </div>
 
       <div style={screenStyle}>
-        {/* настоящая карта (OSM/Leaflet) — жесты отключены, это иллюстрация экрана */}
-        <LeafletMapView center={SPB_CENTER} zoom={MAP_ZOOM} offers={offers ?? []} />
+        {/* настоящая карта (OSM/Leaflet): жесты отключены, но камера плавно дрейфует — экран «живой» */}
+        <LeafletMapView center={SPB_CENTER} zoom={MAP_ZOOM} offers={offers ?? []} drift />
 
         {/* лёгкий блик стекла поверх экрана */}
         <div style={glassGlareStyle} />
@@ -140,6 +166,10 @@ export function PhoneMockup() {
                 <MiniCard
                   key={offer.id}
                   title={offer.title}
+                  businessName={offer.businessName}
+                  category={offer.category}
+                  imageUrl={offer.imageUrl}
+                  pickupEnd={offer.pickupEnd}
                   price={`${(offer.discountedPrice / 100).toFixed(0)} ₽`}
                   discount={`−${offer.discountPercent}%`}
                   hot={offer.discountPercent >= HOT_DISCOUNT_THRESHOLD}
@@ -150,6 +180,10 @@ export function PhoneMockup() {
             <div style={miniCardRow}>
               <MiniCard
                 title={hotOffer.title}
+                businessName={hotOffer.businessName}
+                category={hotOffer.category}
+                imageUrl={hotOffer.imageUrl}
+                pickupEnd={hotOffer.pickupEnd}
                 price={`${(hotOffer.discountedPrice / 100).toFixed(0)} ₽`}
                 discount={`−${hotOffer.discountPercent}%`}
                 hot={hotOffer.discountPercent >= HOT_DISCOUNT_THRESHOLD}
@@ -165,17 +199,30 @@ export function PhoneMockup() {
 
 function MiniCard({
   title,
+  businessName,
+  category,
+  imageUrl,
+  pickupEnd,
   price,
   discount,
   hot,
   wide,
 }: {
   title: string;
+  businessName: string;
+  category: OfferCategory;
+  imageUrl?: string | null;
+  pickupEnd: string;
   price: string;
   discount: string;
   hot?: boolean;
   wide?: boolean;
 }) {
+  const CategoryIcon = CATEGORY_ICON[category];
+  const ratio = getUrgencyRatio(getTimeLeft(pickupEnd));
+  const timeColor = heatInk(ratio, "light", "#12100d");
+  const timeAccent = heatColor(ratio, "light");
+
   return (
     <div
       style={{
@@ -186,40 +233,95 @@ function MiniCard({
         textAlign: "left",
         width: wide ? "100%" : undefined,
         overflow: "hidden",
+        display: "flex",
+        gap: 8,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
-        <span
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          flexShrink: 0,
+          overflow: "hidden",
+          background: "var(--color-primary-soft)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {imageUrl ? (
+          <img src={resolveAssetUrl(imageUrl) ?? undefined} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <CategoryIcon size={15} strokeWidth={1.8} color="var(--color-primary)" aria-hidden="true" />
+        )}
+      </div>
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--color-ink)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {title}
+          </span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              fontSize: 9.5,
+              fontWeight: 800,
+              color: "#fff",
+              background: hot ? "var(--color-danger)" : "var(--color-primary)",
+              borderRadius: 999,
+              padding: "1px 6px",
+              flexShrink: 0,
+            }}
+          >
+            {hot ? <FireIcon size={9} /> : null}
+            {discount}
+          </span>
+        </div>
+
+        <div
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "var(--color-ink)",
+            fontSize: 9.5,
+            fontWeight: 600,
+            color: "var(--color-ink-muted)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            marginTop: 1,
           }}
         >
-          {title}
-        </span>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3,
-            fontSize: 9.5,
-            fontWeight: 800,
-            color: "#fff",
-            background: hot ? "var(--color-danger)" : "var(--color-primary)",
-            borderRadius: 999,
-            padding: "1px 6px",
-            flexShrink: 0,
-          }}
-        >
-          {hot ? <FireIcon size={9} /> : null}
-          {discount}
-        </span>
+          {businessName}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3, gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--color-primary)" }}>{price}</span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 2,
+              fontSize: 9,
+              fontWeight: 700,
+              color: timeColor,
+              flexShrink: 0,
+            }}
+          >
+            <Clock size={10} strokeWidth={2.2} color={timeAccent} aria-hidden="true" />
+            {formatTimeLeft(pickupEnd)}
+          </span>
+        </div>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--color-primary)", marginTop: 3 }}>{price}</div>
     </div>
   );
 }

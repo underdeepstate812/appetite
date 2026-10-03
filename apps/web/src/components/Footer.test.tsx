@@ -35,3 +35,19 @@ describe("Footer", () => {
     expect(screen.getByText(new RegExp(`© ${year} Appetite`))).toBeInTheDocument();
   });
 });
+
+describe("Footer app block", () => {
+  it("shows a QR code that opens the web app on a phone", () => {
+    render(<Footer />);
+    expect(screen.getByRole("img", { name: /QR-код: открыть Appetite на телефоне/ })).toBeInTheDocument();
+  });
+
+  it("shows App Store and Google Play badges as inactive until the app is published (no dead links)", () => {
+    render(<Footer />);
+    for (const name of [/App Store — скоро/, /Google Play — скоро/]) {
+      const badge = screen.getByRole("button", { name });
+      expect(badge).toHaveAttribute("aria-disabled", "true");
+    }
+    expect(screen.queryByRole("link", { name: /App Store|Google Play/ })).not.toBeInTheDocument();
+  });
+});

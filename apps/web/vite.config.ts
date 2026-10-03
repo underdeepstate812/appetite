@@ -5,5 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
+    // Временная демо-ссылка через cloudflared quick tunnel (случайный поддомен *.trycloudflare.com).
+    allowedHosts: [".trycloudflare.com"],
   },
 });
