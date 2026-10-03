@@ -4,6 +4,7 @@ import { DISCOUNT_RULES, OfferCategory, type Business } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
 import { computeNetPayout, isInTrial } from "../utils/commission";
+import { OfferPhotoField } from "./OfferPhotoField";
 
 interface QuickOfferCreateProps {
   business: Business;
@@ -24,6 +25,8 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justCreated, setJustCreated] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   // Цена на витрине (то, что платит покупатель) — из неё же считаем, сколько реально
   // упадёт на счёт заведения после удержания комиссии платформы (см. utils/commission.ts).
@@ -49,11 +52,13 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
         quantityTotal: 1,
         pickupStart: now.toISOString(),
         pickupEnd: pickupEnd.toISOString(),
+        ...(imageUrl ? { imageUrl } : {}),
       });
       setTitle("");
       setPriceRub("");
       setDiscountPercent(String(DISCOUNT_RULES.DEFAULT_BASE_PERCENT));
       setWeightKg("");
+      setImageUrl(null);
       setJustCreated(true);
       setTimeout(() => setJustCreated(false), 2500);
       onCreated();
@@ -126,10 +131,12 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
             required
           />
         </div>
-        <button className="btn btn-primary" type="submit" disabled={saving} style={{ flex: "0 0 auto", alignSelf: "flex-end" }}>
-          {saving ? "Публикуем..." : justCreated ? "Готово ✓" : "Опубликовать"}
+        <button className="btn btn-primary" type="submit" disabled={saving || photoBusy} style={{ flex: "0 0 auto", alignSelf: "flex-end" }}>
+          {saving ? "Публикуем..." : photoBusy ? "Загружаем фото..." : justCreated ? "Готово ✓" : "Опубликовать"}
         </button>
       </div>
+
+      <OfferPhotoField value={imageUrl} onChange={setImageUrl} category={OfferCategory.FOOD} title={title} compact onBusyChange={setPhotoBusy} />
 
       {displayPrice !== null && netPayout !== null ? (
         <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>

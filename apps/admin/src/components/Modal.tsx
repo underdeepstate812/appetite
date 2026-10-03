@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
 
 interface ModalProps {
   title: string;
@@ -7,6 +7,7 @@ interface ModalProps {
 }
 
 export function Modal({ title, onClose, children }: ModalProps) {
+  const titleId = useId();
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -17,9 +18,9 @@ export function Modal({ title, onClose, children }: ModalProps) {
 
   return (
     <div style={overlayStyle} onClick={onClose}>
-      <div className="card" style={panelStyle} onClick={(event) => event.stopPropagation()}>
+      <div className="card" style={panelStyle} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()}>
         <div style={headerStyle}>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>{title}</h2>
+          <h2 id={titleId} style={{ fontSize: 18, fontWeight: 700 }}>{title}</h2>
           <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Закрыть">
             ✕
           </button>

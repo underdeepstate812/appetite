@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { DISCOUNT_RULES, OfferCategory, OfferStatus, type Business, type Offer } from "@apetite/shared";
 import { Modal } from "./Modal";
+import { OfferPhotoField } from "./OfferPhotoField";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
 import { CATEGORY_LABELS } from "../constants";
@@ -51,6 +52,8 @@ export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormM
   const [pickupStart, setPickupStart] = useState(offer ? toDatetimeLocal(offer.pickupStart) : defaultPickupStart());
   const [pickupEnd, setPickupEnd] = useState(offer ? toDatetimeLocal(offer.pickupEnd) : defaultPickupEnd());
   const [status, setStatus] = useState<OfferStatus>(offer?.status ?? OfferStatus.ACTIVE);
+  const [imageUrl, setImageUrl] = useState<string | null>(offer?.imageUrl ?? null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +90,8 @@ export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormM
           pickupStart: fromDatetimeLocal(pickupStart),
           pickupEnd: fromDatetimeLocal(pickupEnd),
           status,
+          // Фото шлём только если его меняли (null — убрать): иначе правка цены не должна трогать снимок.
+          ...(imageUrl !== (offer.imageUrl ?? null) ? { imageUrl } : {}),
         });
       } else {
         await offersApi.create({
@@ -100,6 +105,7 @@ export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormM
           quantityTotal: Number(quantityTotal),
           pickupStart: fromDatetimeLocal(pickupStart),
           pickupEnd: fromDatetimeLocal(pickupEnd),
+          ...(imageUrl ? { imageUrl } : {}),
         });
       }
       onSaved();
@@ -116,6 +122,11 @@ export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormM
         <div className="field">
           <label htmlFor="title">Название</label>
           <input id="title" value={title} onChange={(event) => setTitle(event.target.value)} required />
+        </div>
+
+        <div className="field">
+          <label id="offer-photo-label">Фото</label>
+          <OfferPhotoField labelledBy="offer-photo-label" value={imageUrl} onChange={setImageUrl} category={category} title={title} onBusyChange={setPhotoBusy} />
         </div>
 
         <div className="field">
@@ -255,8 +266,8 @@ export function OfferFormModal({ business, offer, onClose, onSaved }: OfferFormM
         {error ? <p className="form-error">{error}</p> : null}
 
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <button className="btn btn-primary" type="submit" disabled={saving} style={{ flex: 1 }}>
-            {saving ? "Сохраняем..." : "Сохранить"}
+          <button className="btn btn-primary" type="submit" disabled={saving || photoBusy} style={{ flex: 1 }}>
+            {saving ? "Сохраняем..." : photoBusy ? "Загружаем фото..." : "Сохранить"}
           </button>
           <button className="btn btn-secondary" type="button" onClick={onClose} disabled={saving}>
             Отмена

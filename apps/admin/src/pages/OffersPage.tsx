@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { ImageOff } from "lucide-react";
 import type { Offer } from "@apetite/shared";
 import { useBusinessStore } from "../store/businessStore";
 import { offersApi } from "../api/offers";
+import { resolveAssetUrl } from "../api/client";
 import { OfferStatusBadge } from "../components/StatusBadge";
 import { LoadingView, EmptyView, ErrorView } from "../components/StateViews";
 import { OfferFormModal } from "../components/OfferFormModal";
@@ -89,7 +91,18 @@ export function OffersPage() {
             <tbody>
               {offers.map((offer) => (
                 <tr key={offer.id}>
-                  <td style={{ fontWeight: 600 }}>{offer.title}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {offer.imageUrl ? (
+                        <img className="offer-thumb" src={resolveAssetUrl(offer.imageUrl) ?? ""} alt="" loading="lazy" />
+                      ) : (
+                        <span className="offer-thumb offer-thumb-empty" title="Без фото" aria-label="Без фото">
+                          <ImageOff size={18} aria-hidden="true" />
+                        </span>
+                      )}
+                      {offer.title}
+                    </div>
+                  </td>
                   <td>{CATEGORY_LABELS[offer.category]}</td>
                   <td>
                     {(offer.discountedPrice / 100).toFixed(0)} ₽{" "}

@@ -1,5 +1,15 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
 
+// Origin бэкенда (без /api/v1): загруженные фото и библиотека фото раздаются вне версионированного префикса.
+const API_ORIGIN = BASE_URL.match(/^(https?:\/\/[^/]+)/)?.[1] ?? BASE_URL;
+
+/** Относительный путь из API (/uploads/offers/x.jpg) → полный URL для <img>. Абсолютные адреса не трогаем. */
+export function resolveAssetUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${API_ORIGIN}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     public statusCode: number,
@@ -44,17 +54,19 @@ export function configureApiClient(config: {
 async function request<T>(path: string, options: RequestOptions = {}, isRetry = false): Promise<T> {
   const { auth = true, headers, body, ...rest } = options;
   const token = auth ? getAccessToken() : null;
+  // FormData (загрузка фото) отправляем как есть: fetch сам проставит Content-Type с границей multipart.
+  const isFormData = body instanceof FormData;
 
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...rest,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
     // fetch бросает TypeError("Failed to fetch"), когда до сервера не дошли — вместо него показываем понятный текст.
