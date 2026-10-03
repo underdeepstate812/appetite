@@ -5,6 +5,7 @@ import { OfferCategory } from "@apetite/shared";
 import { businessApplicationsApi } from "../api/businessApplications";
 import { ApiError } from "../api/client";
 import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../utils/validation";
+import { Select } from "../components/Select";
 import { Stamp } from "../components/Stamp";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
@@ -15,6 +16,8 @@ const CATEGORY_LABELS: Record<OfferCategory, string> = {
   [OfferCategory.FLOWERS]: "Цветочный магазин",
   [OfferCategory.GROCERIES]: "Продуктовый магазин",
 };
+
+const CATEGORY_OPTIONS = Object.values(OfferCategory).map((value) => ({ value, label: CATEGORY_LABELS[value] }));
 
 const STEPS = [
   { n: "01", icon: PenLine, text: "Оставляешь заявку — название, адрес, контакты" },
@@ -227,13 +230,7 @@ export function BusinessRegisterPage() {
 
           <div className="field">
             <label htmlFor="biz-category">Категория</label>
-            <select id="biz-category" value={category} onChange={(event) => setCategory(event.target.value as OfferCategory)}>
-              {Object.values(OfferCategory).map((value) => (
-                <option key={value} value={value}>
-                  {CATEGORY_LABELS[value]}
-                </option>
-              ))}
-            </select>
+            <Select id="biz-category" value={category} options={CATEGORY_OPTIONS} onChange={setCategory} />
           </div>
 
           <div className="field">

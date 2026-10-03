@@ -108,8 +108,16 @@ export interface PlatformBusinessSummary {
   ordersCompleted: number;
   /** Минорные единицы валюты (копейки), только по COMPLETED-заказам. */
   revenue: number;
+  /** Реально удержанная комиссия, копейки — 0, пока не истёк пробный период (trialEndsAt). */
   platformFee: number;
+  /** null — пробного периода не было (заведение онбордили до появления этой настройки). */
+  trialEndsAt: string | null;
   createdAt: string;
+}
+
+/** Платформенные настройки (ШАГ 0/11) — GET/PUT /platform/settings, только ADMIN. */
+export interface PlatformSettings {
+  trialPeriodDays: number;
 }
 
 /**

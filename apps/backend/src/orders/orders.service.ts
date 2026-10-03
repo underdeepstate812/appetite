@@ -34,7 +34,11 @@ export class OrdersService {
     const { offer, business } = await this.reserveStock(dto.offerId, dto.quantity);
 
     const totalPrice = offer.discountedPrice * dto.quantity;
-    const platformFee = Math.round((totalPrice * business.commissionPercent) / 100);
+    // Бесплатное подключение на старте (бизнес-модель, оферта на сайте): пока не истёк
+    // пробный период (снимок в trialEndsAt на момент онбординга), комиссия не взимается
+    // независимо от commissionPercent — он продолжает действовать как ставка НА БУДУЩЕЕ.
+    const inTrial = business.trialEndsAt !== null && business.trialEndsAt > new Date();
+    const platformFee = inTrial ? 0 : Math.round((totalPrice * business.commissionPercent) / 100);
 
     let charge;
     try {
@@ -49,7 +53,7 @@ export class OrdersService {
 
     for (let attempt = 0; attempt < MAX_PICKUP_CODE_ATTEMPTS; attempt++) {
       try {
-        return await this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
           const order = await tx.order.create({
             data: {
               userId: requester.userId,
@@ -72,9 +76,28 @@ export class OrdersService {
               status: charge.status,
             },
           });
+          const title = "Новый заказ";
+          const body = `${offer.title} × ${dto.quantity} на ${(totalPrice / 100).toFixed(0)} ₽ — подтверди в панели, чтобы начать готовить.`;
+          await tx.notification.create({
+            data: {
+              userId: business.ownerUserId,
+              type: NotificationType.ORDER_RECEIVED,
+              title,
+              body,
+              data: { orderId: order.id },
+            },
+          });
           const qrCodeDataUrl = await this.generateQrCode(order.id, order.pickupCode);
-          return { ...order, qrCodeDataUrl };
+          return { order, qrCodeDataUrl, notifyBusiness: { title, body } };
         });
+
+        // Push — best-effort сетевой вызов, вне транзакции (та же логика, что и с оплатой выше).
+        await this.notifications.dispatchPush(business.ownerUserId, {
+          title: result.notifyBusiness.title,
+          body: result.notifyBusiness.body,
+          data: { orderId: result.order.id },
+        });
+        return { ...result.order, qrCodeDataUrl: result.qrCodeDataUrl };
       } catch (error) {
         const isPickupCodeCollision =
           error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
@@ -124,29 +147,114 @@ export class OrdersService {
     return { qrCodeDataUrl };
   }
 
+  /**
+   * Оплаченный заказ отменить покупатель уже не может в принципе — только поддержка
+   * (ADMIN), как исключение (ошибочный заказ, фрод и т.п.). Раньше тут было окно до
+   * подтверждения заведением, но по бизнес-правилу оплата — финальная точка: отменить
+   * нельзя, даже если заведение ещё не видело заказ.
+   */
   async cancel(id: string, requester: RequestUser) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
-    if (!order) throw new NotFoundException("Заказ не найден");
-    if (order.userId !== requester.userId && requester.role !== Role.ADMIN) {
-      throw new ForbiddenException("Это не твой заказ");
+    if (requester.role !== Role.ADMIN) {
+      throw new ForbiddenException("Отменить оплаченный заказ может только поддержка");
     }
+    const order = await this.prisma.order.findUnique({ where: { id }, include: { business: true, offer: true } });
+    if (!order) throw new NotFoundException("Заказ не найден");
     if (order.status !== OrderStatus.CONFIRMED) {
       throw new ConflictException("Заказ уже нельзя отменить");
     }
 
+    const businessTitle = "Заказ отменён";
+    const businessBody = `Заказ «${order.offer.title}» отменён поддержкой.`;
+    const buyerTitle = "Заказ отменён";
+    const buyerBody = `Твой заказ «${order.offer.title}» отменён поддержкой — деньги будут возвращены.`;
     const cancelled = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id },
+      // Условие в WHERE — не оптимизация, а атомарная защита от гонки с complete(): если
+      // заведение успело выдать заказ ровно между проверкой выше и этим апдейтом, affected
+      // будет 0 (тот же приём, что в reserveStock() для quantityLeft).
+      const result = await tx.order.updateMany({
+        where: { id, status: OrderStatus.CONFIRMED },
         data: { status: OrderStatus.CANCELLED },
       });
+      if (result.count === 0) {
+        throw new ConflictException("Заказ уже нельзя отменить");
+      }
       await tx.offer.update({
         where: { id: order.offerId },
         data: { quantityLeft: { increment: order.quantity } },
       });
-      return updated;
+      await tx.notification.create({
+        data: {
+          userId: order.business.ownerUserId,
+          type: NotificationType.ORDER_CANCELLED,
+          title: businessTitle,
+          body: businessBody,
+          data: { orderId: order.id },
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: order.userId,
+          type: NotificationType.ORDER_CANCELLED,
+          title: buyerTitle,
+          body: buyerBody,
+          data: { orderId: order.id },
+        },
+      });
+      return tx.order.findUniqueOrThrow({ where: { id } });
     });
     await this.reactivateIfSoldOut(order.offerId);
+    await this.notifications.dispatchPush(order.business.ownerUserId, { title: businessTitle, body: businessBody, data: { orderId: order.id } });
+    await this.notifications.dispatchPush(order.userId, { title: buyerTitle, body: buyerBody, data: { orderId: order.id } });
     return cancelled;
+  }
+
+  /**
+   * Заведение видит новый заказ в уведомлении (ORDER_RECEIVED) и подтверждает его здесь —
+   * до этого момента покупатель ещё может отменить (см. cancel()), после — уже нет.
+   */
+  async accept(id: string, requester: RequestUser) {
+    const order = await this.prisma.order.findUnique({ where: { id }, include: { business: true, offer: true } });
+    if (!order) throw new NotFoundException("Заказ не найден");
+    if (requester.role === Role.USER) {
+      throw new ForbiddenException("Принять заказ может только заведение или админ");
+    }
+    if (requester.role === Role.BUSINESS && order.business.ownerUserId !== requester.userId) {
+      throw new ForbiddenException("Это не заказ твоего заведения");
+    }
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new ConflictException("Заказ уже не ожидает подтверждения");
+    }
+    if (order.acceptedAt) {
+      throw new ConflictException("Заказ уже принят");
+    }
+
+    const title = "Заказ приняли";
+    const body = `«${order.offer.title}» уже готовят — отменить заказ теперь нельзя.`;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Та же атомарная защита, что и в cancel(): если покупатель успел отменить заказ ровно
+      // между проверкой выше и этим апдейтом, affected будет 0 — без этого условия заказ мог
+      // бы получить acceptedAt уже будучи CANCELLED (и уведомление "теперь не отменить" ушло
+      // бы покупателю, который его только что отменил).
+      const result = await tx.order.updateMany({
+        where: { id, status: OrderStatus.CONFIRMED, acceptedAt: null },
+        data: { acceptedAt: new Date() },
+      });
+      if (result.count === 0) {
+        throw new ConflictException("Заказ уже нельзя принять — его статус изменился");
+      }
+      await tx.notification.create({
+        data: {
+          userId: order.userId,
+          type: NotificationType.ORDER_ACCEPTED,
+          title,
+          body,
+          data: { orderId: order.id },
+        },
+      });
+      return tx.order.findUniqueOrThrow({ where: { id } });
+    });
+    await this.notifications.dispatchPush(order.userId, { title, body, data: { orderId: order.id } });
+    return updated;
   }
 
   /** Подтверждение выдачи по pickupCode: статус → COMPLETED, начисление эко-баллов, уведомление. */
@@ -172,10 +280,16 @@ export class OrdersService {
     const body = `Спасибо! Ты спас(-ла) ${weightSavedKg.toFixed(1)} кг еды от выброса — +${points} эко-баллов.`;
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id },
+      // Та же защита от гонки, что в cancel()/accept(): если покупатель успел отменить заказ
+      // ровно между проверкой выше и этим апдейтом, affected будет 0 — без неё можно было бы
+      // выдать (и начислить эко-баллы за) уже отменённый заказ, чей остаток уже вернулся в офер.
+      const result = await tx.order.updateMany({
+        where: { id, status: OrderStatus.CONFIRMED },
         data: { status: OrderStatus.COMPLETED, completedAt: new Date() },
       });
+      if (result.count === 0) {
+        throw new ConflictException("Заказ не ожидает самовывоза");
+      }
       await tx.ecoTransaction.create({
         data: { userId: order.userId, orderId: order.id, points, weightSavedKg },
       });
@@ -188,7 +302,7 @@ export class OrdersService {
           data: { orderId: order.id },
         },
       });
-      return updatedOrder;
+      return tx.order.findUniqueOrThrow({ where: { id } });
     });
 
     // Push — best-effort сетевой вызов, вне транзакции (та же логика, что и с оплатой в ШАГ 5).

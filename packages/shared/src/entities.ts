@@ -51,6 +51,8 @@ export interface Business {
   commissionPercent: number;
   /** Логотип заведения — опционально, без него показывается плейсхолдер с инициалом. */
   logoUrl?: string | null;
+  /** Пока не истекло — комиссия фактически 0% (бесплатное подключение на старте), см. orders.service.ts. */
+  trialEndsAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,6 +98,8 @@ export interface Order {
   /** Код самовывоза (PIN), показывается пользователю и вводится/сканируется заведением. */
   pickupCode: string;
   createdAt: string;
+  /** Когда заведение подтвердило заказ — после этого момента отменить заказ уже нельзя. */
+  acceptedAt?: string | null;
   completedAt?: string | null;
   /** Когда отправлено напоминание "забери за 30 минут" (ШАГ 6). */
   pickupReminderSentAt?: string | null;

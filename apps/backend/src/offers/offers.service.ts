@@ -7,6 +7,7 @@ import { UpdateOfferDto } from "./dto/update-offer.dto";
 import { ListOffersQueryDto } from "./dto/list-offers.query";
 import { NearbyOffersQueryDto } from "./dto/nearby-offers.query";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
+import { assertValidPickupWindow } from "./pickup-window";
 
 const DEFAULT_PAGE_SIZE = 20;
 const NEARBY_RESULTS_LIMIT = 100;
@@ -44,6 +45,8 @@ export class OffersService {
     const business = await this.prisma.business.findUnique({ where: { id: dto.businessId } });
     if (!business) throw new NotFoundException("Заведение не найдено");
     this.assertOwnerOrAdmin(business.ownerUserId, requester);
+
+    assertValidPickupWindow(new Date(dto.pickupStart), new Date(dto.pickupEnd), { requireFuture: true });
 
     const originalPrice = Math.round(dto.originalPriceRub * 100);
     const hoursToEnd = (new Date(dto.pickupEnd).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -157,6 +160,12 @@ export class OffersService {
     if (dto.pickupStart) data.pickupStart = new Date(dto.pickupStart);
 
     const pickupEnd = dto.pickupEnd ? new Date(dto.pickupEnd) : offer.pickupEnd;
+    if (dto.pickupStart || dto.pickupEnd) {
+      // Порядок концов проверяем по итоговым значениям (что-то из пары могло остаться прежним);
+      // "конец в будущем" требуем только когда конец переносят, иначе нельзя было бы архивировать старый оффер.
+      const pickupStart = dto.pickupStart ? new Date(dto.pickupStart) : offer.pickupStart;
+      assertValidPickupWindow(pickupStart, pickupEnd, { requireFuture: !!dto.pickupEnd });
+    }
     if (dto.pickupEnd) data.pickupEnd = pickupEnd;
 
     const originalPrice =

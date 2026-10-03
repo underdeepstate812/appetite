@@ -37,10 +37,17 @@ export class OrdersController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.USER, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @Patch(":id/cancel")
   cancel(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
     return this.ordersService.cancel(id, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.BUSINESS, Role.ADMIN)
+  @Patch(":id/accept")
+  accept(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return this.ordersService.accept(id, user);
   }
 
   @UseGuards(RolesGuard)

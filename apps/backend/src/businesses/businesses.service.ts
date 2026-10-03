@@ -31,6 +31,12 @@ export class BusinessesService {
         },
       });
 
+      // Снимок текущей глобальной настройки (админ может её менять позже — уже
+      // онбордингнутых заведений это задним числом не касается, см. schema.prisma).
+      const settings = await tx.platformSettings.findUnique({ where: { id: 1 } });
+      const trialPeriodDays = settings?.trialPeriodDays ?? 25;
+      const trialEndsAt = new Date(Date.now() + trialPeriodDays * 24 * 60 * 60 * 1000);
+
       return tx.business.create({
         data: {
           ownerUserId: owner.id,
@@ -41,6 +47,7 @@ export class BusinessesService {
           lat: dto.lat,
           lng: dto.lng,
           logoUrl: dto.logoUrl,
+          trialEndsAt,
           // Ручной онбординг админом (ШАГ 0) — заведение уже провалидировано, сразу ACTIVE.
           status: BusinessStatus.ACTIVE,
         },

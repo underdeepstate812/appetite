@@ -7,6 +7,22 @@ interface ErrorBody {
   message: string | string[];
 }
 
+const CLIENT_ERROR_MESSAGES: Record<number, string> = {
+  [HttpStatus.PAYLOAD_TOO_LARGE]: "Слишком большой размер запроса",
+  [HttpStatus.UNSUPPORTED_MEDIA_TYPE]: "Неподдерживаемый формат запроса",
+};
+
+/**
+ * Ошибки body-parser/http-errors (например 413 entity.too.large) — не HttpException,
+ * но несут собственный 4xx-статус: без этого клиентская ошибка превращается в 500.
+ */
+function clientErrorStatus(exception: unknown): number | undefined {
+  if (typeof exception !== "object" || exception === null) return undefined;
+  const { status, statusCode } = exception as { status?: unknown; statusCode?: unknown };
+  const code = typeof status === "number" ? status : statusCode;
+  return typeof code === "number" && code >= 400 && code < 500 ? code : undefined;
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -32,6 +48,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? body
           : ((body as { message?: string | string[] }).message ?? exception.message);
       return { status: exception.getStatus(), message };
+    }
+
+    const clientStatus = clientErrorStatus(exception);
+    if (clientStatus !== undefined) {
+      return { status: clientStatus, message: CLIENT_ERROR_MESSAGES[clientStatus] ?? "Некорректный запрос" };
     }
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {

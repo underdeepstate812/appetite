@@ -7,6 +7,7 @@ import {
   Role,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
+import { syncShowcase } from "./showcase";
 import {
   computeDiscountPercent,
   ECO_POINTS_PER_KG,
@@ -35,6 +36,11 @@ function generatePickupCode(): string {
 
 const HOUR_MS = 60 * 60 * 1000;
 
+/** Фото товара — прямые CDN-ссылки на Unsplash, без ключа/аккаунта (только для тестовых данных). */
+function unsplash(photoId: string): string {
+  return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=800&q=75`;
+}
+
 interface OfferSeed {
   title: string;
   category: OfferCategory;
@@ -44,6 +50,8 @@ interface OfferSeed {
   hoursToEnd: number;
   /** Стартовая скидка, заданная владельцем бизнеса (минимум 25%). */
   baseDiscountPercent: number;
+  /** Фото товара — без него витрина показывает иконку категории вместо реального вида товара. */
+  imageUrl: string;
 }
 
 interface BusinessSeed {
@@ -73,6 +81,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 8,
         hoursToEnd: 2.5,
         baseDiscountPercent: 30,
+        imageUrl: unsplash("photo-1547592166-23ac45744acd"),
       },
       {
         title: "Набор десертов дня",
@@ -82,6 +91,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 6,
         hoursToEnd: 0.8,
         baseDiscountPercent: 40,
+        imageUrl: unsplash("photo-1488477181946-6428a0291777"),
       },
     ],
   },
@@ -101,6 +111,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 12,
         hoursToEnd: 1.5,
         baseDiscountPercent: 25,
+        imageUrl: unsplash("photo-1509440159596-0249088772ff"),
       },
     ],
   },
@@ -120,6 +131,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 4,
         hoursToEnd: 3,
         baseDiscountPercent: 50,
+        imageUrl: unsplash("photo-1487070183336-b863922373d4"),
       },
     ],
   },
@@ -139,6 +151,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 10,
         hoursToEnd: 4,
         baseDiscountPercent: 35,
+        imageUrl: unsplash("photo-1542838132-92c53300491e"),
       },
     ],
   },
@@ -226,6 +239,7 @@ async function main() {
           discountedPrice,
           discountPercent,
           baseDiscountPercent: offerSeed.baseDiscountPercent,
+          imageUrl: offerSeed.imageUrl,
           quantityTotal: offerSeed.quantityTotal,
           quantityLeft: offerSeed.quantityTotal,
           weightKg: offerSeed.weightKg,
@@ -243,6 +257,9 @@ async function main() {
       });
     }
   }
+
+  console.log("Витрина: офферы с ленты на главной...");
+  const showcaseCount = await syncShowcase(prisma, passwordHash);
 
   console.log("Создание демо-заказов и эко-транзакции...");
   const [completedOfferSeed, pendingOfferSeed] = createdOffers;
@@ -350,6 +367,7 @@ async function main() {
   console.log(`  admin:     ${admin.email} / password123`);
   console.log(`  user:      ${demoUser.email} / password123`);
   console.log(`  businesses: ${BUSINESS_SEEDS.map((b) => b.ownerEmail).join(", ")} / password123`);
+  console.log(`  showcase offers: ${showcaseCount} (showcase.<shop>@apetite.ru / password123)`);
   console.log(`  offers: ${createdOffers.length}, completed order: ${completedOrder.id}, pending order: ${pendingOrder.id}`);
 }
 

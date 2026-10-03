@@ -51,6 +51,10 @@ enum NotificationType {
   ORDER_COMPLETED
   ORDER_EXPIRED
   ORDER_CANCELLED
+  /// Новый заказ — заведению, сразу после оплаты. Триггер для "Принять заказ" в панели бизнеса.
+  ORDER_RECEIVED
+  /// Заведение подтвердило заказ — покупателю. С этого момента отменить заказ уже нельзя.
+  ORDER_ACCEPTED
 }
 
 enum PaymentStatus {
@@ -103,9 +107,15 @@ model Business {
   lng               Float
   status            BusinessStatus @default(PENDING)
   /// % комиссии платформы для этого заведения (по умолчанию — платформенная константа).
+  /// Фактически не взимается, пока не истёк пробный период — см. trialEndsAt.
   commissionPercent Int            @default(25)
   /// Логотип заведения — опционально, до загрузки показывается плейсхолдер с инициалом.
   logoUrl           String?
+  /// Снимок PlatformSettings.trialPeriodDays на момент онбординга (createdAt + N дней) —
+  /// не пересчитывается задним числом при смене глобальной настройки. Пока now() < trialEndsAt,
+  /// orders.service.ts начисляет комиссию 0% независимо от commissionPercent (бизнес-модель:
+  /// бесплатное подключение на старте, см. апробировано в оферте/FAQ на сайте).
+  trialEndsAt       DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -168,6 +178,9 @@ model Order {
   /// PIN самовывоза — показывается пользователю, сверяется заведением при выдаче.
   pickupCode           String      @unique
   createdAt            DateTime    @default(now())
+  /// Момент, когда заведение подтвердило заказ (см. "Принять заказ" в панели бизнеса) —
+  /// до этого пользователь ещё может отменить (orders.service.ts cancel()), после — уже нет.
+  acceptedAt           DateTime?
   completedAt          DateTime?
   /// Когда отправлено напоминание "забери за 30 минут" — чтобы шедулер не слал повторно.
   pickupReminderSentAt DateTime?
@@ -253,4 +266,17 @@ model BusinessApplication {
 
   @@index([status])
   @@map("business_applications")
+}
+
+/// Синглтон-строка (id всегда 1) — платформенные настройки, редактируемые из admin,
+/// а не заданные на деплое через .env (в отличие от остального конфига в env.validation.ts):
+/// это бизнес-параметр, который платформа регулирует сама по ходу пилота (ШАГ 0 брифа).
+model PlatformSettings {
+  id              Int      @id @default(1)
+  /// Сколько дней после онбординга заведение не платит комиссию (platformFee = 0 на
+  /// orders.service.ts). Снимок берётся в Business.trialEndsAt в момент онбординга.
+  trialPeriodDays Int      @default(25)
+  updatedAt       DateTime @updatedAt
+
+  @@map("platform_settings")
 }
