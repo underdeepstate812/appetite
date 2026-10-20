@@ -1,16 +1,26 @@
 import { randomInt } from "node:crypto";
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as QRCode from "qrcode";
-import { Business, NotificationType, Offer, OfferStatus, OrderStatus, PaymentStatus, Prisma, Role } from "@prisma/client";
+import { Business, NotificationType, Offer, OfferStatus, OrderStatus, PaymentStatus, Prisma, ReceiptDisputeReason, Role } from "@prisma/client";
 import { ECO_POINTS_PER_KG, PICKUP_CODE_LENGTH } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { PaymentsService } from "../payments/payments.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CompleteOrderDto } from "./dto/complete-order.dto";
+import { ConfirmReceiptDto } from "./dto/confirm-receipt.dto";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
 
 const MAX_PICKUP_CODE_ATTEMPTS = 5;
+/** Сколько дней после выдачи покупатель может оспорить получение. Подтвердить получение можно в любой момент. */
+export const RECEIPT_DISPUTE_WINDOW_DAYS = 7;
+
+const DISPUTE_REASON_LABEL: Record<ReceiptDisputeReason, string> = {
+  NOT_RECEIVED: "заказ не выдали",
+  WRONG_ITEM: "выдали не тот товар",
+  QUALITY: "проблема с качеством",
+  OTHER: "другая причина",
+};
 
 function generatePickupCode(): string {
   const max = 10 ** PICKUP_CODE_LENGTH;
@@ -307,6 +317,63 @@ export class OrdersService {
 
     // Push — best-effort сетевой вызов, вне транзакции (та же логика, что и с оплатой в ШАГ 5).
     await this.notifications.dispatchPush(order.userId, { title, body, data: { orderId: order.id } });
+    return updated;
+  }
+
+  /**
+   * Покупатель отвечает после того, как заведение отметило выдачу: «получил» либо спор. Двусторонняя фиксация нужна, чтобы
+   * выдачу нельзя было «закрыть» за спиной покупателя (и чтобы у платформы были основания для возврата, если товар не передан).
+   * Отвечает только владелец заказа; один раз; спор — в течение RECEIPT_DISPUTE_WINDOW_DAYS после выдачи.
+   * Условный updateMany (как в cancel/accept/complete) закрывает гонку двух одновременных ответов.
+   */
+  async confirmReceipt(id: string, dto: ConfirmReceiptDto, requester: RequestUser) {
+    const order = await this.prisma.order.findUnique({ where: { id }, include: { business: true, offer: true } });
+    if (!order) throw new NotFoundException("Заказ не найден");
+    if (order.userId !== requester.userId) throw new ForbiddenException("Это не твой заказ");
+    if (order.status !== OrderStatus.COMPLETED) {
+      throw new ConflictException("Заведение ещё не отметило выдачу этого заказа");
+    }
+    if (order.receiptConfirmedAt || order.receiptDisputedAt) {
+      throw new ConflictException("Ты уже ответил по этому заказу");
+    }
+
+    const now = new Date();
+    const notAnswered = { id, receiptConfirmedAt: null, receiptDisputedAt: null };
+
+    if (dto.received) {
+      const result = await this.prisma.order.updateMany({ where: notAnswered, data: { receiptConfirmedAt: now } });
+      if (result.count === 0) throw new ConflictException("Ты уже ответил по этому заказу");
+      return this.prisma.order.findUniqueOrThrow({ where: { id } });
+    }
+
+    const reason = dto.reason as ReceiptDisputeReason;
+    const completedAt = order.completedAt ?? now;
+    if (now.getTime() - completedAt.getTime() > RECEIPT_DISPUTE_WINDOW_DAYS * 24 * 3600 * 1000) {
+      throw new ConflictException(`Оспорить получение можно в течение ${RECEIPT_DISPUTE_WINDOW_DAYS} дней после выдачи`);
+    }
+
+    const title = "Покупатель оспорил получение заказа";
+    const body = `Заказ «${order.offer.title}»: ${DISPUTE_REASON_LABEL[reason]}.`;
+    const admins = await this.prisma.user.findMany({ where: { role: Role.ADMIN }, select: { id: true } });
+    const recipients = [...new Set([order.business.ownerUserId, ...admins.map((admin) => admin.id)])];
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: notAnswered,
+        data: { receiptDisputedAt: now, receiptDisputeReason: reason, receiptDisputeNote: dto.note?.trim() || null },
+      });
+      if (result.count === 0) throw new ConflictException("Ты уже ответил по этому заказу");
+      for (const userId of recipients) {
+        await tx.notification.create({
+          data: { userId, type: NotificationType.RECEIPT_DISPUTED, title, body, data: { orderId: order.id } },
+        });
+      }
+      return tx.order.findUniqueOrThrow({ where: { id } });
+    });
+
+    for (const userId of recipients) {
+      await this.notifications.dispatchPush(userId, { title, body, data: { orderId: order.id } });
+    }
     return updated;
   }
 

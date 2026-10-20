@@ -15,6 +15,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:seed:showcase": "ts-node --transpile-only prisma/seed-showcase.ts",
+    "prisma:seed:sales-history": "ts-node --transpile-only prisma/seed-sales-history.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

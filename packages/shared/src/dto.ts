@@ -1,4 +1,4 @@
-import { BusinessStatus, OfferCategory } from "./enums";
+import { BusinessStatus, OfferCategory, ReceiptDisputeReason } from "./enums";
 import { GeoPoint } from "./entities";
 
 /**
@@ -67,6 +67,16 @@ export interface CompletePickupRequest {
   pickupCode: string;
 }
 
+/**
+ * Ответ покупателя после того, как заведение отметило выдачу (POST /orders/:id/receipt):
+ * received=true — «получил»; received=false — спор, причина обязательна, пояснение — по желанию.
+ */
+export interface ConfirmReceiptRequest {
+  received: boolean;
+  reason?: ReceiptDisputeReason;
+  note?: string;
+}
+
 export interface Paginated<T> {
   items: T[];
   total: number;
@@ -86,6 +96,8 @@ export interface BusinessStats {
   completedOrders: number;
   cancelledOrders: number;
   expiredOrders: number;
+  /** Сколько заказов покупатель оспорил после выдачи (ждут разбора платформой). */
+  disputedOrders: number;
   /** Минорные единицы валюты (копейки), только по COMPLETED-заказам. */
   revenue: number;
   /** Комиссия платформы, копейки, только по COMPLETED-заказам. */
@@ -135,6 +147,8 @@ export interface PlatformStats {
   completedOrders: number;
   cancelledOrders: number;
   expiredOrders: number;
+  /** Сколько заказов покупатель оспорил после выдачи (ждут разбора платформой). */
+  disputedOrders: number;
   /** GMV — суммарная стоимость всех выданных (COMPLETED) заказов по всей платформе, копейки. */
   gmv: number;
   /** Фактический доход платформы — сумма platformFee по выданным заказам, копейки. */

@@ -1,6 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { OfferStatus, Prisma, Role } from "@prisma/client";
-import { computeDiscountPercent, Paginated } from "@apetite/shared";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { DiscountMode, OfferStatus, OrderStatus, Prisma, Role } from "@prisma/client";
+import { currentDiscountPercent, Paginated, zonedParts } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateOfferDto } from "./dto/create-offer.dto";
 import { UpdateOfferDto } from "./dto/update-offer.dto";
@@ -8,6 +8,7 @@ import { ListOffersQueryDto } from "./dto/list-offers.query";
 import { NearbyOffersQueryDto } from "./dto/nearby-offers.query";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
 import { assertValidPickupWindow } from "./pickup-window";
+import { assertFoodInfo } from "./food-info";
 import { deleteUploadedOfferPhoto, detectImageKind, saveOfferPhoto } from "./offer-photo";
 import { OFFER_PHOTO_PRESETS } from "./offer-photo-presets";
 
@@ -48,16 +49,28 @@ export class OffersService {
     if (!business) throw new NotFoundException("Заведение не найдено");
     this.assertOwnerOrAdmin(business.ownerUserId, requester);
 
-    assertValidPickupWindow(new Date(dto.pickupStart), new Date(dto.pickupEnd), { requireFuture: true });
+    assertValidPickupWindow(new Date(dto.pickupStart), new Date(dto.pickupEnd), { requireFuture: true, hours: { workingHours: business.workingHours, timezone: business.timezone } });
+    assertFoodInfo(
+      {
+        category: dto.category,
+        ingredients: dto.ingredients,
+        allergens: dto.allergens,
+        bestBefore: dto.bestBefore ? new Date(dto.bestBefore) : null,
+        pickupEnd: new Date(dto.pickupEnd),
+      },
+      true
+    );
 
     const originalPrice = Math.round(dto.originalPriceRub * 100);
     const hoursToEnd = (new Date(dto.pickupEnd).getTime() - Date.now()) / (1000 * 60 * 60);
-    const discountPercent = computeDiscountPercent(dto.baseDiscountPercent, hoursToEnd);
+    const discountMode = dto.discountMode ?? DiscountMode.DYNAMIC;
+    const discountPercent = currentDiscountPercent(discountMode, dto.baseDiscountPercent, hoursToEnd);
     const discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
 
     return this.prisma.offer.create({
       data: {
         businessId: dto.businessId,
+        discountMode,
         title: dto.title,
         description: dto.description,
         category: dto.category,
@@ -72,6 +85,10 @@ export class OffersService {
         pickupStart: new Date(dto.pickupStart),
         pickupEnd: new Date(dto.pickupEnd),
         status: OfferStatus.ACTIVE,
+        ingredients: dto.ingredients?.trim() || null,
+        allergens: dto.allergens ?? [],
+        allergensDeclared: dto.allergens !== undefined,
+        bestBefore: dto.bestBefore ? new Date(dto.bestBefore) : null,
       },
     });
   }
@@ -176,9 +193,36 @@ export class OffersService {
       // Порядок концов проверяем по итоговым значениям (что-то из пары могло остаться прежним);
       // "конец в будущем" требуем только когда конец переносят, иначе нельзя было бы архивировать старый оффер.
       const pickupStart = dto.pickupStart ? new Date(dto.pickupStart) : offer.pickupStart;
-      assertValidPickupWindow(pickupStart, pickupEnd, { requireFuture: !!dto.pickupEnd });
+      const windowChanged = pickupStart.getTime() !== offer.pickupStart.getTime() || pickupEnd.getTime() !== offer.pickupEnd.getTime();
+      assertValidPickupWindow(pickupStart, pickupEnd, {
+        requireFuture: !!dto.pickupEnd,
+        hours: { workingHours: offer.business.workingHours, timezone: offer.business.timezone },
+        checkHours: windowChanged,
+      });
     }
     if (dto.pickupEnd) data.pickupEnd = pickupEnd;
+
+    // Состав/аллергены/срок годности: если правят сами эти поля или категорию — всё обязательно (для еды);
+    // иначе проверяем лишь согласованность (старый оффер без состава можно снять с продажи).
+    const touchesFoodInfo =
+      dto.ingredients !== undefined || dto.allergens !== undefined || dto.bestBefore !== undefined || dto.category !== undefined;
+    const bestBefore = dto.bestBefore ? new Date(dto.bestBefore) : offer.bestBefore;
+    assertFoodInfo(
+      {
+        category: dto.category ?? offer.category,
+        ingredients: dto.ingredients ?? offer.ingredients,
+        allergens: dto.allergens ?? (offer.allergensDeclared ? offer.allergens : undefined),
+        bestBefore,
+        pickupEnd,
+      },
+      touchesFoodInfo
+    );
+    if (dto.ingredients !== undefined) data.ingredients = dto.ingredients.trim() || null;
+    if (dto.allergens !== undefined) {
+      data.allergens = dto.allergens;
+      data.allergensDeclared = true;
+    }
+    if (dto.bestBefore !== undefined) data.bestBefore = bestBefore;
 
     const originalPrice =
       dto.originalPriceRub !== undefined ? Math.round(dto.originalPriceRub * 100) : offer.originalPrice;
@@ -187,13 +231,39 @@ export class OffersService {
     const baseDiscountPercent = dto.baseDiscountPercent ?? offer.baseDiscountPercent;
     if (dto.baseDiscountPercent !== undefined) data.baseDiscountPercent = baseDiscountPercent;
 
+    const discountMode = dto.discountMode ?? offer.discountMode;
+    if (dto.discountMode !== undefined) data.discountMode = discountMode;
+
     // Скидку и цену со скидкой пересчитываем сразу, если поменялось что-то, что
-    // на них влияет — не ждём следующего тика шедулера (раз в 15 минут).
-    if (dto.baseDiscountPercent !== undefined || dto.pickupEnd !== undefined || dto.originalPriceRub !== undefined) {
+    // на них влияет (в том числе режим) — не ждём следующего тика шедулера (раз в 15 минут).
+    if (dto.baseDiscountPercent !== undefined || dto.pickupEnd !== undefined || dto.originalPriceRub !== undefined || dto.discountMode !== undefined) {
       const hoursToEnd = (pickupEnd.getTime() - Date.now()) / (1000 * 60 * 60);
-      const discountPercent = computeDiscountPercent(baseDiscountPercent, hoursToEnd);
+      const discountPercent = currentDiscountPercent(discountMode, baseDiscountPercent, hoursToEnd);
       data.discountPercent = discountPercent;
       data.discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
+    }
+
+    // Количество: правка двигает остаток на ту же разницу, проданное не трогается.
+    // Уменьшение защищено условием в БД — заказ, оформленный между чтением и записью, не уведёт остаток в минус.
+    if (dto.quantityTotal !== undefined && dto.quantityTotal !== offer.quantityTotal) {
+      const delta = dto.quantityTotal - offer.quantityTotal;
+      const sold = offer.quantityTotal - offer.quantityLeft;
+      if (dto.quantityTotal < sold) {
+        throw new BadRequestException(`Уже продано ${sold} — всего не может быть меньше`);
+      }
+      const changed = await this.prisma.offer.updateMany({
+        where: { id, quantityLeft: { gte: Math.max(0, -delta) } },
+        data: { quantityTotal: dto.quantityTotal, quantityLeft: { increment: delta } },
+      });
+      if (changed.count === 0) {
+        throw new ConflictException("Пока вы правили, часть порций раскупили — обновите страницу и попробуйте снова");
+      }
+      const left = offer.quantityLeft + delta;
+      // Раскупленный оффер с добавленными порциями снова в продаже; последние порции убрали — «раскуплен».
+      if (dto.status === undefined) {
+        if (offer.status === OfferStatus.SOLD_OUT && left > 0 && pickupEnd.getTime() > Date.now()) data.status = OfferStatus.ACTIVE;
+        if (offer.status === OfferStatus.ACTIVE && left === 0) data.status = OfferStatus.SOLD_OUT;
+      }
     }
 
     const updated = await this.prisma.offer.update({ where: { id }, data });
@@ -202,12 +272,42 @@ export class OffersService {
     return updated;
   }
 
+  /**
+   * Ручное удаление. Пока заказов нет — удаляем из любого статуса (в том числе прямо с витрины).
+   * Есть заказы — нельзя: это история денег и выдач (Order.offerId — Restrict), оффер остаётся в архиве.
+   * Если оффер выложен автовыкладкой на сегодня или позже, его дату вносим в пропуски шаблона, иначе
+   * следующий запуск создал бы такой же оффер заново.
+   */
   async remove(id: string, requester: RequestUser) {
     const offer = await this.findOneWithBusiness(id);
     this.assertOwnerOrAdmin(offer.business.ownerUserId, requester);
-    await this.prisma.offer.delete({ where: { id } });
+
+    const orders = await this.prisma.order.groupBy({ by: ["status"], where: { offerId: id }, _count: { _all: true } });
+    const inWork = orders.find((group) => group.status === OrderStatus.CONFIRMED)?._count._all ?? 0;
+    if (inWork > 0) {
+      throw new ConflictException(`По офферу есть заказы в работе (${inWork}) — дождитесь выдачи или отмены, потом удаляйте`);
+    }
+    if (orders.length > 0) {
+      throw new ConflictException("По офферу уже были заказы — их история остаётся в отчётах, поэтому удалить его нельзя. Уберите оффер в архив.");
+    }
+
+    let skippedDate: string | null = null;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.offer.delete({ where: { id } });
+      if (offer.scheduleId && offer.occurrenceDate) {
+        const schedule = await tx.offerSchedule.findUnique({ where: { id: offer.scheduleId } });
+        if (schedule) {
+          const today = zonedParts(Date.now(), schedule.timezone).date;
+          if (offer.occurrenceDate >= today) {
+            const skipDates = [...new Set([...schedule.skipDates.filter((date) => date >= today), offer.occurrenceDate])].sort();
+            await tx.offerSchedule.update({ where: { id: schedule.id }, data: { skipDates } });
+            skippedDate = offer.occurrenceDate;
+          }
+        }
+      }
+    });
     await this.deletePhotoIfUnused(offer.imageUrl);
-    return { success: true };
+    return { success: true, skippedDate };
   }
 
   /** Удаляет загруженный файл, только если на него не ссылается другой оффер. */

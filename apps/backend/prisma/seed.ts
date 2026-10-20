@@ -3,16 +3,19 @@ import {
   OfferCategory,
   OfferStatus,
   OrderStatus,
+  Prisma,
   PrismaClient,
   Role,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { syncShowcase } from "./showcase";
+import { foodInfoData } from "./food-info-seed";
 import {
   computeDiscountPercent,
   ECO_POINTS_PER_KG,
   PICKUP_CODE_LENGTH,
   PLATFORM_COMMISSION_PERCENT,
+  type WorkingHours,
 } from "@apetite/shared";
 
 const prisma = new PrismaClient();
@@ -61,13 +64,19 @@ interface BusinessSeed {
   address: string;
   deltaLatKm: number;
   deltaLngKm: number;
+  /** Часы работы (ISO-день → интервал или null); офферы через API обязаны в них укладываться. */
+  workingHours: WorkingHours;
   offers: OfferSeed[];
 }
+
+const daily = (open: string, close: string): WorkingHours => ({ "1": { open, close }, "2": { open, close }, "3": { open, close }, "4": { open, close }, "5": { open, close }, "6": { open, close }, "7": { open, close } });
 
 const BUSINESS_SEEDS: BusinessSeed[] = [
   {
     ownerEmail: "cafe.pushkin@apetite.ru",
     name: "Кафе Пушкинъ",
+    // Круглосуточно — чтобы тесты и демо могли создавать офферы в любое время суток.
+    workingHours: daily("00:00", "00:00"),
     category: OfferCategory.FOOD,
     address: "Невский проспект, 40, Санкт-Петербург",
     deltaLatKm: 0.3,
@@ -98,6 +107,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
   {
     ownerEmail: "bulka.arbat@apetite.ru",
     name: "Булочная на Рубинштейна",
+    workingHours: daily("07:00", "21:00"),
     category: OfferCategory.BAKERY,
     address: "ул. Рубинштейна, 10, Санкт-Петербург",
     deltaLatKm: -0.5,
@@ -118,6 +128,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
   {
     ownerEmail: "flowers.mos@apetite.ru",
     name: "Цветочная мастерская СПб",
+    workingHours: { ...daily("09:00", "20:00"), "7": { open: "10:00", close: "18:00" } },
     category: OfferCategory.FLOWERS,
     address: "наб. реки Фонтанки, 5, Санкт-Петербург",
     deltaLatKm: 0.8,
@@ -138,6 +149,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
   {
     ownerEmail: "market.svezhest@apetite.ru",
     name: "Магазин Свежесть",
+    workingHours: daily("08:00", "23:00"),
     category: OfferCategory.GROCERIES,
     address: "Приморский пр-т, 45, Санкт-Петербург",
     deltaLatKm: -0.2,
@@ -219,6 +231,7 @@ async function main() {
         lng,
         status: BusinessStatus.ACTIVE, // ручной онбординг админом — сразу активно (ШАГ 0)
         commissionPercent: PLATFORM_COMMISSION_PERCENT,
+        workingHours: businessSeed.workingHours as unknown as Prisma.InputJsonObject,
       },
     });
 
@@ -246,6 +259,7 @@ async function main() {
           pickupStart,
           pickupEnd,
           status: OfferStatus.ACTIVE,
+          ...foodInfoData(offerSeed.title, offerSeed.category, pickupEnd),
         },
       });
 

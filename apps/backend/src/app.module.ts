@@ -8,6 +8,7 @@ import { RedisModule } from "./redis/redis.module";
 import { AuthModule } from "./auth/auth.module";
 import { BusinessesModule } from "./businesses/businesses.module";
 import { OffersModule } from "./offers/offers.module";
+import { OfferSchedulesModule } from "./offer-schedules/offer-schedules.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
@@ -40,6 +41,7 @@ import { AppController } from "./app.controller";
     AuthModule,
     BusinessesModule,
     OffersModule,
+    OfferSchedulesModule,
     OrdersModule,
     PaymentsModule,
     SchedulerModule,

@@ -62,7 +62,7 @@ export class PlatformService {
   }
 
   async getStats() {
-    const [businessesByStatus, activeOffersCount, ordersByStatus, revenueAgg, ecoAgg] = await Promise.all([
+    const [businessesByStatus, activeOffersCount, ordersByStatus, revenueAgg, ecoAgg, disputedOrders] = await Promise.all([
       this.prisma.business.groupBy({ by: ["status"], _count: { _all: true } }),
       this.prisma.offer.count({ where: { status: OfferStatus.ACTIVE } }),
       this.prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
@@ -71,6 +71,7 @@ export class PlatformService {
         _sum: { totalPrice: true, platformFee: true },
       }),
       this.prisma.ecoTransaction.aggregate({ _sum: { weightSavedKg: true } }),
+      this.prisma.order.count({ where: { receiptDisputedAt: { not: null } } }),
     ]);
 
     const countBusinesses = (status: BusinessStatus) =>
@@ -89,6 +90,7 @@ export class PlatformService {
       completedOrders: countOrders(OrderStatus.COMPLETED),
       cancelledOrders: countOrders(OrderStatus.CANCELLED),
       expiredOrders: countOrders(OrderStatus.EXPIRED),
+      disputedOrders,
       gmv: revenueAgg._sum.totalPrice ?? 0,
       platformRevenue: revenueAgg._sum.platformFee ?? 0,
       weightSavedKg: ecoAgg._sum.weightSavedKg ?? 0,

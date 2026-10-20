@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { BusinessesService } from "./businesses.service";
 import { CreateBusinessDto } from "./dto/create-business.dto";
 import { UpdateBusinessDto } from "./dto/update-business.dto";
 import { ListBusinessesQueryDto } from "./dto/list-businesses.query";
+import { SalesQueryDto } from "./dto/sales.query";
+import { UpdateWorkingHoursDto } from "./dto/working-hours.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -36,6 +38,20 @@ export class BusinessesController {
   @Get(":id/stats")
   getStats(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
     return this.businessesService.getStats(id, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.BUSINESS, Role.ADMIN)
+  @Get(":id/sales")
+  getSales(@Param("id", ParseUUIDPipe) id: string, @Query() query: SalesQueryDto, @CurrentUser() user: RequestUser) {
+    return this.businessesService.getSales(id, query.days ?? 14, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.BUSINESS, Role.ADMIN)
+  @Put(":id/working-hours")
+  setWorkingHours(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateWorkingHoursDto, @CurrentUser() user: RequestUser) {
+    return this.businessesService.setWorkingHours(id, dto.workingHours ?? null, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

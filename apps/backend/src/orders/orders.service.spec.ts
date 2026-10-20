@@ -28,6 +28,9 @@ function createPrismaMock() {
     ecoTransaction: {
       create: jest.fn(),
     },
+    user: {
+      findMany: jest.fn(),
+    },
   };
   return {
     ...delegates,
@@ -211,6 +214,86 @@ describe("OrdersService", () => {
           data: expect.objectContaining({ type: NotificationType.ORDER_COMPLETED, userId: baseOrder.userId }),
         })
       );
+    });
+  });
+
+  describe("confirmReceipt", () => {
+    const completed = { ...baseOrder, status: OrderStatus.COMPLETED, completedAt: new Date(), receiptConfirmedAt: null, receiptDisputedAt: null };
+    const stranger: RequestUser = { userId: "user-2", email: "x@test.ru", role: Role.USER };
+
+    beforeEach(() => {
+      prisma.order.findUnique.mockResolvedValue(completed);
+      prisma.order.updateMany.mockResolvedValue({ count: 1 });
+      prisma.order.findUniqueOrThrow.mockResolvedValue({ ...completed });
+      prisma.user.findMany.mockResolvedValue([{ id: "admin-1" }]);
+    });
+
+    it("отвечать может только владелец заказа", async () => {
+      await expect(service.confirmReceipt("order-1", { received: true }, stranger)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.order.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("404, если заказа нет", async () => {
+      prisma.order.findUnique.mockResolvedValue(null);
+      await expect(service.confirmReceipt("order-1", { received: true }, buyer)).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it("пока заведение не отметило выдачу, ответить нельзя", async () => {
+      prisma.order.findUnique.mockResolvedValue({ ...completed, status: OrderStatus.CONFIRMED });
+      await expect(service.confirmReceipt("order-1", { received: true }, buyer)).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("ответить можно один раз: ни подтвердить, ни оспорить повторно", async () => {
+      prisma.order.findUnique.mockResolvedValue({ ...completed, receiptConfirmedAt: new Date() });
+      await expect(service.confirmReceipt("order-1", { received: true }, buyer)).rejects.toBeInstanceOf(ConflictException);
+      prisma.order.findUnique.mockResolvedValue({ ...completed, receiptDisputedAt: new Date() });
+      await expect(service.confirmReceipt("order-1", { received: false, reason: "NOT_RECEIVED" as never }, buyer)).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("«получил»: фиксирует время подтверждения только у ещё не отвеченного заказа", async () => {
+      await service.confirmReceipt("order-1", { received: true }, buyer);
+      expect(prisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: "order-1", receiptConfirmedAt: null, receiptDisputedAt: null },
+        data: { receiptConfirmedAt: expect.any(Date) },
+      });
+      expect(prisma.notification.create).not.toHaveBeenCalled();
+    });
+
+    it("ловит гонку двух ответов: updateMany вернул 0 — второй ответ отклоняется", async () => {
+      prisma.order.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.confirmReceipt("order-1", { received: true }, buyer)).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("спор: пишет причину и пояснение, уведомляет заведение и админов", async () => {
+      await service.confirmReceipt("order-1", { received: false, reason: "WRONG_ITEM" as never, note: "  Дали другую пиццу " }, buyer);
+      expect(prisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: "order-1", receiptConfirmedAt: null, receiptDisputedAt: null },
+        data: { receiptDisputedAt: expect.any(Date), receiptDisputeReason: "WRONG_ITEM", receiptDisputeNote: "Дали другую пиццу" },
+      });
+      const recipients = prisma.notification.create.mock.calls.map(([arg]) => arg.data.userId).sort();
+      expect(recipients).toEqual(["admin-1", "owner-1"]);
+      expect(prisma.notification.create.mock.calls[0][0].data).toMatchObject({ type: NotificationType.RECEIPT_DISPUTED, data: { orderId: "order-1" } });
+      expect(prisma.notification.create.mock.calls[0][0].data.body).toContain("выдали не тот товар");
+      expect(notifications.dispatchPush).toHaveBeenCalledTimes(2);
+    });
+
+    it("спор не создаёт дублей, если владелец заведения сам админ", async () => {
+      prisma.user.findMany.mockResolvedValue([{ id: "owner-1" }]);
+      await service.confirmReceipt("order-1", { received: false, reason: "QUALITY" as never }, buyer);
+      expect(prisma.notification.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("спор после окна (7 дней) не принимается, а подтверждение — принимается всегда", async () => {
+      const old = { ...completed, completedAt: new Date(Date.now() - 8 * 24 * 3600 * 1000) };
+      prisma.order.findUnique.mockResolvedValue(old);
+      await expect(service.confirmReceipt("order-1", { received: false, reason: "NOT_RECEIVED" as never }, buyer)).rejects.toThrow(/7 дней/);
+      await expect(service.confirmReceipt("order-1", { received: true }, buyer)).resolves.toBeDefined();
+    });
+
+    it("гонка при споре: updateMany вернул 0 — уведомления не создаются", async () => {
+      prisma.order.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.confirmReceipt("order-1", { received: false, reason: "OTHER" as never }, buyer)).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.notification.create).not.toHaveBeenCalled();
     });
   });
 });

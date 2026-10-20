@@ -5,8 +5,9 @@ import { OfferCategory } from "@prisma/client";
  * кучкой точек у центра. Координаты получены геокодером по адресам (Nominatim/OpenStreetMap) и зашиты как
  * константы: сид не ходит в сеть. Названия заведений вымышленные (бета, тестовые данные), адреса — настоящие улицы.
  *
- * JoyPizza (Искровский проспект, 40) — «горячее предложение дня»: featured = true, скидка 70% и окно 24 часа,
- * см. поле Offer.featured. Остальные офферы горят по общему правилу — от оставшегося времени.
+ * Все офферы живут по общему правилу (OFFER_WINDOW_RULES): окно самовывоза до 12 часов, оффер — не дольше суток,
+ * горячими становятся только к концу окна. «Горячего предложения дня» на 24 часа с постоянной скидкой больше нет:
+ * заведения закрываются, а предложения обновляются каждые сутки. Поле Offer.featured осталось в схеме, но не используется.
  */
 
 const { FOOD, BAKERY, FLOWERS, GROCERIES } = OfferCategory;
@@ -38,8 +39,8 @@ export interface CityOffer {
 export const CITY_OFFERS: CityOffer[] = [
   {
     district: "Невский", shop: "JoyPizza", address: "Искровский проспект, 40, Санкт-Петербург", lat: 59.89522, lng: 30.47775,
-    title: "Пицца «Маргарита» + «Пепперони», 2 шт", description: "Две свежие 30-сантиметровые пиццы JoyPizza — горячее предложение дня.", category: FOOD, originalPriceRub: 1190, targetDiscount: 70,
-    hoursToEnd: 24, quantityTotal: 12, weightKg: 0.9, image: { file: "pizza-pepperoni.jpg" }, featured: true,
+    title: "Пицца «Маргарита» + «Пепперони», 2 шт", description: "Две свежие 30-сантиметровые пиццы JoyPizza — забрать до закрытия.", category: FOOD, originalPriceRub: 1190, targetDiscount: 60,
+    hoursToEnd: 1.5, quantityTotal: 12, weightKg: 0.9, image: { file: "pizza-pepperoni.jpg" },
   },
   {
     district: "Центральный", shop: "Борщ & Ко", address: "Лиговский проспект, 50, Санкт-Петербург", lat: 59.92324, lng: 30.36088,

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { BusinessStatus, OfferCategory, OfferStatus, OrderStatus, PrismaClient, Role } from "@prisma/client";
 import { computeDiscountPercent, PLATFORM_COMMISSION_PERCENT } from "@apetite/shared";
 import { CITY_OFFERS } from "./city-offers";
+import { foodInfoData } from "./food-info-seed";
 
 /**
  * «Витрина» — те же 19 предложений, что бегут лентой на главной странице сайта. Раньше лента была
@@ -159,6 +160,7 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
     const originalPrice = item.originalPriceRub * 100;
     const discountedPrice = Math.round((originalPrice * (100 - discountPercent)) / 100);
     const window = { pickupStart: new Date(now - HOUR_MS), pickupEnd: new Date(now + item.hoursToEnd * HOUR_MS) };
+    const foodInfo = foodInfoData(item.title, item.category, window.pickupEnd);
 
     const existingOffer = await prisma.offer.findFirst({ where: { businessId: business.id, title: item.title } });
     if (existingOffer) {
@@ -171,6 +173,7 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
         where: { id: existingOffer.id },
         data: {
           ...window,
+          ...foodInfo,
           originalPrice,
           discountedPrice,
           discountPercent,
@@ -200,6 +203,7 @@ export async function syncShowcase(prisma: PrismaClient, passwordHash: string): 
           quantityLeft: item.quantityTotal,
           weightKg: item.weightKg,
           ...window,
+          ...foodInfo,
           status: OfferStatus.ACTIVE,
         },
       });

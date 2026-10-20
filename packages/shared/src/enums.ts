@@ -13,6 +13,16 @@ export enum OfferCategory {
   GROCERIES = "GROCERIES",
 }
 
+/**
+ * Как меняется скидка оффера.
+ * DYNAMIC — растёт к концу самовывоза (+10% за 2 часа, +20% за час, максимум 70%): стартовая скидка владельца — нижняя граница.
+ * FIXED — всё время ровно та, что указал владелец; шедулер её не трогает.
+ */
+export enum DiscountMode {
+  DYNAMIC = "DYNAMIC",
+  FIXED = "FIXED",
+}
+
 /** Статус предложения. */
 export enum OfferStatus {
   DRAFT = "DRAFT",
@@ -50,6 +60,16 @@ export enum NotificationType {
   ORDER_COMPLETED = "ORDER_COMPLETED",
   ORDER_EXPIRED = "ORDER_EXPIRED",
   ORDER_CANCELLED = "ORDER_CANCELLED",
+  /** Покупатель оспорил получение заказа — админу платформы и заведению. */
+  RECEIPT_DISPUTED = "RECEIPT_DISPUTED",
+}
+
+/** Причина, по которой покупатель сообщает, что заказ не получен или получен не так. */
+export enum ReceiptDisputeReason {
+  NOT_RECEIVED = "NOT_RECEIVED",
+  WRONG_ITEM = "WRONG_ITEM",
+  QUALITY = "QUALITY",
+  OTHER = "OTHER",
 }
 
 /** Статус mock-платежа (ШАГ 5) — форма совместима со Stripe/СБП для будущей замены. */
