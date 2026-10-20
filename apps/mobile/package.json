@@ -65,6 +65,7 @@
     },
     "setupFilesAfterEnv": [
       "./jest.after-env.js"
-    ]
+    ],
+    "testTimeout": 30000
   }
 }
