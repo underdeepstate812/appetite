@@ -106,7 +106,7 @@ with sync_playwright() as p:
     start = page.locator("#pickupStart").input_value(); page.locator("#pickupEnd").fill(start[:11] + "00:01" if start[11:16] > "00:01" else start)
     page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(700)
     check("[biz] окно самовывоза с концом раньше начала не отправляется, ошибка видна", ("POST", "/offers") not in st["calls"] and "должен быть позже начала" in body(page), "форма отправила оффер с pickupEnd < pickupStart")
-    page.locator("#pickupEnd").fill(start[:11] + "23:59" if start[11:16] < "23:59" else start); best_before_after_end(page)
+    page.locator("#pickupEnd").fill((__import__("datetime").datetime.strptime(start, "%Y-%m-%dT%H:%M") + __import__("datetime").timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")); best_before_after_end(page)  # окно оффера — не длиннее 12 ч, конец в пределах суток
     page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(900)
     check("[biz] валидная форма создаёт оффер (POST) и он появляется в списке", ("POST", "/offers") in st["calls"] and "Тестовый оффер" in body(page), str(st["calls"][-4:]))
     st["mode"]["create_fails"] = True

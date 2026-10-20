@@ -104,7 +104,8 @@ try:
         check("375px: пропуск, маршрут, настройки одной колонкой", m.locator(".profile-grid").evaluate("e => getComputedStyle(e).gridTemplateColumns.split(' ').length") == 1)
         m.screenshot(path=f"{OUT}/web_profile_mobile.png", full_page=True)
         m.get_by_role("button", name="Выйти").click(); m.wait_for_url(WEB + "/", timeout=10000)
-        check("выход из профиля: на главную, гость", m.get_by_role("link", name="Войти").count() >= 1)
+        m.wait_for_selector("a[href='/login']", state="attached", timeout=8000)
+        check("выход из профиля: на главную, гость (в шапке снова вход)", m.locator("a[href='/login']").count() >= 1 and m.locator(".user-menu-btn").count() == 0)
         # гость на /profile
         g = b.new_context(viewport={"width": 1280, "height": 800}).new_page(); g.goto(WEB + "/profile"); g.wait_for_url("**/login", timeout=8000)
         check("гость на /profile отправляется на вход", g.url.endswith("/login"))

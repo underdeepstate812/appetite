@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # shared собирается в dist — от него зависят все остальные пакеты; Prisma Client нужен backend для типов.
+      - run: pnpm --filter @apetite/shared run build
+      - run: pnpm --filter @apetite/backend run prisma:generate
+
+      - name: Typecheck (tsc --noEmit во всех пакетах)
+        run: pnpm -r lint
+
+      - name: Unit tests (backend, web, mobile)
+        run: pnpm -r test
+
+      - name: Build (backend, admin, web)
+        run: pnpm -r build
+
+  audit:
+    name: Dependency audit (high+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Не блокирует слияние: остаются уязвимости без выпущенного исправления в dev-инструментах Expo (node-forge, braces, sprintf-js).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level=high

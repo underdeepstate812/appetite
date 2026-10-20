@@ -153,12 +153,12 @@ export function LandingPage() {
         <div className="container">
           <div ref={businessRef} className="reveal" style={businessCardStyle}>
             <div style={{ maxWidth: 480 }}>
-              <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--color-background)" }}>
+              <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--on-panel)" }}>
                 Для бизнеса
               </span>
-              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-background)", marginTop: 18 }}>
+              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--on-panel)", marginTop: 18 }}>
                 Привлекай новых гостей{" "}
-                <span style={{ fontStyle: "italic", color: "var(--color-primary-soft)" }}>скидками 25–70%</span>
+                <span style={{ fontStyle: "italic", color: "var(--on-panel-accent)" }}>скидками 25–70%</span>
               </h2>
               <p style={{ color: "rgba(255,253,249,0.68)", marginTop: 14, lineHeight: 1.6, fontSize: 15 }}>
                 Панель бизнеса — офферы, заказы и аналитика в реальном времени. Скидка
@@ -357,7 +357,7 @@ const phoneWrapStyle: CSSProperties = {
 const businessCardStyle: CSSProperties = {
   position: "relative",
   overflow: "hidden",
-  background: "var(--color-ink)",
+  background: "var(--panel-dark)",
   borderRadius: "var(--radius-lg)",
   padding: "56px 40px",
 };

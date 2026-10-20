@@ -26,5 +26,14 @@
     "db:seed": "pnpm --filter @apetite/backend prisma:seed",
     "db:studio": "pnpm --filter @apetite/backend prisma:studio",
     "backup": "bash scripts/backup.sh"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer": "^2.4.0",
+      "shell-quote": "^1.11.0",
+      "source-map-js": "^1.2.2",
+      "uuid": "^11.1.1",
+      "deepmerge-ts": "^8.0.0"
+    }
   }
 }

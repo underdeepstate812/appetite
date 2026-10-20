@@ -28,7 +28,7 @@ export function Stamp({
       style={{
         width: size,
         height: size,
-        color: tone === "onDark" ? "var(--color-primary-soft)" : "var(--color-primary)",
+        color: tone === "onDark" ? "var(--on-panel-accent)" : "var(--color-primary)",
         ...style,
       }}
     >

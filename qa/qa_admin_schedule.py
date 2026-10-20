@@ -139,7 +139,7 @@ try:
         check("в форме оффера есть выбор режима скидки, по умолчанию «Растёт к концу самовывоза»", radios.count() == 2 and page.get_by_role("radio", name=re.compile("Растёт к концу самовывоза")).is_checked())
         check("подсказка со ступенями: −50% → −60% → −70%", re.search(r"−50%.*−60%.*−70%", page.locator("fieldset", has_text="Скидка со временем").inner_text(), re.S) is not None)
         page.get_by_role("radio", name=re.compile("Фиксированная")).check()
-        check("при «Фиксированной» подпись поля — «Скидка, %» и подсказка «Всё время самовывоза»", page.get_by_label("Скидка, %").count() == 1 and "Всё время самовывоза" in page.locator("fieldset", has_text="Скидка со временем").inner_text())
+        check("при «Фиксированной» подпись поля — «Скидка, %» и подсказка «Всё время самовывоза»", page.locator("label[for=baseDiscount]").inner_text().strip() == "Скидка, %" and "Всё время самовывоза" in page.locator("fieldset", has_text="Скидка со временем").inner_text())
         check("блок «Повторять автоматически» скрыт, пока не включён", page.locator("#offer-repeat").count() == 1 and not page.locator("#offer-repeat").is_checked() and page.get_by_text("Дни недели").count() == 0)
         title = TAG + " форма"
         page.fill("#title", title); page.fill("#price", "400"); page.fill("#weight", "0.3"); page.fill("#quantity", "3")

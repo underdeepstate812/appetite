@@ -128,10 +128,10 @@ export function BusinessRegisterPage() {
             flex: "1 1 420px",
             position: "relative",
             overflow: "hidden",
-            background: "var(--color-ink)",
+            background: "var(--panel-dark)",
             borderRadius: "var(--radius-lg)",
             padding: "44px 36px",
-            color: "var(--color-background)",
+            color: "var(--on-panel)",
           }}
         >
           <Stamp
@@ -144,7 +144,7 @@ export function BusinessRegisterPage() {
             style={{ position: "absolute", top: -14, right: 18 }}
           />
 
-          <span className="eyebrow" style={{ color: "var(--color-primary-soft)" }}>
+          <span className="eyebrow" style={{ color: "var(--on-panel-accent)" }}>
             Для бизнеса
           </span>
           <h1
@@ -158,14 +158,14 @@ export function BusinessRegisterPage() {
             }}
           >
             Твоя витрина —{" "}
-            <span style={{ color: "var(--color-primary-soft)", fontStyle: "italic" }}>
+            <span style={{ color: "var(--on-panel-accent)", fontStyle: "italic" }}>
               рядом с голодным Петербургом
             </span>
           </h1>
 
           <div style={{ display: "flex", gap: 32, marginTop: 36, flexWrap: "wrap" }}>
             <div>
-              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--on-panel-accent)" }}>
                 {discountCount}–70%
               </p>
               <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
@@ -173,7 +173,7 @@ export function BusinessRegisterPage() {
               </p>
             </div>
             <div>
-              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--on-panel-accent)" }}>
                 {commissionCount}%
               </p>
               <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
@@ -181,7 +181,7 @@ export function BusinessRegisterPage() {
               </p>
             </div>
             <div>
-              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--color-primary-soft)" }}>0 ₽</p>
+              <p style={{ ...UNBOUNDED, fontSize: 34, fontWeight: 800, color: "var(--on-panel-accent)" }}>0 ₽</p>
               <p style={{ fontSize: 13, color: "rgba(255,253,249,0.68)", marginTop: 4, maxWidth: 160, lineHeight: 1.5 }}>
                 первые 20–30 дней — подключение и комиссия бесплатно
               </p>
@@ -203,10 +203,10 @@ export function BusinessRegisterPage() {
                     flexShrink: 0,
                   }}
                 >
-                  <step.icon size={17} strokeWidth={1.8} color="var(--color-primary-soft)" />
+                  <step.icon size={17} strokeWidth={1.8} color="var(--on-panel-accent)" />
                 </div>
                 <p style={{ fontSize: 14, lineHeight: 1.5, color: "rgba(255,253,249,0.85)" }}>
-                  <span style={{ ...UNBOUNDED, color: "var(--color-primary-soft)", marginRight: 8 }}>{step.n}</span>
+                  <span style={{ ...UNBOUNDED, color: "var(--on-panel-accent)", marginRight: 8 }}>{step.n}</span>
                   {step.text}
                 </p>
               </div>

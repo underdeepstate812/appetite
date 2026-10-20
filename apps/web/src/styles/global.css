@@ -28,6 +28,10 @@
   --color-danger-ink: #9a2e1c;
   --color-danger-strong: #d0412d;
   --color-on-primary: #fffdf9;
+  /* Тёмные панели (подвал, «Для бизнеса»): тёмные в обеих темах, поэтому цвет панели и текста на ней — отдельные переменные, а не инверсия --color-ink. */
+  --panel-dark: #12100d;
+  --on-panel: #fffdf9;
+  --on-panel-accent: #d7f3ef;
 
   --radius-sm: 10px;
   --radius-md: 18px;
@@ -1692,7 +1696,7 @@ img {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: var(--color-ink);
+  background: var(--panel-dark);
   color: rgba(255, 253, 249, 0.68);
   margin-top: 96px;
 }
@@ -1731,7 +1735,7 @@ img {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 19px;
-  color: var(--color-background);
+  color: var(--on-panel);
 }
 
 .footer-grid {
@@ -1764,7 +1768,7 @@ img {
 }
 
 .footer-link:hover {
-  color: var(--color-primary-soft);
+  color: var(--on-panel-accent);
   transform: translateX(3px);
 }
 
