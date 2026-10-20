@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { LoginRequest, User } from "@apetite/shared";
 import { authApi } from "../api/auth";
-import { configureApiClient } from "../api/client";
+import { ApiError, configureApiClient } from "../api/client";
 
 const ACCESS_TOKEN_KEY = "apetite.admin.accessToken";
 const REFRESH_TOKEN_KEY = "apetite.admin.refreshToken";
@@ -46,17 +46,28 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       return;
     }
     set({ accessToken, refreshToken });
+    let user: User;
     try {
-      const user = await authApi.me();
-      if (user.role !== "BUSINESS" && user.role !== "ADMIN") {
-        // Панель — только для владельцев заведений (ШАГ 10) и платформы (ШАГ 11); USER сюда не логинится.
-        throw new Error("Эта панель доступна только владельцам заведений и администраторам платформы");
+      user = await authApi.me();
+    } catch (error) {
+      // Токены стираем, только когда сервер их отверг (401/403). Нет сети или 5xx — сессия остаётся,
+      // а на странице входа виден понятный текст ошибки: раньше любой сбой на старте молча разлогинивал.
+      const rejected = error instanceof ApiError && (error.statusCode === 401 || error.statusCode === 403);
+      if (rejected) {
+        clearTokens();
+        set({ accessToken: null, refreshToken: null, user: null, isHydrated: true });
+      } else {
+        set({ user: null, isHydrated: true, error: error instanceof Error ? error.message : null });
       }
-      set({ user, isHydrated: true });
-    } catch {
+      return;
+    }
+    if (user.role !== "BUSINESS" && user.role !== "ADMIN") {
+      // Панель — только для владельцев заведений (ШАГ 10) и платформы (ШАГ 11); USER сюда не логинится.
       clearTokens();
       set({ accessToken: null, refreshToken: null, user: null, isHydrated: true });
+      return;
     }
+    set({ user, isHydrated: true });
   },
 
   login: async (input) => {

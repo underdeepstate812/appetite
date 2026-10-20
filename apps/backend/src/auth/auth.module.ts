@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { ConfigService } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { AUTH_THROTTLERS, RATE_LIMIT_MESSAGE } from "../common/throttling/auth-rate-limit";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAccessStrategy } from "./strategies/jwt-access.strategy";
@@ -12,7 +14,11 @@ import { MockSmsProvider } from "./sms/mock-sms.provider";
 @Module({
   // Секреты передаются явно на каждый sign/verify в AuthService и стратегиях
   // (access и refresh подписываются разными ключами) — JwtModule регистрируем без дефолтов.
-  imports: [PassportModule, JwtModule.register({})],
+  imports: [
+    PassportModule,
+    JwtModule.register({}),
+    ThrottlerModule.forRoot({ throttlers: AUTH_THROTTLERS, errorMessage: RATE_LIMIT_MESSAGE }),
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

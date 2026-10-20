@@ -63,6 +63,7 @@ export function OrdersPage() {
                 <th>Сумма</th>
                 <th>Создан</th>
                 <th>Статус</th>
+                <th>Принят</th>
                 <th>Подтверждение выдачи</th>
               </tr>
             </thead>
@@ -82,6 +83,21 @@ function OrderRow({ order, offer, onCompleted }: { order: Order; offer?: Offer; 
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  const handleAccept = async () => {
+    setAccepting(true);
+    setAcceptError(null);
+    try {
+      await ordersApi.accept(order.id);
+      await onCompleted();
+    } catch (error) {
+      setAcceptError(error instanceof ApiError ? error.message : "Не удалось принять заказ");
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   const handleComplete = async () => {
     setSubmitting(true);
@@ -108,13 +124,34 @@ function OrderRow({ order, offer, onCompleted }: { order: Order; offer?: Offer; 
         <OrderStatusBadge status={order.status} />
       </td>
       <td>
+        {order.acceptedAt ? (
+          <span style={{ color: "var(--color-primary)", fontSize: 13, fontWeight: 600 }}>
+            Принят{" "}
+            {new Date(order.acceptedAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        ) : order.status === "CONFIRMED" ? (
+          <div className="stack" style={{ gap: 4 }}>
+            <button className="btn btn-primary btn-sm" disabled={accepting} onClick={() => void handleAccept()}>
+              {accepting ? "..." : "Принять заказ"}
+            </button>
+            {acceptError ? <span className="form-error" style={{ fontSize: 12 }}>{acceptError}</span> : null}
+          </div>
+        ) : (
+          <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>—</span>
+        )}
+      </td>
+      <td>
         {order.status === "CONFIRMED" ? (
           <div className="stack" style={{ gap: 4 }}>
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 value={code}
-                onChange={(event) => setCode(event.target.value)}
+                // Код выдачи — 6 цифр: нецифровой ввод отсекаем сразу, на телефоне открывается цифровая клавиатура.
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
                 placeholder="Код"
+                aria-label="Код выдачи"
+                inputMode="numeric"
+                autoComplete="off"
                 maxLength={6}
                 style={{
                   width: 84,

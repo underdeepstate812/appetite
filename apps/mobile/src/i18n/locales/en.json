@@ -5,7 +5,9 @@
     "cancel": "Cancel",
     "save": "Save",
     "error": "Something went wrong",
-    "km": "km"
+    "km": "km",
+    "back": "Back",
+    "networkError": "Can't reach the server. Check your connection and try again"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -17,9 +19,38 @@
     "phoneShort": "Phone",
     "loginButton": "Sign in",
     "registerButton": "Sign up",
-    "noAccount": "No account? Sign up",
-    "haveAccount": "Already have an account? Sign in",
-    "demoHint": "Demo login: user@apetite.ru / password123"
+    "tagline": "Hot deals nearby",
+    "taglineSub": "Up to −70% off food while it's still hot",
+    "loginSubtitle": "Good to see you — the food nearby is still hot",
+    "registerSubtitle": "One minute and you can start grabbing discounted food",
+    "viaPhone": "Sign in with phone number",
+    "viaEmail": "Sign in with email",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "noAccountPrompt": "No account?",
+    "createAccount": "Create one",
+    "haveAccountPrompt": "Already have an account?",
+    "signIn": "Sign in",
+    "fillDemo": "Fill demo credentials",
+    "emailInvalid": "Check the email — it should look like name@mail.com",
+    "emailRequired": "Enter your email",
+    "phoneInvalid": "Format: +7XXXXXXXXXX",
+    "passwordRequired": "Enter your password",
+    "nameTooShort": "Enter your name — at least 2 characters",
+    "passwordRulesTitle": "Password must contain",
+    "ruleLength": "8+ characters",
+    "ruleUpper": "Uppercase",
+    "ruleLower": "Lowercase",
+    "ruleDigit": "A digit",
+    "ruleSymbol": "A symbol",
+    "rulesProgress": "Password requirements: {{done}} of {{total}} met",
+    "teaserTitle": "Right now nearby",
+    "teaserFeatured": "Deal of the day",
+    "teaserLeft": "{{time}} left",
+    "teaserFallback": "Up to 70% off food, bakery, flowers and groceries near you",
+    "passwordWeak": "The password doesn't meet the requirements yet",
+    "posterHint": "Tap to see the next offer",
+    "posterFallbackLead": "up to"
   },
   "nav": {
     "home": "Now",
@@ -44,14 +75,19 @@
     "greeting": "Hi, {{name}}!",
     "greetingFallback": "Hi there!",
     "hotDiscounts": "Hot deals nearby",
-    "featuredEyebrow": "Grab it fast",
     "mapNearbyCafes": "Cafes nearby: {{count}}",
     "mapNearbyRestaurants": "Restaurants: {{count}}",
     "openMap": "Open map",
     "ordersShortcut": "My orders",
     "locationFallback": "Saint Petersburg",
     "chipVenuesNearby": "Venues nearby: {{count}}",
-    "chipHotDeals": "Hot deals: {{count}}"
+    "chipHotDeals": "Hot deals: {{count}}",
+    "timeGroup": "Pickup time",
+    "ribbonTitle": "On the shelf now",
+    "ribbonLabel": "Offers ribbon: links to offers; it drifts on its own and stops when you hover or press it",
+    "ribbonCount": "{{count}}",
+    "breakfast": "Breakfast",
+    "emptyBreakfast": "No breakfast offers yet — venues post them before 10:00"
   },
   "location": {
     "rationaleMessage": "Turn on location to see deals near you and how far they are",
@@ -64,7 +100,8 @@
     "filterAll": "All",
     "filterUnread": "Unread",
     "empty": "No notifications yet",
-    "emptyUnread": "No unread notifications"
+    "emptyUnread": "No unread notifications",
+    "filterGroup": "Notification filter"
   },
   "offerCard": {
     "pickupClosed": "Pickup closed",
@@ -76,7 +113,32 @@
     "buy": "Buy",
     "pickupWindow": "Pickup window",
     "left": "Left: {{count}}",
-    "notFound": "Offer not found"
+    "notFound": "Offer not found",
+    "tomorrow": "tomorrow",
+    "featured": "Deal of the day",
+    "hot": "Hot",
+    "save": "You save {{amount}} ₽",
+    "windowTitle": "Pickup time",
+    "windowClosed": "The pickup window is closed",
+    "windowOpensAt": "Opens at {{time}}",
+    "windowLeft": "{{time}} left",
+    "windowRange": "Pickup: {{range}}",
+    "stockTitle": "Left",
+    "stockOf": "{{left}} of {{total}}",
+    "stockLow": "Almost gone",
+    "soldOut": "Sold out",
+    "closedCta": "Time is up",
+    "whereTitle": "Where to pick up",
+    "route": "Directions",
+    "venueFallback": "Venue",
+    "howTitle": "How it works",
+    "step1": "Pay in the app",
+    "step2": "Show the code at the counter",
+    "step3": "Pick up your order",
+    "noCancel": "An order can't be cancelled after payment",
+    "retryBusiness": "Address unavailable — try again later",
+    "discountGrows": "The discount will grow to {{percent}}% around {{time}}",
+    "discountFixed": "The discount is fixed — the price stays the same until pickup ends"
   },
   "checkout": {
     "title": "Checkout",
@@ -91,11 +153,15 @@
     "paymentSbp": "Fast Payments (SBP)",
     "paymentSbpHint": "Pay by QR via your bank",
     "cooking": "Cooking up your order",
-    "cookingHint": "Processing payment — just a couple of seconds"
+    "cookingHint": "Processing payment — just a couple of seconds",
+    "paymentConfirmed": "Payment confirmed",
+    "paymentConfirmedHint": "Handing your order to the venue…",
+    "ruleTitle": "Payment is final",
+    "ruleBody": "An order can't be cancelled after payment. Pick it up by {{deadline}} — after that it expires."
   },
   "orderConfirmation": {
-    "title": "Order placed!",
-    "subtitle": "Show this code at pickup",
+    "title": "Order accepted",
+    "subtitle": "Payment went through — show this code at the counter",
     "pickupCodeLabel": "Pickup code",
     "pickupWindowLabel": "Pick up by",
     "doneButton": "Go to my orders"
@@ -108,32 +174,29 @@
       "COMPLETED": "Picked up",
       "CANCELLED": "Cancelled",
       "EXPIRED": "Expired"
-    }
+    },
+    "untitled": "Order"
   },
   "orderStatus": {
     "confirmed": "Paid",
     "preparing": "Preparing",
     "ready": "Ready to collect",
+    "waitingAcceptanceHint": "Waiting for the business to confirm",
     "preparingHint": "Starts in {{hours}}h {{minutes}}m",
     "preparingHintMinutes": "Starts in {{minutes}}m",
-    "readyHint": "Pick up by {{time}}"
+    "readyHint": "Pick up by {{time}}",
+    "readiness": "Ready {{percent}}%"
   },
   "orderDetail": {
     "title": "Order",
     "pickupCodeLabel": "Pickup code",
-    "cancelButton": "Cancel order",
-    "cancelConfirmTitle": "Cancel this order?",
-    "cancelConfirmMessage": "The item will become available to other buyers again.",
-    "cancelConfirmYes": "Yes, cancel",
-    "cancelConfirmNo": "No",
-    "statusCompletedNote": "Order picked up, thank you! 🎉",
+    "statusCompletedNote": "Order picked up, thank you!",
     "statusExpiredNote": "Pickup window has closed",
     "statusCancelledNote": "Order cancelled"
   },
   "profile": {
     "title": "Profile",
     "memberSince": "Member since {{date}}",
-    "ecoTeaser": "{{points}} points · {{kg}} kg saved",
     "logout": "Log out",
     "themeLabel": "Appearance",
     "themeSystem": "System",
@@ -158,7 +221,15 @@
     "saveError": "Couldn't save changes",
     "nameTooShort": "Name must be at least 2 characters",
     "emailInvalid": "Invalid email",
-    "saved": "Saved"
+    "saved": "Saved",
+    "statPoints": "Points",
+    "statKg": "Kg saved",
+    "statOrders": "Orders",
+    "routeTitle": "Your route",
+    "settingsTitle": "Settings",
+    "passNo": "No. {{serial}}",
+    "phoneEmpty": "Not set",
+    "phoneKept": "Tied to sign-in"
   },
   "eco": {
     "title": "Eco profile",
@@ -175,6 +246,131 @@
     }
   },
   "map": {
-    "title": "Map"
+    "title": "Map",
+    "offersCount": "Offers: {{count}}",
+    "showList": "Show as a list",
+    "showMap": "Show on the map",
+    "locate": "Find my location",
+    "recenter": "Back to my location",
+    "cardsLabel": "Offers on the map",
+    "openOffer": "Open the offer",
+    "showOnMap": "Show on the map",
+    "cardLabel": "{{title}}, {{venue}}, {{price}}, {{discount}}% off, {{time}}",
+    "empty": "No offers on the map yet",
+    "emptyHint": "Check back later — the showcase updates every minute",
+    "mapLabel": "Offers map"
+  },
+  "venue": {
+    "title": "Where to pick up",
+    "when": "Pickup: {{range}}",
+    "unavailable": "Address hasn't loaded yet",
+    "routeLabel": "Get directions to {{name}}"
+  },
+  "support": {
+    "title": "Need help?",
+    "linkOrder": "Need help with this order",
+    "linkOrderHint": "Can't pick it up, wrong amount, cancellation",
+    "linkProfile": "Help and support",
+    "linkProfileHint": "Write to us — we reply by email",
+    "orderLine": "Order #{{number}}",
+    "subtitleGeneral": "Pick a topic — we'll put it in the email",
+    "reasonLabel": "What is it about",
+    "reasons": {
+      "pickup": "I can't pick up my order",
+      "venueClosed": "The venue is closed or out of stock",
+      "amount": "I was charged the wrong amount",
+      "cancel": "I need to cancel my order",
+      "other": "Something else",
+      "general": "A question about an order",
+      "payment": "A payment problem",
+      "app": "An app bug or an idea"
+    },
+    "cancelNote": "An order can only be cancelled through support after payment.",
+    "send": "Write by email",
+    "noMail": "Couldn't open your mail app. Write to us at {{email}}.",
+    "close": "Close",
+    "subject": "Appetite: help with order #{{number}}",
+    "subjectGeneral": "Appetite: help",
+    "bodyHello": "Hello!",
+    "bodyTopic": "Topic: {{reason}}",
+    "bodyOrder": "Order: #{{number}} (ID: {{id}})",
+    "bodyOffer": "Offer: {{title}}",
+    "bodyVenue": "Venue: {{venue}}",
+    "bodyAmount": "Amount: {{amount}} ₽",
+    "bodyDate": "Placed: {{date}}",
+    "bodyAsk": "Please describe what happened:"
+  },
+  "offline": {
+    "title": "No connection",
+    "ticket": "Showing your saved ticket — you can show the code at the counter. The status may have changed.",
+    "list": "Showing your saved list. Statuses may be out of date.",
+    "savedAt": "Saved at {{time}}",
+    "retry": "Refresh",
+    "ticketExpired": "Showing your saved ticket. The pickup time is over and the status may have changed."
+  },
+  "states": {
+    "offlineTitle": "No connection",
+    "offlineHint": "Looks like you're offline. Check your connection and try again.",
+    "ordersEmptyTitle": "No orders yet",
+    "ordersEmptyHint": "Find an offer nearby and pick it up at a discount — it will show up here.",
+    "ordersEmptyCta": "Browse offers"
+  },
+  "foodInfo": {
+    "title": "Ingredients and shelf life",
+    "ingredients": "Ingredients",
+    "allergens": "Allergens",
+    "noAllergens": "No allergens — as declared by the venue",
+    "bestBefore": "Best before {{date}}",
+    "missing": "The venue hasn't listed ingredients and allergens. Ask the venue before you buy.",
+    "summaryAllergens": "Allergens: {{list}}",
+    "summaryNoAllergens": "No allergens",
+    "summaryMissing": "Ingredients and allergens not listed — ask the venue",
+    "summaryBestBefore": "Best before {{date}}"
+  },
+  "receipt": {
+    "title": "Did you get your order?",
+    "hint": "The venue marked the order as handed over. Your answer protects you: if it wasn't handed over, we'll look into it.",
+    "yes": "Yes, I got it",
+    "no": "No, I didn't",
+    "confirmedTitle": "Receipt confirmed",
+    "confirmedHint": "Thank you! Enjoy your meal.",
+    "disputedTitle": "Report sent",
+    "disputedHint": "We got your message and will look into it. You can add details through help.",
+    "sheetTitle": "What went wrong?",
+    "sheetHint": "Pick a reason — the venue and support see it right away.",
+    "send": "Send",
+    "sending": "Sending...",
+    "error": "Couldn't send. Please try again.",
+    "rowHint": "Confirm receipt",
+    "reasons": {
+      "NOT_RECEIVED": "The order wasn't handed over",
+      "WRONG_ITEM": "Wrong item",
+      "QUALITY": "Quality problem",
+      "OTHER": "Something else"
+    }
+  },
+  "allergens": {
+    "gluten": "gluten (cereals)",
+    "crustaceans": "crustaceans",
+    "eggs": "eggs",
+    "fish": "fish",
+    "peanuts": "peanuts",
+    "soy": "soy",
+    "milk": "milk and lactose",
+    "nuts": "tree nuts",
+    "celery": "celery",
+    "mustard": "mustard",
+    "sesame": "sesame",
+    "sulphites": "sulphites",
+    "lupin": "lupin",
+    "molluscs": "molluscs"
+  },
+  "welcome": {
+    "stamp": "Beta · Saint Petersburg",
+    "titleLead": "Tasty food nearby — up to",
+    "subtitle": "Hot deals from cafés, bakeries and shops. Pick up on your way while the window is open.",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "stampShort": "Beta · SPb"
   }
 }

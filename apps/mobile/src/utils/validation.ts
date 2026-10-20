@@ -33,3 +33,22 @@ export function getPasswordError(password: string): string | null {
   if (!STRONG_PASSWORD_REGEX.test(password)) return "Нужен спецсимвол (например !?#%)";
   return null;
 }
+
+export interface PasswordCheck {
+  key: "length" | "upper" | "lower" | "digit" | "symbol";
+  ok: boolean;
+}
+
+/**
+ * Те же правила, что в getPasswordError, но как список «выполнено / нет» — для чек-листа под полем пароля:
+ * человек видит все требования сразу и по мере ввода, а не одну ошибку после неудачной отправки.
+ */
+export function getPasswordChecks(password: string): PasswordCheck[] {
+  return [
+    { key: "length", ok: password.length >= PASSWORD_MIN_LENGTH },
+    { key: "upper", ok: /[A-ZА-ЯЁ]/.test(password) },
+    { key: "lower", ok: /[a-zа-яё]/.test(password) },
+    { key: "digit", ok: /\d/.test(password) },
+    { key: "symbol", ok: /[^A-Za-zА-Яа-яЁё\d]/.test(password) },
+  ];
+}

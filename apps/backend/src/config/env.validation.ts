@@ -4,6 +4,8 @@ export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid("development", "test", "production").default("development"),
   BACKEND_PORT: Joi.number().default(3000),
   API_PREFIX: Joi.string().default("api/v1"),
+  /** За reverse-proxy: "true", число хопов или "loopback" — иначе лимиты по IP считаются по адресу прокси. */
+  TRUST_PROXY: Joi.string().optional(),
   DATABASE_URL: Joi.string().required(),
   REDIS_URL: Joi.string().default("redis://localhost:6379"),
   JWT_ACCESS_SECRET: Joi.string().min(16).required(),

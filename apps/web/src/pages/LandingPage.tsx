@@ -1,24 +1,28 @@
-import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
+import { Fragment, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { Search, CreditCard, ShoppingBag, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { PhoneMockup } from "../components/PhoneMockup";
 import { OffersRibbon } from "../components/OffersRibbon";
+import { StepScene, type StepSceneKind } from "../components/StepScene";
 import { useReveal } from "../hooks/useReveal";
 import { useCountUp } from "../hooks/useCountUp";
 
 const STEPS = [
   {
-    icon: Search,
+    scene: "map" as StepSceneKind,
+    sceneLabel: "Карта города с маршрутом до заведения русской кухни, отмеченного на карте",
     title: "Находи рядом",
     text: "Кафе, пекарни, цветочные и магазины города — скидки 25–70% в радиусе пары километров.",
   },
   {
-    icon: CreditCard,
+    scene: "pay" as StepSceneKind,
+    sceneLabel: "Перевод денег с банковской карты покупателя на карту заведения",
     title: "Оплачивай в приложении",
     text: "Бронируешь и оплачиваешь за секунды — выбор способа оплаты, честная сумма, никаких сюрпризов на кассе.",
   },
   {
-    icon: ShoppingBag,
+    scene: "pickup" as StepSceneKind,
+    sceneLabel: "Готовый заказ в пакете и QR-код для получения на кассе",
     title: "Забирай за 1–3 часа",
     text: "Показываешь QR или называешь код на кассе — и забираешь то, что выбрал, тёплым и свежим.",
   },
@@ -36,6 +40,14 @@ const FAQ = [
   {
     q: "В каких городах работает Appetite?",
     a: "Пилот идёт в Санкт-Петербурге. Список заведений и категорий расширяется постепенно.",
+  },
+  {
+    q: "Как Appetite зарабатывает на заказах?",
+    a: "Мы — агрегатор на агентской схеме: принимаем оплату от покупателя в приложении, удерживаем с заведения агентское вознаграждение 25% от суммы продаж через Платформу (без учёта НДС), а оставшиеся 75% перечисляем заведению.",
+  },
+  {
+    q: "Сколько стоит подключить заведение к Appetite?",
+    a: "На старте — ничего: первые 20–30 дней подключение бесплатное, комиссия не удерживается. Нет платы за регистрацию и ежемесячных платежей — если продаж не было, начислений тоже нет. Выплаты заведению — автоматически, не позднее 5 числа следующего месяца.",
   },
 ];
 
@@ -59,7 +71,6 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const heroRef = useReveal<HTMLDivElement>(() => setHeroInView(true));
   const phoneRef = useReveal<HTMLDivElement>();
-  const stepsRef = useReveal<HTMLDivElement>();
   const businessRef = useReveal<HTMLDivElement>();
   const faqRef = useReveal<HTMLDivElement>();
 
@@ -78,16 +89,16 @@ export function LandingPage() {
             </h1>
             <p style={{ fontSize: 18, color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: 20 }}>
               Кафе, рестораны и магазины города — со скидкой 25–70% на позиции дня.
-              Бронируешь в приложении, забираешь самовывозом за 1–3 часа.
+              Бронируешь и оплачиваешь на сайте или в приложении, забираешь самовывозом за 1–3 часа.
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
+            <div className="hero-cta">
               <Link
-                to="/register"
+                to="/home#map"
                 className="btn btn-primary"
                 onMouseMove={magneticMove}
                 onMouseLeave={magneticLeave}
               >
-                Начать бесплатно
+                Открыть карту
                 <ArrowRight size={17} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
               </Link>
               <a
@@ -100,7 +111,7 @@ export function LandingPage() {
                 <ArrowUpRight size={17} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
               </a>
             </div>
-            <div style={{ display: "flex", gap: 32, marginTop: 48 }}>
+            <div className="hero-stats">
               <Stat value="25–70%" label="скидка на витрине" />
               <Stat value="1–3 ч" label="окно самовывоза" />
               <Stat countTo={4} active={heroInView} label="категории: еда, выпечка, цветы, продукты" />
@@ -118,29 +129,21 @@ export function LandingPage() {
       <section id="how" style={{ padding: "96px 0" }}>
         <div className="container">
           <SectionHeading eyebrow="Как это работает" title="Три шага до вкусной скидки" />
-          {/* Не карточная сетка, а маршрут — тот же язык, что и у карты в PhoneMockup:
-              три остановки соединены линией, которая "прокладывается" при появлении
-              секции, будто приложение только что построило путь до скидки. */}
-          <div ref={stepsRef} className="reveal how-route">
-            <div className="route-track" aria-hidden="true">
-              <span className="route-track-fill" />
-            </div>
+          {/* Три карточки вместо маршрута — тот же материал бренда (сигнатурная форма угла,
+              приглушённый тил-градиент в "фото"-зоне, как у офферов в ленте), но без лишнего
+              иллюстративного шума. Средняя карточка чуть приподнята (margin, не transform —
+              не спорит с её же въездом при скролле) ради лёгкой асимметрии: три одинаковых
+              прямоугольника в ряд читались бы шаблонно, сдвиг делает композицию живой,
+              оставаясь при этом внутри одной простой грид-сетки. Каждая карточка следит за
+              собственным появлением в кадре (свой useReveal), а не общий для всех триггер —
+              на мобильном (карточки друг под другом) это реально по одной "приезжают" по мере
+              скролла, а не все разом. */}
+          <div className="how-steps">
             {STEPS.map((step, index) => (
-              <div key={step.title} className="route-stop">
-                <div className="route-node-wrap">
-                  <div className="route-node">
-                    <step.icon size={26} strokeWidth={2} color="var(--color-primary)" aria-hidden="true" />
-                  </div>
-                  <span className="route-node-number">{String(index + 1).padStart(2, "0")}</span>
-                </div>
-                <div className="route-stop-body">
-                  <p className="eyebrow" style={{ marginBottom: 6 }}>
-                    Шаг {index + 1}
-                  </p>
-                  <h3 style={{ fontSize: 19, marginBottom: 8 }}>{step.title}</h3>
-                  <p style={{ fontSize: 14.5, color: "var(--color-ink-muted)", lineHeight: 1.6 }}>{step.text}</p>
-                </div>
-              </div>
+              <Fragment key={step.title}>
+                <StepCard step={step} index={index} />
+                {index < STEPS.length - 1 ? <StepConnector /> : null}
+              </Fragment>
             ))}
           </div>
         </div>
@@ -150,12 +153,12 @@ export function LandingPage() {
         <div className="container">
           <div ref={businessRef} className="reveal" style={businessCardStyle}>
             <div style={{ maxWidth: 480 }}>
-              <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--color-background)" }}>
+              <span className="stamp" style={{ background: "rgba(255,253,249,0.12)", color: "var(--on-panel)" }}>
                 Для бизнеса
               </span>
-              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--color-background)", marginTop: 18 }}>
+              <h2 style={{ fontSize: "clamp(26px, 3.4vw, 34px)", color: "var(--on-panel)", marginTop: 18 }}>
                 Привлекай новых гостей{" "}
-                <span style={{ fontStyle: "italic", color: "var(--color-primary-soft)" }}>скидками 25–70%</span>
+                <span style={{ fontStyle: "italic", color: "var(--on-panel-accent)" }}>скидками 25–70%</span>
               </h2>
               <p style={{ color: "rgba(255,253,249,0.68)", marginTop: 14, lineHeight: 1.6, fontSize: 15 }}>
                 Панель бизнеса — офферы, заказы и аналитика в реальном времени. Скидка
@@ -259,9 +262,9 @@ function Stat({
   const animated = useCountUp(countTo ?? 0, Boolean(active && countTo !== undefined));
 
   return (
-    <div>
-      <p style={statValueStyle}>{countTo !== undefined ? animated : value}</p>
-      <p style={{ fontSize: 13, color: "var(--color-ink-muted)" }}>{label}</p>
+    <div className="hero-stat">
+      <p className="hero-stat-value">{countTo !== undefined ? animated : value}</p>
+      <p className="hero-stat-label">{label}</p>
     </div>
   );
 }
@@ -271,6 +274,51 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
     <div style={{ textAlign: "center", marginBottom: 48 }}>
       <span className="eyebrow">{eyebrow.toUpperCase()}</span>
       <h2 style={{ fontSize: "clamp(26px, 3.4vw, 36px)", marginTop: 10 }}>{title}</h2>
+    </div>
+  );
+}
+
+/**
+ * Своя точка входа в scroll-reveal на каждую карточку (а не общий наблюдатель на
+ * весь блок) — карточки реально появляются одна за другой по мере скролла, а не
+ * вспыхивают все разом, как только верх секции коснулся вьюпорта.
+ */
+function StepCard({
+  step,
+  index,
+}: {
+  step: { scene: StepSceneKind; sceneLabel: string; title: string; text: string };
+  index: number;
+}) {
+  const cardRef = useReveal<HTMLElement>();
+
+  return (
+    <article ref={cardRef} className="step-card">
+      <div className="step-card-frame">
+        <StepScene kind={step.scene} index={index} label={step.sceneLabel} />
+      </div>
+      <h3 style={{ fontSize: 19, marginBottom: 8 }}>
+        <span className="sr-only">Шаг {index + 1}. </span>
+        {step.title}
+      </h3>
+      <p style={{ fontSize: 14.5, color: "var(--color-ink-muted)", lineHeight: 1.6 }}>{step.text}</p>
+    </article>
+  );
+}
+
+/**
+ * Связка между карточками — не статичная стрелка, а живой "пульс" из трёх точек,
+ * бегущих слева направо (на мобильном — сверху вниз), тот же принцип, что и live-dot
+ * у бейджа "Сейчас на витрине": короткий постоянный сигнал движения, а не одноразовый
+ * въезд. Сама точка-хаб появляется через тот же useReveal, что и соседние карточки.
+ */
+function StepConnector() {
+  const ref = useReveal<HTMLDivElement>();
+  return (
+    <div ref={ref} className="step-connector" aria-hidden="true">
+      <span className="step-connector-dot" style={{ "--dot-delay": "0s" } as CSSProperties} />
+      <span className="step-connector-dot" style={{ "--dot-delay": "0.2s" } as CSSProperties} />
+      <span className="step-connector-dot" style={{ "--dot-delay": "0.4s" } as CSSProperties} />
     </div>
   );
 }
@@ -309,7 +357,7 @@ const phoneWrapStyle: CSSProperties = {
 const businessCardStyle: CSSProperties = {
   position: "relative",
   overflow: "hidden",
-  background: "var(--color-ink)",
+  background: "var(--panel-dark)",
   borderRadius: "var(--radius-lg)",
   padding: "56px 40px",
 };
@@ -342,9 +390,3 @@ const faqIndexStyle: CSSProperties = {
   color: "var(--color-primary)",
 };
 
-const statValueStyle: CSSProperties = {
-  fontFamily: "var(--font-display)",
-  fontSize: 24,
-  fontWeight: 700,
-  color: "var(--color-primary)",
-};

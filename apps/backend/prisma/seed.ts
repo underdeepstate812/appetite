@@ -3,15 +3,19 @@ import {
   OfferCategory,
   OfferStatus,
   OrderStatus,
+  Prisma,
   PrismaClient,
   Role,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
+import { syncShowcase } from "./showcase";
+import { foodInfoData } from "./food-info-seed";
 import {
   computeDiscountPercent,
   ECO_POINTS_PER_KG,
   PICKUP_CODE_LENGTH,
   PLATFORM_COMMISSION_PERCENT,
+  type WorkingHours,
 } from "@apetite/shared";
 
 const prisma = new PrismaClient();
@@ -35,6 +39,11 @@ function generatePickupCode(): string {
 
 const HOUR_MS = 60 * 60 * 1000;
 
+/** Фото товара — прямые CDN-ссылки на Unsplash, без ключа/аккаунта (только для тестовых данных). */
+function unsplash(photoId: string): string {
+  return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=800&q=75`;
+}
+
 interface OfferSeed {
   title: string;
   category: OfferCategory;
@@ -44,6 +53,8 @@ interface OfferSeed {
   hoursToEnd: number;
   /** Стартовая скидка, заданная владельцем бизнеса (минимум 25%). */
   baseDiscountPercent: number;
+  /** Фото товара — без него витрина показывает иконку категории вместо реального вида товара. */
+  imageUrl: string;
 }
 
 interface BusinessSeed {
@@ -53,13 +64,19 @@ interface BusinessSeed {
   address: string;
   deltaLatKm: number;
   deltaLngKm: number;
+  /** Часы работы (ISO-день → интервал или null); офферы через API обязаны в них укладываться. */
+  workingHours: WorkingHours;
   offers: OfferSeed[];
 }
+
+const daily = (open: string, close: string): WorkingHours => ({ "1": { open, close }, "2": { open, close }, "3": { open, close }, "4": { open, close }, "5": { open, close }, "6": { open, close }, "7": { open, close } });
 
 const BUSINESS_SEEDS: BusinessSeed[] = [
   {
     ownerEmail: "cafe.pushkin@apetite.ru",
     name: "Кафе Пушкинъ",
+    // Круглосуточно — чтобы тесты и демо могли создавать офферы в любое время суток.
+    workingHours: daily("00:00", "00:00"),
     category: OfferCategory.FOOD,
     address: "Невский проспект, 40, Санкт-Петербург",
     deltaLatKm: 0.3,
@@ -73,6 +90,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 8,
         hoursToEnd: 2.5,
         baseDiscountPercent: 30,
+        imageUrl: unsplash("photo-1547592166-23ac45744acd"),
       },
       {
         title: "Набор десертов дня",
@@ -82,12 +100,14 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 6,
         hoursToEnd: 0.8,
         baseDiscountPercent: 40,
+        imageUrl: unsplash("photo-1488477181946-6428a0291777"),
       },
     ],
   },
   {
     ownerEmail: "bulka.arbat@apetite.ru",
     name: "Булочная на Рубинштейна",
+    workingHours: daily("07:00", "21:00"),
     category: OfferCategory.BAKERY,
     address: "ул. Рубинштейна, 10, Санкт-Петербург",
     deltaLatKm: -0.5,
@@ -101,12 +121,14 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 12,
         hoursToEnd: 1.5,
         baseDiscountPercent: 25,
+        imageUrl: unsplash("photo-1509440159596-0249088772ff"),
       },
     ],
   },
   {
     ownerEmail: "flowers.mos@apetite.ru",
     name: "Цветочная мастерская СПб",
+    workingHours: { ...daily("09:00", "20:00"), "7": { open: "10:00", close: "18:00" } },
     category: OfferCategory.FLOWERS,
     address: "наб. реки Фонтанки, 5, Санкт-Петербург",
     deltaLatKm: 0.8,
@@ -120,12 +142,14 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 4,
         hoursToEnd: 3,
         baseDiscountPercent: 50,
+        imageUrl: unsplash("photo-1487070183336-b863922373d4"),
       },
     ],
   },
   {
     ownerEmail: "market.svezhest@apetite.ru",
     name: "Магазин Свежесть",
+    workingHours: daily("08:00", "23:00"),
     category: OfferCategory.GROCERIES,
     address: "Приморский пр-т, 45, Санкт-Петербург",
     deltaLatKm: -0.2,
@@ -139,6 +163,7 @@ const BUSINESS_SEEDS: BusinessSeed[] = [
         quantityTotal: 10,
         hoursToEnd: 4,
         baseDiscountPercent: 35,
+        imageUrl: unsplash("photo-1542838132-92c53300491e"),
       },
     ],
   },
@@ -206,6 +231,7 @@ async function main() {
         lng,
         status: BusinessStatus.ACTIVE, // ручной онбординг админом — сразу активно (ШАГ 0)
         commissionPercent: PLATFORM_COMMISSION_PERCENT,
+        workingHours: businessSeed.workingHours as unknown as Prisma.InputJsonObject,
       },
     });
 
@@ -226,12 +252,14 @@ async function main() {
           discountedPrice,
           discountPercent,
           baseDiscountPercent: offerSeed.baseDiscountPercent,
+          imageUrl: offerSeed.imageUrl,
           quantityTotal: offerSeed.quantityTotal,
           quantityLeft: offerSeed.quantityTotal,
           weightKg: offerSeed.weightKg,
           pickupStart,
           pickupEnd,
           status: OfferStatus.ACTIVE,
+          ...foodInfoData(offerSeed.title, offerSeed.category, pickupEnd),
         },
       });
 
@@ -243,6 +271,9 @@ async function main() {
       });
     }
   }
+
+  console.log("Витрина: офферы с ленты на главной...");
+  const showcaseCount = await syncShowcase(prisma, passwordHash);
 
   console.log("Создание демо-заказов и эко-транзакции...");
   const [completedOfferSeed, pendingOfferSeed] = createdOffers;
@@ -350,6 +381,7 @@ async function main() {
   console.log(`  admin:     ${admin.email} / password123`);
   console.log(`  user:      ${demoUser.email} / password123`);
   console.log(`  businesses: ${BUSINESS_SEEDS.map((b) => b.ownerEmail).join(", ")} / password123`);
+  console.log(`  showcase offers: ${showcaseCount} (showcase.<shop>@apetite.ru / password123)`);
   console.log(`  offers: ${createdOffers.length}, completed order: ${completedOrder.id}, pending order: ${pendingOrder.id}`);
 }
 

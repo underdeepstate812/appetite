@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { NearbyOffer } from "@apetite/shared";
+import { getOfferUrgencyRatio, heatColor, type NearbyOffer } from "@apetite/shared";
+import { LEAFLET_ATTRIBUTION_PREFIX } from "../utils/leafletAttribution";
 
 const LEAFLET_CSS_ID = "appetite-leaflet-css";
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-const HOT_DISCOUNT_THRESHOLD = 60;
 
 function ensureLeafletCss() {
   if (document.getElementById(LEAFLET_CSS_ID)) return;
@@ -25,6 +25,23 @@ interface LeafletMapViewProps {
   center: { lat: number; lng: number };
   zoom?: number;
   offers: NearbyOffer[];
+  /**
+   * Плавный «дрейф камеры» по замкнутой траектории — карта в мокапе живая, а не стоп-кадр. Жесты при этом
+   * по-прежнему отключены (посетитель не должен «утащить» карту вместо скролла страницы). Выключается при
+   * prefers-reduced-motion, пока мокап вне экрана и пока вкладка скрыта.
+   */
+  drift?: boolean;
+}
+
+/** Амплитуда и период дрейфа: заметное, но спокойное движение, пины остаются в кадре. */
+const DRIFT_AMPLITUDE_X = 60;
+const DRIFT_AMPLITUDE_Y = 40;
+const DRIFT_PERIOD_MS = 36_000;
+
+/** Положение «камеры» (px от исходной точки) в момент t мс: восьмёрка (фигура Лиссажу 1:2). */
+export function driftPosition(t: number): { x: number; y: number } {
+  const phase = (2 * Math.PI * t) / DRIFT_PERIOD_MS;
+  return { x: DRIFT_AMPLITUDE_X * Math.sin(phase), y: DRIFT_AMPLITUDE_Y * Math.sin(2 * phase) };
 }
 
 /**
@@ -35,7 +52,7 @@ interface LeafletMapViewProps {
  * виджет — поэтому жесты (драг/зум/скролл) отключены: посетитель лендинга не
  * должен случайно "утащить" карту вместо скролла страницы.
  */
-export function LeafletMapView({ center, zoom = 13, offers }: LeafletMapViewProps) {
+export function LeafletMapView({ center, zoom = 13, offers, drift = false }: LeafletMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markersRef = useRef<import("leaflet").Marker[]>([]);
@@ -61,6 +78,7 @@ export function LeafletMapView({ center, zoom = 13, offers }: LeafletMapViewProp
         boxZoom: false,
         keyboard: false,
       }).setView([center.lat, center.lng], zoom);
+      map.attributionControl.setPrefix(LEAFLET_ATTRIBUTION_PREFIX);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -83,6 +101,55 @@ export function LeafletMapView({ center, zoom = 13, offers }: LeafletMapViewProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Дрейф камеры. Leaflet округляет panBy до целых пикселей, поэтому дробный сдвиг копим и отдаём целыми
+  // порциями — иначе медленное движение (доли пикселя за кадр) просто терялось бы, и карта «не двигалась».
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!drift || !mapReady || !map || !container) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    let last = performance.now();
+    let elapsed = 0;
+    let prev = driftPosition(0);
+    const acc = { x: 0, y: 0 };
+    let onScreen = true;
+
+    const observer =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([entry]) => {
+            onScreen = entry.isIntersecting;
+          })
+        : null;
+    observer?.observe(container);
+
+    const tick = (now: number) => {
+      const dt = now - last;
+      last = now;
+      if (onScreen && !document.hidden) {
+        elapsed += Math.min(dt, 100); // после паузы вкладки не «прыгаем» на накопленное время
+        const current = driftPosition(elapsed);
+        acc.x += current.x - prev.x;
+        acc.y += current.y - prev.y;
+        prev = current;
+        const dx = Math.trunc(acc.x);
+        const dy = Math.trunc(acc.y);
+        if (dx !== 0 || dy !== 0) {
+          map.panBy([dx, dy], { animate: false });
+          acc.x -= dx;
+          acc.y -= dy;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      observer?.disconnect();
+    };
+  }, [drift, mapReady]);
+
   useEffect(() => {
     mapRef.current?.setView([center.lat, center.lng], zoom);
   }, [center.lat, center.lng, zoom]);
@@ -99,9 +166,13 @@ export function LeafletMapView({ center, zoom = 13, offers }: LeafletMapViewProp
       markersRef.current = [];
 
       offers.forEach((offer) => {
-        const hot = offer.discountPercent >= HOT_DISCOUNT_THRESHOLD;
+        // Размер пина — от величины скидки (крупный = горячая цена), цвет — от оставшегося
+        // времени (та же шкала "жара", что и в мобильном приложении: мята → янтарь → ember →
+        // красный в последние ~30 минут) — два независимых сигнала вместо одного смешанного.
+        const hot = offer.discountPercent >= 60;
         const size = hot ? 44 : 38;
-        const color = hot ? "var(--color-danger)" : "var(--color-primary)";
+        const ratio = getOfferUrgencyRatio(offer);
+        const color = heatColor(ratio, "light");
         const icon = L.divIcon({
           className: "appetite-phone-marker",
           html: `

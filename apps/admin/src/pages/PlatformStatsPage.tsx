@@ -59,6 +59,7 @@ export function PlatformStatsPage() {
               <StatRow label="Выдано" value={stats.completedOrders} />
               <StatRow label="Отменено" value={stats.cancelledOrders} />
               <StatRow label="Просрочено" value={stats.expiredOrders} />
+              <StatRow label="Оспорено покупателем" value={stats.disputedOrders} />
             </div>
           </div>
 

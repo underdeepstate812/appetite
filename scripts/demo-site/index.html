@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Appetite — демо</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Демо Appetite: сайт покупателя, мобильная версия и кабинет бизнеса — без сервера, на примерных данных.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#fffdf9; --surface:#f4efe4; --ink:#12100d; --muted:#6e675d; --primary:#0f766e; --primary-soft:#d7f3ef; --border:rgba(18,16,13,.12); --ember:#b5380a; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b1110; --surface:#121a19; --ink:#edf5f3; --muted:#93a7a2; --primary:#2dd4bf; --primary-soft:#12332f; --border:rgba(237,245,243,.14); --ember:#ff8a3d; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Onest",system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 980px; margin: 0 auto; padding: 56px 20px 72px; }
+  .tag { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--primary); }
+  .tag i { width:8px; height:8px; border-radius:50%; background:var(--ember); }
+  h1 { font-family:"Unbounded",sans-serif; font-size:clamp(30px,6vw,52px); line-height:1.08; letter-spacing:-.03em; margin:14px 0 14px; }
+  p.lead { color:var(--muted); font-size:17px; line-height:1.6; max-width:640px; margin:0 0 36px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+  a.card { display:flex; flex-direction:column; gap:10px; padding:22px 22px 20px; border:1px solid var(--border); border-radius:22px; background:var(--surface); color:inherit; text-decoration:none; transition:transform .2s ease, border-color .2s ease; }
+  a.card:hover, a.card:focus-visible { transform:translateY(-3px); border-color:var(--primary); outline:none; }
+  a.card h2 { font-family:"Unbounded",sans-serif; font-size:19px; margin:0; letter-spacing:-.02em; }
+  a.card p { margin:0; color:var(--muted); font-size:14.5px; line-height:1.55; flex:1; }
+  a.card span.go { font-weight:700; color:var(--primary); font-size:14px; }
+  .creds { margin-top:32px; padding:18px 20px; border-radius:18px; border:1px dashed var(--border); font-size:14.5px; line-height:1.7; }
+  .creds b { font-weight:700; }
+  code { background:var(--primary-soft); color:var(--primary); padding:2px 7px; border-radius:7px; font-size:13.5px; }
+  small { display:block; margin-top:28px; color:var(--muted); font-size:13px; line-height:1.6; }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag"><i></i> Демо · без сервера</span>
+  <h1>Appetite — вкусная еда рядом со скидкой</h1>
+  <p class="lead">Посмотрите, как выглядят и работают сайт, мобильное приложение и кабинет заведения. Данные примерные, всё хранится только в вашем браузере — другим людям ваши действия не видны.</p>
+
+  <div class="grid">
+    <a class="card" href="__BASE__/web/">
+      <h2>Сайт покупателя</h2>
+      <p>Лендинг, витрина с картой, заказ, профиль, тёмная тема.</p>
+      <span class="go">Открыть →</span>
+    </a>
+    <a class="card" href="__BASE__/mobile/">
+      <h2>Мобильная версия</h2>
+      <p>Приложение в браузере: заставка, карта с карточками, лента предложений, пропуск. Лучше в узком окне.</p>
+      <span class="go">Открыть →</span>
+    </a>
+    <a class="card" href="__BASE__/admin/">
+      <h2>Кабинет бизнеса</h2>
+      <p>Офферы, автовыкладка, часы работы, график продаж. Заказы с сайта попадают сюда.</p>
+      <span class="go">Открыть →</span>
+    </a>
+  </div>
+
+  <div class="creds">
+    <b>Покупатель</b> (сайт и мобильная версия): <code>user@apetite.ru</code> / <code>password123</code><br>
+    <b>Заведение</b> (кабинет): <code>cafe.pushkin@apetite.ru</code> / <code>password123</code><br>
+    Можно и зарегистрироваться: аккаунт появится только в вашем браузере.
+  </div>
+  <small>Демо собрано из того же кода, что и приложение, но без сервера и базы данных: ответы API подставляет встроенный слой. Кнопка «ДЕМО» внизу слева на каждой странице сбрасывает данные.</small>
+</main>
+</body>
+</html>

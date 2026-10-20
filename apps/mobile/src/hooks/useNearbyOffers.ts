@@ -3,7 +3,8 @@ import type { NearbyOffer, OfferCategory } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 import type { UserLocation } from "./useLocation";
 
-export const DEFAULT_RADIUS_KM = 10;
+/** Весь город: самые дальние районы лежат в 14–15 км от центра. */
+export const DEFAULT_RADIUS_KM = 20;
 
 export interface OffersFilters {
   category?: OfferCategory;

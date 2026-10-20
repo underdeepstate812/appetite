@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import * as Haptics from "expo-haptics";
 import type { Offer } from "@apetite/shared";
 import { offersApi } from "../../api/offers";
 import { ordersApi } from "../../api/orders";
 import { useTheme } from "../../theme/ThemeProvider";
 import { Screen } from "../../components/Screen";
+import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/Button";
+import { CelebrationBurst } from "../../components/CelebrationBurst";
+import { playHaptic } from "../../utils/haptics";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { CookingLoader } from "../../components/icons/CookingLoader";
 import { PaymentMethodSelector, type PaymentMethod } from "../../components/PaymentMethodSelector";
+import { OrderSummaryCard } from "../../components/OrderSummaryCard";
+import { PaymentRule } from "../../components/PaymentRule";
+import { useBusiness } from "../../hooks/useBusiness";
+import { useAuthStore } from "../../store/authStore";
+import { saveTicket } from "../../utils/ticketCache";
+import { upsertOrder } from "../../utils/ordersCache";
 import { LoadingView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
@@ -23,6 +32,8 @@ const QUANTITY = 1;
  * не эмулирует реальную задержку платежа, а даёт анимации доиграть один цикл.
  */
 const MIN_COOKING_MS = 1100;
+/** Сколько держим экран "оплата подтверждена" (вспышка + партитура haptic "confirm") до перехода к билету. */
+const CELEBRATION_MS = 1700;
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -34,12 +45,37 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const theme = useTheme();
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paid, setPaid] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const venue = useBusiness(offer?.businessId);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    },
+    []
+  );
+
+  // Пока платёж в полёте и играет "оплата подтверждена", выйти назад нельзя: ни кнопкой, ни жестом.
+  useEffect(() => {
+    const locked = submitting || paid;
+    // headerLeft нельзя оставлять undefined: setOptions затирает им кнопку из screenOptions навигатора,
+    // и на экране оплаты пропадает "назад" — поэтому в разблокированном состоянии возвращаем её явно.
+    navigation.setOptions({
+      gestureEnabled: !locked,
+      headerLeft: locked ? () => null : () => <BackButton onPress={navigation.goBack} />,
+    });
+  }, [navigation, submitting, paid]);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(null);
     offersApi
       .get(offerId)
       .then((data) => {
@@ -51,22 +87,36 @@ export function CheckoutScreen({ route, navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [offerId, t]);
+  }, [offerId, t, reloadKey]);
 
   const handlePay = async () => {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const [order] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
-      // Двойной плотный вибро-клик ("клик-клак") на успешный перехват — см. бриф про
-      // тактильный отклик; System.notificationAsync(Success) один общий импульс, а тут
-      // намеренно два разнесённых по времени, ощутимее как "защёлкивание замка".
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
-      setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      }, 90);
-      // replace — чтобы "назад" с экрана подтверждения не возвращал на форму оплаты.
-      navigation.replace("OrderConfirmation", { orderId: order.id });
+      const [created] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
+      const { qrCodeDataUrl, ...order } = created;
+      // Билет — на устройство сразу, ещё до «праздника»: если приложение закроют или связь пропадёт, код уже сохранён.
+      if (userId && offer) {
+        const venueInfo = venue.state.status === "ready" ? venue.state.business : null;
+        void saveTicket({
+          v: 1,
+          userId,
+          savedAt: new Date().toISOString(),
+          order,
+          qrCodeDataUrl: qrCodeDataUrl ?? null,
+          offer: { id: offer.id, title: offer.title, pickupStart: offer.pickupStart, pickupEnd: offer.pickupEnd },
+          venue: venueInfo,
+        });
+        void upsertOrder(userId, order, { title: offer.title, venue: venueInfo?.name });
+      }
+      // Оплата подтверждена: кольцо замыкается ("замок" — rigid на 360 мс) и вспыхивают искры;
+      // уже потом — к билету, где заказ "принимается" (см. OrderConfirmationScreen).
+      setPaid(true);
+      playHaptic(reducedMotion ? "thud" : "confirm");
+      leaveTimer.current = setTimeout(() => {
+        // replace — чтобы "назад" с экрана подтверждения не возвращал на форму оплаты.
+        navigation.replace("OrderConfirmation", { orderId: order.id });
+      }, CELEBRATION_MS);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t("checkout.errorGeneric"));
       setSubmitting(false);
@@ -76,7 +126,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
   if (loadError) {
     return (
       <Screen>
-        <ErrorView label={loadError} />
+        <ErrorView label={loadError} onRetry={() => setReloadKey((key) => key + 1)} />
       </Screen>
     );
   }
@@ -85,6 +135,22 @@ export function CheckoutScreen({ route, navigation }: Props) {
     return (
       <Screen>
         <LoadingView label={t("common.loading")} />
+      </Screen>
+    );
+  }
+
+  if (paid) {
+    return (
+      <Screen>
+        <View style={styles.cookingWrap}>
+          <CelebrationBurst size={260} />
+          <Text style={[theme.typography.h2, { color: theme.colors.text, marginTop: theme.spacing.md, textAlign: "center" }]}>
+            {t("checkout.paymentConfirmed")}
+          </Text>
+          <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginTop: theme.spacing.xs, textAlign: "center" }]}>
+            {t("checkout.paymentConfirmedHint")}
+          </Text>
+        </View>
       </Screen>
     );
   }
@@ -113,28 +179,12 @@ export function CheckoutScreen({ route, navigation }: Props) {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll ambient>
       <Text style={[theme.typography.h1, { color: theme.colors.text, marginBottom: theme.spacing.lg }]}>
         {t("checkout.title")}
       </Text>
 
-      <View style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radii.md }]}>
-        <Text style={[theme.typography.bodyBold, { color: theme.colors.text }]}>{offer.title}</Text>
-
-        <View style={styles.row}>
-          <Text style={[theme.typography.body, { color: theme.colors.textMuted }]}>
-            {t("checkout.quantityLabel")}
-          </Text>
-          <Text style={[theme.typography.body, { color: theme.colors.text }]}>{QUANTITY}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[theme.typography.bodyBold, { color: theme.colors.text }]}>{t("checkout.totalLabel")}</Text>
-          <Text style={[theme.typography.h3, { color: theme.colors.primary }]}>
-            {((offer.discountedPrice * QUANTITY) / 100).toFixed(0)} ₽
-          </Text>
-        </View>
-      </View>
+      <OrderSummaryCard offer={offer} quantity={QUANTITY} venue={venue.state} onRetryVenue={venue.retry} />
 
       <Text
         style={[
@@ -151,6 +201,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
         cardHint={t("checkout.paymentCardHint")}
         sbpLabel={t("checkout.paymentSbp")}
         sbpHint={t("checkout.paymentSbpHint")}
+        groupLabel={t("checkout.paymentMethodLabel")}
       />
 
       {submitError ? (
@@ -159,7 +210,11 @@ export function CheckoutScreen({ route, navigation }: Props) {
         </Text>
       ) : null}
 
-      <View style={{ marginTop: theme.spacing.xl }}>
+      <View style={{ marginTop: theme.spacing.lg }}>
+        <PaymentRule pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} />
+      </View>
+
+      <View style={{ marginTop: theme.spacing.sm }}>
         <Button title={t("checkout.payButton")} onPress={handlePay} />
       </View>
     </Screen>
@@ -167,7 +222,5 @@ export function CheckoutScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
   cookingWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 });

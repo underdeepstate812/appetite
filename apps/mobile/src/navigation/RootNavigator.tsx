@@ -9,13 +9,17 @@ import { CheckoutScreen } from "../screens/checkout/CheckoutScreen";
 import { OrderConfirmationScreen } from "../screens/order-confirmation/OrderConfirmationScreen";
 import { OrderDetailScreen } from "../screens/order-detail/OrderDetailScreen";
 import { NotificationsScreen } from "../screens/notifications/NotificationsScreen";
+import { UiLabScreen } from "./devScreens";
 import { LoadingView } from "../components/StateViews";
+import { BackButton } from "../components/BackButton";
+import { useTheme } from "../theme/ThemeProvider";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const user = useAuthStore((state) => state.user);
 
@@ -28,17 +32,30 @@ export function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={({ navigation }) => ({
+        // Своя кнопка "назад" (BackButton) вместо системной стрелки с подписью.
+        headerBackVisible: false,
+        // Кастомный headerLeft на iOS может отключить свайп-назад: возвращаем его на весь экран.
+        fullScreenGestureEnabled: true,
+        headerLeft: ({ canGoBack }) => (canGoBack ? <BackButton onPress={navigation.goBack} /> : null),
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: theme.colors.background },
+        headerTintColor: theme.colors.text,
+        headerTitleStyle: { ...theme.fonts.bold, fontSize: 15, color: theme.colors.text },
+      })}
+    >
       <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="OfferDetail" component={OfferDetailScreen} options={{ title: t("offerDetail.title") }} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: t("checkout.title") }} />
       <Stack.Screen
         name="OrderConfirmation"
         component={OrderConfirmationScreen}
-        options={{ title: t("orderConfirmation.title"), headerBackVisible: false, gestureEnabled: false }}
+        options={{ title: t("orderConfirmation.title"), headerLeft: () => null, gestureEnabled: false }}
       />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: t("orderDetail.title") }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t("notifications.title") }} />
+      {UiLabScreen ? <Stack.Screen name="UiLab" component={UiLabScreen} options={{ title: "UI Lab" }} /> : null}
     </Stack.Navigator>
   );
 }

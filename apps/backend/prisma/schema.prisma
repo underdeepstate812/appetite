@@ -20,6 +20,12 @@ enum OfferCategory {
   GROCERIES
 }
 
+/// DYNAMIC — скидка растёт к концу самовывоза (стартовая + 10% за 2 ч, + 20% за час, максимум 70%); FIXED — всё время равна стартовой.
+enum DiscountMode {
+  DYNAMIC
+  FIXED
+}
+
 enum OfferStatus {
   DRAFT
   ACTIVE
@@ -31,6 +37,13 @@ enum OfferStatus {
 /// COMPLETED — забран пользователем, начислены эко-баллы.
 /// CANCELLED — отменён пользователем до окончания pickup-окна, quantityLeft возвращается.
 /// EXPIRED — не выкуплен до pickupEnd, переводится шедулером, quantityLeft не возвращается.
+enum ReceiptDisputeReason {
+  NOT_RECEIVED
+  WRONG_ITEM
+  QUALITY
+  OTHER
+}
+
 enum OrderStatus {
   CONFIRMED
   COMPLETED
@@ -51,6 +64,12 @@ enum NotificationType {
   ORDER_COMPLETED
   ORDER_EXPIRED
   ORDER_CANCELLED
+  /// Покупатель оспорил получение заказа — админам платформы и заведению.
+  RECEIPT_DISPUTED
+  /// Новый заказ — заведению, сразу после оплаты. Триггер для "Принять заказ" в панели бизнеса.
+  ORDER_RECEIVED
+  /// Заведение подтвердило заказ — покупателю. С этого момента отменить заказ уже нельзя.
+  ORDER_ACCEPTED
 }
 
 enum PaymentStatus {
@@ -103,13 +122,25 @@ model Business {
   lng               Float
   status            BusinessStatus @default(PENDING)
   /// % комиссии платформы для этого заведения (по умолчанию — платформенная константа).
+  /// Фактически не взимается, пока не истёк пробный период — см. trialEndsAt.
   commissionPercent Int            @default(25)
   /// Логотип заведения — опционально, до загрузки показывается плейсхолдер с инициалом.
   logoUrl           String?
+  /// Снимок PlatformSettings.trialPeriodDays на момент онбординга (createdAt + N дней) —
+  /// не пересчитывается задним числом при смене глобальной настройки. Пока now() < trialEndsAt,
+  /// orders.service.ts начисляет комиссию 0% независимо от commissionPercent (бизнес-модель:
+  /// бесплатное подключение на старте, см. апробировано в оферте/FAQ на сайте).
+  trialEndsAt       DateTime?
+  /// Часовой пояс заведения (IANA): по нему читаются часы работы и считаются «сутки» на витрине.
+  timezone          String         @default("Europe/Moscow")
+  /// Часы работы: {"1": {"open": "10:00", "close": "22:00"}, …, "7": null} (ключ — ISO-день недели, null — выходной).
+  /// Самовывоз любого оффера обязан целиком уложиться в рабочий интервал (см. shared/working-hours.ts). null — не заданы.
+  workingHours      Json?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
   offers Offer[]
+  schedules OfferSchedule[]
   orders Order[]
 
   @@index([ownerUserId])
@@ -141,15 +172,78 @@ model Offer {
   pickupStart     DateTime
   pickupEnd       DateTime
   status          OfferStatus   @default(ACTIVE)
+  /// Режим скидки; шедулер пересчитывает только DYNAMIC-офферы.
+  discountMode    DiscountMode  @default(DYNAMIC)
+  /// Оффер выложен автоматически по этому шаблону (null — вручную). Шаблон удалили — оффер остаётся.
+  scheduleId      String?
+  schedule        OfferSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  /// Локальная дата выкладки «YYYY-MM-DD» — вместе со scheduleId даёт идемпотентность: один оффер на шаблон и дату.
+  occurrenceDate  String?
+  /// «Горячее предложение дня»: витрина показывает его самым горячим и первым независимо от оставшегося времени
+  /// (обычный «жар» считается по времени до конца окна, а у суточного оффера он всегда нулевой).
+  featured        Boolean       @default(false)
+  /// Состав — обязателен для еды/выпечки/продуктов (до оплаты покупатель должен его видеть).
+  ingredients     String?
+  /// Коды аллергенов (OFFER_ALLERGENS из @apetite/shared).
+  allergens       String[]      @default([])
+  /// Заведение явно указало аллергены (в том числе «аллергенов нет»); false — сведений нет, у старых офферов.
+  allergensDeclared Boolean     @default(false)
+  /// Срок годности.
+  bestBefore      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   orders Order[]
 
+  @@unique([scheduleId, occurrenceDate])
   @@index([businessId])
   @@index([status, pickupEnd])
   @@index([category])
   @@map("offers")
+}
+
+/// Шаблон автовыкладки: позиция + расписание. Шедулер сам создаёт из него офферы (см. offer-schedules).
+model OfferSchedule {
+  id                  String        @id @default(uuid())
+  businessId          String
+  business            Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title               String
+  description         String?
+  category            OfferCategory
+  /// Минорные единицы валюты (копейки).
+  originalPrice       Int
+  baseDiscountPercent Int           @default(50)
+  discountMode        DiscountMode  @default(DYNAMIC)
+  imageUrl            String?
+  quantityTotal       Int
+  weightKg            Float
+  ingredients         String?
+  allergens           String[]      @default([])
+  allergensDeclared   Boolean       @default(false)
+  /// Срок годности каждого оффера = конец самовывоза + столько часов.
+  bestBeforeHoursAfterEnd Int?
+  /// ISO-дни недели: 1 = понедельник … 7 = воскресенье.
+  daysOfWeek          Int[]
+  /// «HH:mm» в часовом поясе timezone; конец не позже начала — окно заканчивается на следующие сутки.
+  pickupStartTime     String
+  pickupEndTime       String
+  /// За сколько минут до начала самовывоза оффер появляется на витрине.
+  publishLeadMinutes  Int           @default(180)
+  timezone            String        @default("Europe/Moscow")
+  /// Границы действия «YYYY-MM-DD» (включительно).
+  startsOn            String?
+  endsOn              String?
+  /// Даты «YYYY-MM-DD», которые пропускаем.
+  skipDates           String[]      @default([])
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  offers Offer[]
+
+  @@index([businessId])
+  @@index([isActive])
+  @@map("offer_schedules")
 }
 
 model Order {
@@ -168,9 +262,18 @@ model Order {
   /// PIN самовывоза — показывается пользователю, сверяется заведением при выдаче.
   pickupCode           String      @unique
   createdAt            DateTime    @default(now())
+  /// Момент, когда заведение подтвердило заказ (см. "Принять заказ" в панели бизнеса) —
+  /// до этого пользователь ещё может отменить (orders.service.ts cancel()), после — уже нет.
+  acceptedAt           DateTime?
   completedAt          DateTime?
   /// Когда отправлено напоминание "забери за 30 минут" — чтобы шедулер не слал повторно.
   pickupReminderSentAt DateTime?
+  /// Покупатель подтвердил, что получил заказ, — после того как заведение отметило выдачу (completedAt).
+  receiptConfirmedAt   DateTime?
+  /// Покупатель сообщил, что заказ не получен/получен не так; спор разбирает платформа.
+  receiptDisputedAt    DateTime?
+  receiptDisputeReason ReceiptDisputeReason?
+  receiptDisputeNote   String?
 
   ecoTransaction EcoTransaction?
   payment        Payment?
@@ -178,6 +281,7 @@ model Order {
   @@index([userId])
   @@index([businessId])
   @@index([status, createdAt])
+  @@index([receiptDisputedAt])
   @@map("orders")
 }
 
@@ -253,4 +357,17 @@ model BusinessApplication {
 
   @@index([status])
   @@map("business_applications")
+}
+
+/// Синглтон-строка (id всегда 1) — платформенные настройки, редактируемые из admin,
+/// а не заданные на деплое через .env (в отличие от остального конфига в env.validation.ts):
+/// это бизнес-параметр, который платформа регулирует сама по ходу пилота (ШАГ 0 брифа).
+model PlatformSettings {
+  id              Int      @id @default(1)
+  /// Сколько дней после онбординга заведение не платит комиссию (platformFee = 0 на
+  /// orders.service.ts). Снимок берётся в Business.trialEndsAt в момент онбординга.
+  trialPeriodDays Int      @default(25)
+  updatedAt       DateTime @updatedAt
+
+  @@map("platform_settings")
 }

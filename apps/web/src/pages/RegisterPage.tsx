@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { Smartphone, CheckCircle2 } from "lucide-react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Smartphone } from "lucide-react";
 import { authApi } from "../api/auth";
 import { ApiError } from "../api/client";
-import { rememberSession } from "../utils/session";
+import { authActions, useAuth } from "../store/auth";
+import { getReturnPath } from "../utils/returnPath";
 import { formatRuPhoneInput, isValidEmail, isValidPhone, getPasswordError } from "../utils/validation";
 import { PasswordStrengthMeter } from "../components/PasswordStrengthMeter";
-import { IconBadge } from "../components/IconBadge";
+import { BackButton } from "../components/BackButton";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
 export function RegisterPage() {
+  usePageTitle("Регистрация — Appetite");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +31,9 @@ export function RegisterPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => () => { if (cooldownRef.current) clearInterval(cooldownRef.current); }, []);
@@ -101,14 +106,13 @@ export function RegisterPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const data = await authApi.register({
+      await authActions.register({
         name: name.trim(),
         email,
         password,
         phone: phoneEnabled && phoneVerified ? phone : undefined,
       });
-      rememberSession(data.user, data);
-      setDone(data.user.name);
+      navigate(getReturnPath(location), { replace: true });
     } catch (error) {
       setSubmitError(error instanceof ApiError ? error.message : "Не удалось зарегистрироваться");
     } finally {
@@ -116,26 +120,11 @@ export function RegisterPage() {
     }
   };
 
-  if (done) {
-    return (
-      <div className="auth-page">
-        <div className="card auth-card" style={{ textAlign: "center" }}>
-          <IconBadge icon={CheckCircle2} size="xl" />
-          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>Добро пожаловать, {done}!</h1>
-          <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
-            Аккаунт создан{phoneEnabled && phoneVerified ? " и телефон подтверждён" : ""}. Сам
-            сервис — в мобильном приложении Appetite, сайт пока только для входа/регистрации.
-          </p>
-          <Link to="/" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
-            На главную
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (user && !submitting) return <Navigate to={getReturnPath(location)} replace />;
 
   return (
     <div className="auth-page">
+      <BackButton />
       <form className="card auth-card" onSubmit={(event) => void handleSubmit(event)}>
         <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Регистрация</h1>
         <p style={{ color: "var(--color-ink-muted)", fontSize: 14, marginBottom: 24 }}>

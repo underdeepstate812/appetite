@@ -1,0 +1,32 @@
+{
+  "name": "@apetite/demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Автономное демо: подменяет fetch к API на встроенный in-memory backend — сайт, кабинет и мобильная версия работают на GitHub Pages без сервера.",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && tsc -p tsconfig.esm.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@apetite/shared": "workspace:*",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/qrcode": "^1.5.6",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.6.3"
+  }
+}

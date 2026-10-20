@@ -1,39 +1,64 @@
-import React, { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, Text } from "react-native";
+import Receipt from "lucide-react-native/icons/receipt-text";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
-import type { Order, OrderStatus } from "@apetite/shared";
+import type { Order } from "@apetite/shared";
 import { ordersApi } from "../../api/orders";
+import { isNetworkError, isServerUnavailable } from "../../api/client";
+import { useAuthStore } from "../../store/authStore";
+import { loadOrders, saveOrders } from "../../utils/ordersCache";
 import { useTheme } from "../../theme/ThemeProvider";
+import { seedOrderLabels, snapshotOrderLabels, useOrderLabels } from "../../hooks/useOrderLabels";
 import { Screen } from "../../components/Screen";
-import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
+import { OrderRow } from "../../components/OrderRow";
+import { OfflineNotice } from "../../components/OfflineNotice";
+import { ErrorView } from "../../components/StateViews";
+import { EmptyState, OfflineState } from "../../components/kit/EmptyState";
+import { OrdersListSkeleton } from "../../components/kit/Skeleton";
 import type { MainTabScreenProps } from "../../navigation/types";
 
 type Props = MainTabScreenProps<"Orders">;
-
-const STATUS_COLOR: Record<OrderStatus, "primary" | "success" | "danger" | "textMuted"> = {
-  CONFIRMED: "primary",
-  COMPLETED: "success",
-  CANCELLED: "danger",
-  EXPIRED: "textMuted",
-};
 
 export function OrdersScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offlineError, setOfflineError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  /** Не null — список показан из сохранённой копии (время её создания), потому что сервер недоступен. */
+  const [offlineSavedAt, setOfflineSavedAt] = useState<string | null>(null);
+  const labels = useOrderLabels(orders);
+  const openOrder = useCallback((orderId: string) => navigation.navigate("OrderDetail", { orderId }), [navigation]);
 
   const load = useCallback(async () => {
     setError(null);
+    setOfflineError(false);
     try {
       const data = await ordersApi.list();
       setOrders(data);
+      setOfflineSavedAt(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : t("common.error"));
+      // Путь к билету идёт через этот список: без связи показываем сохранённый, а не пустую ошибку.
+      const saved = isServerUnavailable(loadError) ? await loadOrders(userId) : null;
+      if (saved) {
+        seedOrderLabels(saved.titles, saved.venues);
+        setOrders(saved.orders);
+        setOfflineSavedAt(saved.savedAt);
+      } else {
+        setError(loadError instanceof Error ? loadError.message : t("common.error"));
+        setOfflineError(isNetworkError(loadError));
+      }
     }
-  }, [t]);
+  }, [t, userId]);
+
+  // Свежий список (вместе с подписями) — в сохранённую копию. Из самой копии заново не пишем: это стёрло бы время сохранения.
+  useEffect(() => {
+    if (!orders || offlineSavedAt || labels.pending || !userId) return;
+    void saveOrders({ userId, savedAt: new Date().toISOString(), orders, ...snapshotOrderLabels(orders) });
+  }, [orders, offlineSavedAt, labels.pending, labels.version, userId]);
 
   // Перезагружаем при каждом возврате на экран — важно после отмены/выдачи заказа.
   useFocusEffect(
@@ -48,10 +73,12 @@ export function OrdersScreen({ navigation }: Props) {
     setRefreshing(false);
   };
 
+  // Загрузка — заглушки в форме строк заказа (а не спиннер): после загрузки ничего не «прыгает».
   if (orders === null && !error) {
     return (
       <Screen>
-        <LoadingView label={t("common.loading")} />
+        <Text style={[theme.typography.h1, { color: theme.colors.text, marginBottom: theme.spacing.md }]}>{t("orders.title")}</Text>
+        <OrdersListSkeleton label={t("common.loading")} />
       </Screen>
     );
   }
@@ -61,40 +88,25 @@ export function OrdersScreen({ navigation }: Props) {
       <Text style={[theme.typography.h1, { color: theme.colors.text, marginBottom: theme.spacing.md }]}>
         {t("orders.title")}
       </Text>
+      {offlineSavedAt ? <OfflineNotice kind="list" savedAt={offlineSavedAt} onRetry={() => void load()} /> : null}
       {error ? (
-        <ErrorView label={error} />
+        offlineError ? <OfflineState onRetry={() => void load()} /> : <ErrorView label={error} onRetry={() => void load()} />
       ) : (
         <FlatList
           data={orders ?? []}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          ListEmptyComponent={<EmptyView label={t("orders.empty")} />}
+          ListEmptyComponent={
+            <EmptyState
+              icon={(color) => <Receipt size={30} color={color} strokeWidth={2.1} />}
+              title={t("states.ordersEmptyTitle")}
+              description={t("states.ordersEmptyHint")}
+              action={{ label: t("states.ordersEmptyCta"), onPress: () => navigation.navigate("Home") }}
+            />
+          }
           contentContainerStyle={orders && orders.length === 0 ? styles.grow : undefined}
           renderItem={({ item }) => (
-            <Pressable
-              onPress={() => navigation.navigate("OrderDetail", { orderId: item.id })}
-              style={({ pressed }) => [
-                styles.card,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: theme.radii.md,
-                  marginBottom: theme.spacing.sm,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              <View style={styles.row}>
-                <Text style={[theme.typography.bodyBold, { color: theme.colors.text }]}>
-                  {(item.totalPrice / 100).toFixed(0)} ₽ · x{item.quantity}
-                </Text>
-                <Text style={[theme.typography.caption, { color: theme.colors[STATUS_COLOR[item.status]] }]}>
-                  {t(`orders.status.${item.status}`)}
-                </Text>
-              </View>
-              <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginTop: 4 }]}>
-                {new Date(item.createdAt).toLocaleString("ru-RU")}
-              </Text>
-            </Pressable>
+            <OrderRow order={item} title={labels.titleOf(item)} venue={labels.venueOf(item)} loading={labels.pending} onPress={openOrder} />
           )}
         />
       )}
@@ -102,8 +114,4 @@ export function OrdersScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { padding: 14 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  grow: { flexGrow: 1 },
-});
+const styles = StyleSheet.create({ grow: { flexGrow: 1 } });

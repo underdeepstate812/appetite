@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000/api/v1";
 
 // Origin бэкенда (без /api/v1) — статику (/uploads/...) backend отдаёт вне
@@ -19,6 +21,23 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+/**
+ * fetch бросает TypeError ("Failed to fetch" / "Network request failed"), когда до сервера не дошли:
+ * нет сети, сервер лежит, CORS. Пользователю это сообщение ничего не говорит, поэтому превращаем
+ * его в ApiError со statusCode 0 и понятным текстом (isNetworkError() отличает его от ответов сервера).
+ */
+export function isNetworkError(error: unknown): boolean {
+  return error instanceof ApiError && error.statusCode === 0;
+}
+
+/**
+ * «Сервер недоступен»: нет сети или он упал (5xx). Только в этих случаях можно показывать сохранённую копию вместо ответа;
+ * 404/403 — это ответ сервера («заказа нет», «чужой заказ»), его копией прикрывать нельзя.
+ */
+export function isServerUnavailable(error: unknown): boolean {
+  return isNetworkError(error) || (error instanceof ApiError && error.statusCode >= 500);
 }
 
 interface BackendErrorBody {
@@ -59,15 +78,20 @@ async function request<T>(path: string, options: RequestOptions = {}, isRetry = 
   // с правильным multipart boundary, задать его вручную здесь и сломать нельзя.
   const isFormData = body instanceof FormData;
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...rest,
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...rest,
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(0, i18n.t("common.networkError"));
+  }
 
   if (response.status === 401 && auth && !isRetry) {
     const refreshed = await refreshTokens();

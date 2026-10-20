@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { BusinessStatusBadge } from "../components/StatusBadge";
 import { LoadingView, EmptyView, ErrorView } from "../components/StateViews";
 import { OnboardBusinessModal } from "../components/OnboardBusinessModal";
+import { TrialSettingsCard } from "../components/TrialSettingsCard";
 import { CATEGORY_LABELS } from "../constants";
 
 export function PlatformBusinessesPage() {
@@ -46,6 +47,8 @@ export function PlatformBusinessesPage() {
         </button>
       </div>
 
+      <TrialSettingsCard />
+
       {error ? (
         <ErrorView label={error} />
       ) : businesses === null ? (
@@ -63,6 +66,7 @@ export function PlatformBusinessesPage() {
                 <th>Комиссия</th>
                 <th>Выдано заказов</th>
                 <th>Выручка</th>
+                <th>Доход платформы</th>
                 <th />
               </tr>
             </thead>
@@ -101,6 +105,8 @@ function BusinessRow({
   const [commission, setCommission] = useState(String(business.commissionPercent));
   const [saving, setSaving] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
+
+  const inTrial = business.trialEndsAt !== null && new Date(business.trialEndsAt) > new Date();
 
   const handleSaveCommission = async () => {
     setSaving(true);
@@ -159,13 +165,26 @@ function BusinessRow({
             {rowError ? <span className="form-error" style={{ fontSize: 12 }}>{rowError}</span> : null}
           </div>
         ) : (
-          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
-            {business.commissionPercent}%
-          </button>
+          <div className="stack" style={{ gap: 4 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
+              {business.commissionPercent}%
+            </button>
+            {inTrial ? (
+              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                пробный период до {formatDate(business.trialEndsAt!)}
+              </span>
+            ) : null}
+          </div>
         )}
       </td>
       <td>{business.ordersCompleted}</td>
       <td>{(business.revenue / 100).toFixed(0)} ₽</td>
+      <td>
+        <span style={{ fontWeight: 600 }}>{(business.platformFee / 100).toFixed(0)} ₽</span>
+        {inTrial ? (
+          <span style={{ display: "block", fontSize: 11, color: "var(--color-text-muted)" }}>подключение бесплатно</span>
+        ) : null}
+      </td>
       <td>
         <button
           className={business.status === "SUSPENDED" ? "btn btn-secondary btn-sm" : "btn btn-danger btn-sm"}
@@ -176,4 +195,8 @@ function BusinessRow({
       </td>
     </tr>
   );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
 }

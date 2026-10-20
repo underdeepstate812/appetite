@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { MapPin } from "lucide-react";
 import { OfferCategory } from "@apetite/shared";
 import { Modal } from "./Modal";
+import { AddressField } from "./AddressField";
 import { businessesApi } from "../api/businesses";
 import { ApiError } from "../api/client";
 import { CATEGORY_LABELS } from "../constants";
@@ -9,6 +11,11 @@ interface OnboardBusinessModalProps {
   onClose: () => void;
   onSaved: () => void;
 }
+
+// Санкт-Петербург (пилотный город, см. apps/web PhoneMockup.tsx / apps/mobile useLocation.ts) —
+// дефолт для точки на карте, пока адрес не выбран из подсказок геокодера.
+const DEFAULT_LAT = 59.9311;
+const DEFAULT_LNG = 30.3609;
 
 /**
  * Ручной онбординг (ШАГ 0/11): один запрос создаёт и владельца (роль BUSINESS),
@@ -21,8 +28,8 @@ export function OnboardBusinessModal({ onClose, onSaved }: OnboardBusinessModalP
   const [name, setName] = useState("");
   const [category, setCategory] = useState<OfferCategory>(OfferCategory.FOOD);
   const [address, setAddress] = useState("");
-  const [lat, setLat] = useState("55.7558");
-  const [lng, setLng] = useState("37.6173");
+  const [lat, setLat] = useState(DEFAULT_LAT);
+  const [lng, setLng] = useState(DEFAULT_LNG);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +45,8 @@ export function OnboardBusinessModal({ onClose, onSaved }: OnboardBusinessModalP
         name,
         category,
         address,
-        lat: Number(lat),
-        lng: Number(lng),
+        lat,
+        lng,
       });
       onSaved();
     } catch (submitError) {
@@ -68,21 +75,20 @@ export function OnboardBusinessModal({ onClose, onSaved }: OnboardBusinessModalP
           </select>
         </div>
 
-        <div className="field">
-          <label htmlFor="address">Адрес</label>
-          <input id="address" value={address} onChange={(event) => setAddress(event.target.value)} required />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div className="field">
-            <label htmlFor="lat">Широта</label>
-            <input id="lat" type="number" step="0.000001" value={lat} onChange={(event) => setLat(event.target.value)} required />
-          </div>
-          <div className="field">
-            <label htmlFor="lng">Долгота</label>
-            <input id="lng" type="number" step="0.000001" value={lng} onChange={(event) => setLng(event.target.value)} required />
-          </div>
-        </div>
+        <AddressField
+          address={address}
+          lat={lat}
+          lng={lng}
+          onChange={(next) => {
+            setAddress(next.address);
+            setLat(next.lat);
+            setLng(next.lng);
+          }}
+        />
+        <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: -8 }}>
+          Выбери адрес из подсказок или нажми <MapPin size={12} style={{ verticalAlign: -2 }} aria-hidden="true" /> рядом
+          с полем, чтобы уточнить точку на карте вручную.
+        </p>
 
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 4 }}>Учётная запись владельца</p>
 

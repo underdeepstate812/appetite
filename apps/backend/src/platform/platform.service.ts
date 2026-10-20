@@ -7,9 +7,28 @@ import { PrismaService } from "../prisma/prisma.service";
 // здесь, т.к. номинальные enum'ы Prisma (@prisma/client) и shared — разные типы
 // при одинаковых строковых значениях; то же соглашение, что и в остальных сервисах
 // (businesses.service.ts и др. возвращают Prisma-типы без явных shared-аннотаций).
+const DEFAULT_TRIAL_PERIOD_DAYS = 25;
+
 @Injectable()
 export class PlatformService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Синглтон-строка (id=1) — читаем-или-создаём с дефолтом, отдельного сида не требует. */
+  async getSettings() {
+    const existing = await this.prisma.platformSettings.findUnique({ where: { id: 1 } });
+    if (existing) return existing;
+    return this.prisma.platformSettings.create({
+      data: { id: 1, trialPeriodDays: DEFAULT_TRIAL_PERIOD_DAYS },
+    });
+  }
+
+  async updateSettings(trialPeriodDays: number) {
+    return this.prisma.platformSettings.upsert({
+      where: { id: 1 },
+      create: { id: 1, trialPeriodDays },
+      update: { trialPeriodDays },
+    });
+  }
 
   async listBusinesses() {
     const [businesses, orderAgg] = await Promise.all([
@@ -36,13 +55,14 @@ export class PlatformService {
         ordersCompleted: agg?._count._all ?? 0,
         revenue: agg?._sum.totalPrice ?? 0,
         platformFee: agg?._sum.platformFee ?? 0,
+        trialEndsAt: business.trialEndsAt?.toISOString() ?? null,
         createdAt: business.createdAt.toISOString(),
       };
     });
   }
 
   async getStats() {
-    const [businessesByStatus, activeOffersCount, ordersByStatus, revenueAgg, ecoAgg] = await Promise.all([
+    const [businessesByStatus, activeOffersCount, ordersByStatus, revenueAgg, ecoAgg, disputedOrders] = await Promise.all([
       this.prisma.business.groupBy({ by: ["status"], _count: { _all: true } }),
       this.prisma.offer.count({ where: { status: OfferStatus.ACTIVE } }),
       this.prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
@@ -51,6 +71,7 @@ export class PlatformService {
         _sum: { totalPrice: true, platformFee: true },
       }),
       this.prisma.ecoTransaction.aggregate({ _sum: { weightSavedKg: true } }),
+      this.prisma.order.count({ where: { receiptDisputedAt: { not: null } } }),
     ]);
 
     const countBusinesses = (status: BusinessStatus) =>
@@ -69,6 +90,7 @@ export class PlatformService {
       completedOrders: countOrders(OrderStatus.COMPLETED),
       cancelledOrders: countOrders(OrderStatus.CANCELLED),
       expiredOrders: countOrders(OrderStatus.EXPIRED),
+      disputedOrders,
       gmv: revenueAgg._sum.totalPrice ?? 0,
       platformRevenue: revenueAgg._sum.platformFee ?? 0,
       weightSavedKg: ecoAgg._sum.weightSavedKg ?? 0,

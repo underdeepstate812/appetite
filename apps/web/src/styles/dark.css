@@ -1,0 +1,87 @@
+/*
+ * Тёмная тема (профиль → «Тема оформления»). Переменные переопределяются по [data-theme="dark"], которую ставит store/theme.ts
+ * (и инлайн-скрипт в index.html до первой отрисовки). Палитра — та же, что у мобильного приложения: бирюзово-чёрный фон, мятный акцент;
+ * ember/«жар» остаются как есть — они и так работают на тёмном (бейджи «Горит», скидки).
+ * Ниже — только то, что нельзя выразить переменными: стеклянные панели с жёстко заданной светлой полупрозрачностью.
+ */
+
+:root[data-theme="dark"] {
+  --color-primary: #2dd4bf;
+  --color-primary-dark: #5eead4;
+  --color-primary-soft: #12332f;
+  --color-background: #0b1110;
+  --color-surface: #121a19;
+  --color-surface-elevated: #18221f;
+  --color-ink: #edf5f3;
+  --color-ink-muted: #93a7a2;
+  --color-border: rgba(237, 245, 243, 0.14);
+  --color-danger: #f0665a;
+  --color-danger-soft: rgba(240, 102, 90, 0.14);
+  --color-danger-ink: #ff9f94;
+  /* Текст на мятной заливке — тёмный: белый на #2dd4bf не читается. */
+  --color-on-primary: #052e2b;
+  /* Тёмные панели чуть приподняты над страницей, иначе они сливаются с фоном. */
+  --panel-dark: #1a2623;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 10px 28px rgba(45, 212, 191, 0.18);
+}
+
+/* Стекло: шапка, меню, выпадающие списки — тёмное, а не молочное. */
+:root[data-theme="dark"] .site-header-inner,
+:root[data-theme="dark"] .mobile-menu,
+:root[data-theme="dark"] .select-panel {
+  background: rgba(18, 26, 25, 0.82);
+  border-color: rgba(237, 245, 243, 0.1);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+:root[data-theme="dark"] .mobile-menu::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
+}
+:root[data-theme="dark"] .mobile-menu-link:hover,
+:root[data-theme="dark"] .mobile-menu-link:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .mobile-menu-inner .account-sep {
+  background: rgba(237, 245, 243, 0.12);
+}
+:root[data-theme="dark"] .offer-tile-photo-plate,
+:root[data-theme="dark"] .offer-tile-photo.is-hot .offer-tile-photo-plate {
+  background: rgba(24, 34, 31, 0.7);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+:root[data-theme="dark"] .ribbon-fade-left {
+  background: linear-gradient(90deg, var(--color-background), rgba(11, 17, 16, 0));
+}
+:root[data-theme="dark"] .ribbon-fade-right {
+  background: linear-gradient(270deg, var(--color-background), rgba(11, 17, 16, 0));
+}
+:root[data-theme="dark"] .btn-secondary {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .user-menu-panel {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme="dark"] .account-avatar-dot {
+  box-shadow: 0 0 0 2px var(--color-surface-elevated);
+}
+:root[data-theme="dark"] .account-badge {
+  background: #3a2114;
+  color: #ff8a3d;
+}
+:root[data-theme="dark"] .hamburger-btn.has-attention::after {
+  box-shadow: 0 0 0 2px var(--color-background);
+}
+:root[data-theme="dark"] .account-item.is-quiet:hover,
+:root[data-theme="dark"] .account-item.is-quiet:focus-visible {
+  color: #ff9f94;
+  background: rgba(240, 102, 90, 0.14);
+}
+:root[data-theme="dark"] .skeleton,
+:root[data-theme="dark"] .order-card-title.is-loading {
+  background: linear-gradient(90deg, var(--color-surface) 0%, #1b2724 50%, var(--color-surface) 100%);
+  background-size: 200% 100%;
+}
+/* Карта и фото остаются «как есть»; лёгкое затемнение плиток карты, чтобы не слепили на тёмной странице. */
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(0.82) contrast(1.05) saturate(0.9);
+}

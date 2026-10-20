@@ -7,7 +7,7 @@ export function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
   const error = useAuthStore((state) => state.error);
-  const [email, setEmail] = useState("cafe.pushkin@apetite.ru");
+  const [email, setEmail] = useState(import.meta.env.DEV ? "cafe.pushkin@apetite.ru" : "");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (event: FormEvent) => {
@@ -25,13 +25,13 @@ export function LoginPage() {
     <div style={wrapperStyle}>
       <form onSubmit={(event) => void handleSubmit(event)} className="card stack" style={{ width: 360, padding: 32, gap: 16 }}>
         <div>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>Appetite</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--color-primary)" }}>Appetite</h1>
           <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 4 }}>Вход для бизнеса и платформы</p>
         </div>
 
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </div>
 
         <div className="field">
@@ -39,6 +39,7 @@ export function LoginPage() {
           <input
             id="password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
@@ -51,9 +52,11 @@ export function LoginPage() {
           {isLoading ? "Входим..." : "Войти"}
         </button>
 
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-          Демо-доступ: cafe.pushkin@apetite.ru (бизнес) или admin@apetite.ru (платформа) / password123
-        </p>
+        {import.meta.env.DEV ? (
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+            Демо-доступ: cafe.pushkin@apetite.ru (бизнес) или admin@apetite.ru (платформа) / password123
+          </p>
+        ) : null}
       </form>
     </div>
   );

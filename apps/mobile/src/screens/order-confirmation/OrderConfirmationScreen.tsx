@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { Offer, Order } from "@apetite/shared";
-import { offersApi } from "../../api/offers";
-import { ordersApi } from "../../api/orders";
 import { useTheme } from "../../theme/ThemeProvider";
+import { useNow } from "../../hooks/useNow";
+import { playHaptic } from "../../utils/haptics";
+import { hasCelebrated, markCelebrated } from "../../utils/celebration";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { Screen } from "../../components/Screen";
 import { Button } from "../../components/Button";
+import { AcceptedBadge } from "../../components/AcceptedBadge";
 import { OrderStatusTimeline } from "../../components/OrderStatusTimeline";
+import { PickupTicket } from "../../components/PickupTicket";
+import { VenueCard } from "../../components/VenueCard";
+import { SupportLink } from "../../components/support/SupportLink";
+import { OfflineNotice } from "../../components/OfflineNotice";
+import { useTicket } from "../../hooks/useTicket";
 import { LoadingView, ErrorView } from "../../components/StateViews";
+import { OfflineState } from "../../components/kit/EmptyState";
 import type { RootStackScreenProps } from "../../navigation/types";
 
 type Props = RootStackScreenProps<"OrderConfirmation">;
@@ -17,33 +25,20 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
   const { orderId } = route.params;
   const { t } = useTranslation();
   const theme = useTheme();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [offer, setOffer] = useState<Offer | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const now = useNow(15000);
+  const ticket = useTicket(orderId);
+  const { order, offer, qrCodeDataUrl } = ticket;
+  const reducedMotion = useReducedMotion();
+  // Праздник один раз на заказ: при повторном заходе билет просто показывается, без "печати".
+  const celebrate = useRef(!hasCelebrated(orderId)).current;
 
+  // Заказ принят: "успешно", затем три тика в такт клавишам PIN и мягкое "осело" (см. HAPTIC_SCORES.accepted).
+  const ready = !!order && !!offer && !!qrCodeDataUrl;
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [orderData, qr] = await Promise.all([ordersApi.get(orderId), ordersApi.getQrCode(orderId)]);
-        const offerData = await offersApi.get(orderData.offerId);
-        if (!cancelled) {
-          setOrder(orderData);
-          setQrCodeDataUrl(qr.qrCodeDataUrl);
-          setOffer(offerData);
-        }
-      } catch (loadError) {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : t("common.error"));
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [orderId, t]);
+    if (!ready || !celebrate || hasCelebrated(orderId)) return;
+    markCelebrated(orderId);
+    playHaptic(reducedMotion ? "success" : "accepted");
+  }, [ready, celebrate, orderId, reducedMotion]);
 
   const handleDone = () => {
     // Сбрасываем весь стек (OfferDetail → OrderConfirmation), а не просто "назад" —
@@ -54,10 +49,10 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
     });
   };
 
-  if (error) {
+  if (ticket.status === "error") {
     return (
       <Screen>
-        <ErrorView label={error} />
+        {ticket.networkError ? <OfflineState onRetry={ticket.reload} /> : <ErrorView label={ticket.error ?? t("common.error")} onRetry={ticket.reload} />}
       </Screen>
     );
   }
@@ -70,47 +65,48 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
     );
   }
 
+  const windowOpen = now >= new Date(offer.pickupStart).getTime();
+  const endLabel = new Date(offer.pickupEnd).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <Screen scroll>
-      <Text style={[theme.typography.h1, { color: theme.colors.text, textAlign: "center" }]}>
-        {t("orderConfirmation.title")}
-      </Text>
-      <Text
-        style={[
-          theme.typography.body,
-          { color: theme.colors.textMuted, textAlign: "center", marginTop: theme.spacing.xs },
-        ]}
-      >
+    <Screen scroll ambient>
+      {ticket.offline ? <OfflineNotice kind="ticket" savedAt={ticket.savedAt} onRetry={ticket.reload} /> : null}
+      <View style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.md }}>
+        <AcceptedBadge />
+      </View>
+      <Text style={[theme.typography.h1, { color: theme.colors.text, textAlign: "center" }]}>{t("orderConfirmation.title")}</Text>
+      <Text style={[theme.typography.body, { color: theme.colors.textMuted, textAlign: "center", marginTop: theme.spacing.xs }]}>
         {t("orderConfirmation.subtitle")}
       </Text>
 
-      <OrderStatusTimeline pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} />
+      <OrderStatusTimeline pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} acceptedAt={order.acceptedAt} />
 
-      <View style={styles.qrWrapper}>
-        <Image source={{ uri: qrCodeDataUrl }} style={styles.qrImage} />
+      <View style={{ marginTop: theme.spacing.sm }}>
+        <PickupTicket
+          entrance={celebrate}
+          ready={windowOpen}
+          qrCodeDataUrl={qrCodeDataUrl}
+          pickupCode={order.pickupCode}
+          codeLabel={t("orderConfirmation.pickupCodeLabel")}
+          footnote={`${t("orderConfirmation.pickupWindowLabel")}: ${endLabel}`}
+        />
       </View>
 
-      <View style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radii.md }]}>
-        <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
-          {t("orderConfirmation.pickupCodeLabel")}
-        </Text>
-        <Text style={[styles.pickupCode, { color: theme.colors.text }]}>{order.pickupCode}</Text>
-        <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginTop: theme.spacing.sm }]}>
-          {t("orderConfirmation.pickupWindowLabel")}:{" "}
-          {new Date(offer.pickupEnd).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-        </Text>
-      </View>
+      <VenueCard state={ticket.venueState} onRetry={ticket.reload} pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} />
+
+      <SupportLink
+        order={{
+          id: order.id,
+          title: offer.title,
+          venue: ticket.venue?.name,
+          totalPrice: order.totalPrice,
+          createdAt: order.createdAt,
+        }}
+      />
 
       <View style={{ marginTop: theme.spacing.xl }}>
-        <Button title={t("orderConfirmation.doneButton")} onPress={handleDone} />
+        <Button title={t("orderConfirmation.doneButton")} onPress={handleDone} arrow />
       </View>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  qrWrapper: { alignItems: "center", marginVertical: 24 },
-  qrImage: { width: 220, height: 220 },
-  card: { padding: 16, alignItems: "center" },
-  pickupCode: { fontSize: 32, fontWeight: "800", letterSpacing: 4, marginTop: 4 },
-});

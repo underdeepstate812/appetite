@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { OfferStatus, OrderStatus } from "@prisma/client";
-import { computeDiscountPercent } from "@apetite/shared";
+import { currentDiscountPercent } from "@apetite/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 export interface SchedulerRunResult {
@@ -54,7 +54,8 @@ export class DiscountSchedulerService {
         continue;
       }
 
-      const discountPercent = computeDiscountPercent(offer.baseDiscountPercent, hoursToEnd);
+      // FIXED-оффер держит скидку владельца всё окно: здесь его только архивируем по концу (выше), но не пересчитываем.
+      const discountPercent = currentDiscountPercent(offer.discountMode, offer.baseDiscountPercent, hoursToEnd);
       if (discountPercent !== offer.discountPercent) {
         const discountedPrice = Math.round((offer.originalPrice * (100 - discountPercent)) / 100);
         await this.prisma.offer.update({

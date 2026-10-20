@@ -34,9 +34,9 @@ export function Layout() {
   const navItems = isAdmin ? ADMIN_NAV_ITEMS : BUSINESS_NAV_ITEMS;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <aside style={sidebarStyle}>
-        <div style={{ padding: "20px 20px 8px" }}>
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <AppetiteMark size={22} />
             <p style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)" }}>Appetite</p>
@@ -45,7 +45,7 @@ export function Layout() {
             {isAdmin ? "Панель платформы" : "Панель бизнеса"}
           </p>
         </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2, padding: "12px 12px" }}>
+        <nav className="admin-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -62,29 +62,20 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div style={{ marginTop: "auto", padding: 16, borderTop: "1px solid var(--color-border)" }}>
+        <div className="admin-sidebar-footer">
           <p style={{ fontSize: 13, fontWeight: 600 }}>{isAdmin ? user?.name : (business?.name ?? user?.name)}</p>
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>{user?.email}</p>
-          <button className="btn btn-secondary btn-sm" style={{ marginTop: 12, width: "100%" }} onClick={() => void logout()}>
+          <p className="admin-sidebar-email" style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>{user?.email}</p>
+          <button className="btn btn-secondary btn-sm admin-logout" onClick={() => void logout()}>
             Выйти
           </button>
         </div>
       </aside>
-      <main style={{ flex: 1, minWidth: 0, padding: 32, maxWidth: 1100 }}>
+      <main className="admin-main">
         <Outlet />
       </main>
     </div>
   );
 }
-
-const sidebarStyle: React.CSSProperties = {
-  width: 220,
-  flexShrink: 0,
-  display: "flex",
-  flexDirection: "column",
-  background: "var(--color-surface-elevated)",
-  borderRight: "1px solid var(--color-border)",
-};
 
 const navLinkStyle: React.CSSProperties = {
   display: "flex",
@@ -95,4 +86,5 @@ const navLinkStyle: React.CSSProperties = {
   textDecoration: "none",
   fontSize: 14,
   minHeight: 40,
+  whiteSpace: "nowrap",
 };

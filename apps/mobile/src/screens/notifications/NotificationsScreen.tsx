@@ -5,21 +5,31 @@ import { useFocusEffect } from "@react-navigation/native";
 import { NotificationType, type Notification } from "@apetite/shared";
 import { notificationsApi } from "../../api/notifications";
 import { useTheme } from "../../theme/ThemeProvider";
+import MapPin from "lucide-react-native/icons/map-pin";
+import Clock from "lucide-react-native/icons/clock";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import PartyPopper from "lucide-react-native/icons/party-popper";
+import Hourglass from "lucide-react-native/icons/hourglass";
+import CircleX from "lucide-react-native/icons/circle-x";
+import TriangleAlert from "lucide-react-native/icons/triangle-alert";
 import { Screen } from "../../components/Screen";
-import { SegmentedControl } from "../../components/SegmentedControl";
+import { GlassSegmented } from "../../components/kit/GlassSegmented";
 import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
 type Props = RootStackScreenProps<"Notifications">;
 type Filter = "all" | "unread";
 
-const TYPE_ICON: Record<NotificationType, string> = {
-  [NotificationType.NEARBY_OFFERS]: "📍",
-  [NotificationType.PICKUP_REMINDER]: "⏰",
-  [NotificationType.ORDER_CONFIRMED]: "✅",
-  [NotificationType.ORDER_COMPLETED]: "🎉",
-  [NotificationType.ORDER_EXPIRED]: "⌛",
-  [NotificationType.ORDER_CANCELLED]: "❌",
+type ToneKey = "primary" | "ember" | "success" | "warning" | "textMuted";
+
+const TYPE_STYLE: Record<NotificationType, { Icon: typeof MapPin; tone: ToneKey }> = {
+  [NotificationType.NEARBY_OFFERS]: { Icon: MapPin, tone: "primary" },
+  [NotificationType.PICKUP_REMINDER]: { Icon: Clock, tone: "ember" },
+  [NotificationType.ORDER_CONFIRMED]: { Icon: CircleCheck, tone: "primary" },
+  [NotificationType.ORDER_COMPLETED]: { Icon: PartyPopper, tone: "success" },
+  [NotificationType.ORDER_EXPIRED]: { Icon: Hourglass, tone: "warning" },
+  [NotificationType.ORDER_CANCELLED]: { Icon: CircleX, tone: "textMuted" },
+  [NotificationType.RECEIPT_DISPUTED]: { Icon: TriangleAlert, tone: "warning" },
 };
 
 export function NotificationsScreen({ navigation }: Props) {
@@ -69,7 +79,8 @@ export function NotificationsScreen({ navigation }: Props) {
   return (
     <Screen>
       <View style={{ marginBottom: theme.spacing.sm }}>
-        <SegmentedControl
+        <GlassSegmented
+          accessibilityLabel={t("notifications.filterGroup")}
           value={filter}
           onChange={(value) => setFilter(value)}
           options={[
@@ -82,7 +93,7 @@ export function NotificationsScreen({ navigation }: Props) {
       {items === null && !error ? (
         <LoadingView label={t("common.loading")} />
       ) : error ? (
-        <ErrorView label={error} />
+        <ErrorView label={error} onRetry={() => void load(filter)} />
       ) : (
         <FlatList
           data={items ?? []}
@@ -92,23 +103,31 @@ export function NotificationsScreen({ navigation }: Props) {
             <EmptyView label={filter === "unread" ? t("notifications.emptyUnread") : t("notifications.empty")} />
           }
           contentContainerStyle={items && items.length === 0 ? styles.grow : undefined}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const { Icon, tone } = TYPE_STYLE[item.type];
+            const toneColor = theme.colors[tone];
+            return (
             <Pressable
               onPress={() => void handlePress(item)}
               style={({ pressed }) => [
                 styles.card,
                 {
-                  backgroundColor: item.read ? theme.colors.surface : theme.colors.surfaceElevated,
-                  borderRadius: theme.radii.md,
+                  // Непрочитанное "приподнято" (плитка с рамкой и тенью), прочитанное "осело" — плоская строка с нижней линией.
+                  backgroundColor: item.read ? "transparent" : theme.colors.surfaceElevated,
+                  borderRadius: item.read ? 0 : theme.radii.lg,
                   borderWidth: item.read ? 0 : 1,
-                  borderColor: theme.colors.primarySoft,
+                  borderBottomWidth: item.read ? StyleSheet.hairlineWidth : 1,
+                  borderColor: theme.colors.border,
+                  boxShadow: item.read ? undefined : theme.mode === "dark" ? "0 8px 20px -10px rgba(0,0,0,0.7)" : "0 8px 20px -12px rgba(26,22,15,0.25)",
                   marginBottom: theme.spacing.sm,
                   opacity: pressed ? 0.85 : 1,
                 },
               ]}
             >
               <View style={styles.row}>
-                <Text style={styles.icon}>{TYPE_ICON[item.type]}</Text>
+                <View style={[styles.iconWrap, item.read ? { borderWidth: 1, borderColor: theme.colors.border } : { backgroundColor: `${toneColor}${theme.mode === "dark" ? "24" : "1a"}` }]}>
+                  <Icon size={18} color={item.read ? theme.colors.textMuted : toneColor} strokeWidth={2.1} />
+                </View>
                 <View style={styles.body}>
                   <View style={styles.titleRow}>
                     <Text
@@ -120,7 +139,7 @@ export function NotificationsScreen({ navigation }: Props) {
                       {item.title}
                     </Text>
                     {item.read ? null : (
-                      <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
+                      <View style={[styles.dot, { backgroundColor: theme.colors.primary, boxShadow: `0 0 8px ${theme.colors.primary}` }]} />
                     )}
                   </View>
                   <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginTop: 2 }]}>
@@ -132,7 +151,8 @@ export function NotificationsScreen({ navigation }: Props) {
                 </View>
               </View>
             </Pressable>
-          )}
+            );
+          }}
         />
       )}
     </Screen>
@@ -142,9 +162,9 @@ export function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   card: { padding: 14 },
   row: { flexDirection: "row", alignItems: "flex-start" },
-  icon: { fontSize: 20, marginRight: 10, marginTop: 1 },
+  iconWrap: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", marginRight: 12 },
   body: { flex: 1 },
   titleRow: { flexDirection: "row", alignItems: "center" },
-  dot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8 },
+  dot: { width: 9, height: 9, borderRadius: 5, marginLeft: 8 },
   grow: { flexGrow: 1 },
 });

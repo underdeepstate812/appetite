@@ -1,4 +1,4 @@
-import { formatRuPhoneInput, getPasswordError, isValidEmail, isValidPhone } from "./validation";
+import { formatRuPhoneInput, getPasswordChecks, getPasswordError, isValidEmail, isValidPhone } from "./validation";
 
 describe("isValidEmail", () => {
   it("accepts a plausible email", () => {
@@ -77,5 +77,27 @@ describe("getPasswordError", () => {
 
   it("accepts Cyrillic letters as valid letter characters", () => {
     expect(getPasswordError("Пароль1!")).toBeNull();
+  });
+});
+
+describe("getPasswordChecks", () => {
+  const ok = (password: string) => Object.fromEntries(getPasswordChecks(password).map((check) => [check.key, check.ok]));
+
+  it("lights up each rule independently as the user types", () => {
+    expect(ok("")).toEqual({ length: false, upper: false, lower: false, digit: false, symbol: false });
+    expect(ok("abc")).toEqual({ length: false, upper: false, lower: true, digit: false, symbol: false });
+    expect(ok("Abcdefg1")).toEqual({ length: true, upper: true, lower: true, digit: true, symbol: false });
+    expect(ok("Abcdefg1!")).toEqual({ length: true, upper: true, lower: true, digit: true, symbol: true });
+  });
+
+  it("understands Cyrillic letters like the backend rule does", () => {
+    expect(ok("Пароль1!x")).toEqual({ length: true, upper: true, lower: true, digit: true, symbol: true });
+  });
+
+  it("agrees with getPasswordError: all checks pass exactly when the password is accepted", () => {
+    for (const password of ["", "abc", "Abcdefg1", "abcdefg1!", "ABCDEFG1!", "Abcdefgh!", "Abcdefg1!", "Пароль1!x"]) {
+      const allOk = getPasswordChecks(password).every((check) => check.ok);
+      expect(allOk).toBe(getPasswordError(password) === null);
+    }
   });
 });

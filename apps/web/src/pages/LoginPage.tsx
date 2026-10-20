@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
-import { authApi } from "../api/auth";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { rememberSession } from "../utils/session";
+import { authActions, useAuth } from "../store/auth";
+import { getReturnPath } from "../utils/returnPath";
 import { formatRuPhoneInput, isValidEmail, isValidPhone } from "../utils/validation";
-import { IconBadge } from "../components/IconBadge";
+import { BackButton } from "../components/BackButton";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 type LoginMode = "email" | "phone";
 
 export function LoginPage() {
+  usePageTitle("Вход — Appetite");
   const [mode, setMode] = useState<LoginMode>("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("+7");
@@ -17,7 +18,9 @@ export function LoginPage() {
   const [identifierTouched, setIdentifierTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const identifier = mode === "email" ? email : phone;
   const identifierValid = mode === "email" ? isValidEmail(email) : isValidPhone(phone);
@@ -40,9 +43,8 @@ export function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const data = await authApi.login({ identifier, password });
-      rememberSession(data.user, data);
-      setDone(data.user.name);
+      await authActions.login({ identifier, password });
+      navigate(getReturnPath(location), { replace: true });
     } catch (submitError) {
       setError(submitError instanceof ApiError ? submitError.message : "Не удалось войти");
     } finally {
@@ -50,26 +52,12 @@ export function LoginPage() {
     }
   };
 
-  if (done) {
-    return (
-      <div className="auth-page">
-        <div className="card auth-card" style={{ textAlign: "center" }}>
-          <IconBadge icon={CheckCircle2} size="xl" />
-          <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16 }}>С возвращением, {done}!</h1>
-          <p style={{ color: "var(--color-ink-muted)", marginTop: 10, lineHeight: 1.6 }}>
-            Вход выполнен. Сам сервис — в мобильном приложении Appetite, сайт пока только
-            для входа/регистрации.
-          </p>
-          <Link to="/" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
-            На главную
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Уже вошёл (открыл /login по закладке или вернулся кнопкой "назад") — форма не нужна.
+  if (user) return <Navigate to={getReturnPath(location)} replace />;
 
   return (
     <div className="auth-page">
+      <BackButton />
       <form className="card auth-card" onSubmit={(event) => void handleSubmit(event)}>
         <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Вход</h1>
         <p style={{ color: "var(--color-ink-muted)", fontSize: 14, marginBottom: 24 }}>
@@ -152,9 +140,11 @@ export function LoginPage() {
             {submitting ? "Входим..." : "Войти"}
           </button>
 
-          <p className="field-hint" style={{ textAlign: "center" }}>
-            Демо-доступ: user@apetite.ru / password123
-          </p>
+          {import.meta.env.DEV ? (
+            <p className="field-hint" style={{ textAlign: "center" }}>
+              Демо-доступ: user@apetite.ru / password123
+            </p>
+          ) : null}
         </div>
       </form>
     </div>

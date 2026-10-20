@@ -8,28 +8,33 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { JwtRefreshGuard } from "../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { RequestUser } from "../common/interfaces/authenticated-request.interface";
+import { AuthRateLimit } from "../common/throttling/auth-rate-limit";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @AuthRateLimit({ identity: 5, ip: 10 })
   @Post("register")
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @AuthRateLimit({ identity: 5, ip: 10 })
   @HttpCode(HttpStatus.OK)
   @Post("otp/request")
   requestOtp(@Body() dto: RequestOtpDto) {
     return this.authService.requestOtp(dto);
   }
 
+  @AuthRateLimit({ identity: 10, ip: 30 })
   @HttpCode(HttpStatus.OK)
   @Post("otp/verify")
   verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto);
   }
 
+  @AuthRateLimit({ identity: 10, ip: 30 })
   @HttpCode(HttpStatus.OK)
   @Post("login")
   login(@Body() dto: LoginDto) {

@@ -1,5 +1,6 @@
 import React from "react";
 import Svg, { Defs, LinearGradient, Stop, Path, Circle } from "react-native-svg";
+import { useUniqueId } from "../../hooks/useUniqueId";
 
 /**
  * Новый фирменный знак (замена эмодзи 🍊 + текстового логотипа) — "жидкая
@@ -13,7 +14,8 @@ import Svg, { Defs, LinearGradient, Stop, Path, Circle } from "react-native-svg"
  * захардкоженным цветом фона.
  */
 export function AppetiteMark({ size = 32 }: { size?: number }) {
-  const gradId = "apetiteMarkGrad";
+  const uid = useUniqueId("mark");
+  const gradId = `${uid}-grad`;
 
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">

@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { OrdersService } from "./orders.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CompleteOrderDto } from "./dto/complete-order.dto";
+import { ConfirmReceiptDto } from "./dto/confirm-receipt.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -37,10 +38,17 @@ export class OrdersController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.USER, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @Patch(":id/cancel")
   cancel(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
     return this.ordersService.cancel(id, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.BUSINESS, Role.ADMIN)
+  @Patch(":id/accept")
+  accept(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return this.ordersService.accept(id, user);
   }
 
   @UseGuards(RolesGuard)
@@ -52,5 +60,17 @@ export class OrdersController {
     @CurrentUser() user: RequestUser
   ) {
     return this.ordersService.complete(id, dto, user);
+  }
+
+  /** Покупатель отвечает после выдачи: «получил» или спор (не получил / не то / качество). */
+  @UseGuards(RolesGuard)
+  @Roles(Role.USER)
+  @Post(":id/receipt")
+  confirmReceipt(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: ConfirmReceiptDto,
+    @CurrentUser() user: RequestUser
+  ) {
+    return this.ordersService.confirmReceipt(id, dto, user);
   }
 }

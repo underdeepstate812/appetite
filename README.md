@@ -8,6 +8,18 @@
 потоков данных и решений/допущений — в [docs/architecture.md](docs/architecture.md).
 Чтобы просто запустить проект — сразу в [docs/SETUP.md](docs/SETUP.md).
 
+## Демо без сервера (GitHub Pages)
+
+Сайт покупателя, мобильная версия (веб-сборка) и кабинет бизнеса можно открыть в браузере без backend и базы: ответы API
+подставляет встроенный слой [`packages/demo`](packages/demo) (те же 59 предложений витрины, демо-покупатель, заведение «Кафе Пушкинъ»
+с историей продаж). Всё хранится только в браузере посетителя.
+
+- Сборка: `bash scripts/build-demo.sh` → `site/` (страница выбора + `web/`, `mobile/`, `admin/`);
+  проверка локально: `python3 qa/qa_demo_pages.py` (поднимает «двойник Pages», открывает три приложения и проходит сценарий заказа).
+- Публикация: workflow [`pages.yml`](.github/workflows/pages.yml) выкладывает `site/` на GitHub Pages при пуше в `main` (или вручную).
+- Данные витрины берутся из сида: `pnpm --filter @apetite/backend demo:export-seed` обновляет `packages/demo/src/seed-data.ts`.
+- Демо-входы: покупатель `user@apetite.ru`, заведение `cafe.pushkin@apetite.ru`, пароль `password123` (только для демо).
+
 ## Стек
 
 | Слой | Технологии |
@@ -349,6 +361,24 @@ smoke-сценария + `pnpm lint` + ручная проверка UI — юн
 
 Каждая команда из гайда прогнана вживую перед публикацией — не переписана с
 чужих слов.
+
+## Резервные копии рабочего дерева
+
+Перед большими переделками (например, интерфейса) можно сохранить снимок **всего, что не в `.gitignore`** — изменённое, новое и
+незакоммиченное — без коммита в вашу ветку и без изменения рабочих файлов. Снимок хранится как скрытая ссылка git
+`refs/backups/<имя>` и как переносимый архив `../appetite-backups/<имя>.tar.gz` (переживёт и потерю `.git`). Папка `img/` не входит.
+
+```bash
+pnpm backup create before-redesign      # сделать снимок
+pnpm backup list                        # показать снимки
+pnpm backup diff before-redesign        # что изменилось с тех пор
+pnpm backup restore before-redesign     # вернуть файлы (перед этим автоматически сохраняется «как сейчас»)
+pnpm backup restore before-redesign --prune   # то же + удалить файлы, созданные после снимка
+pnpm backup delete before-redesign
+```
+
+Тестовый показ новых элементов интерфейса — экран `/ui-lab` в dev-сборке мобильного web (`http://localhost:8081/ui-lab`, вход не нужен);
+в production-сборку он не попадает. Проверка: `python3 qa/qa_mobile_lab.py`.
 
 ## Статус
 
