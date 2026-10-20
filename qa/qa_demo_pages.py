@@ -7,17 +7,20 @@ import os, re, subprocess, sys, time
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-if not os.path.isfile(os.path.join(ROOT, "site", "index.html")):
+if not os.environ.get("DEMO_URL") and not os.path.isfile(os.path.join(ROOT, "site", "index.html")):
     sys.exit("Нет site/: сначала bash scripts/build-demo.sh")
-PORT = int(os.environ.get("DEMO_PORT", "8091")); BASE = "/appetite"; HOST = f"http://localhost:{PORT}{BASE}"
+PORT = int(os.environ.get("DEMO_PORT", "8091")); BASE = "/appetite"
+# DEMO_URL=https://<user>.github.io/appetite — проверить уже опубликованное демо (тогда локальный сервер не нужен).
+REMOTE = os.environ.get("DEMO_URL", "").rstrip("/")
+HOST = REMOTE or f"http://localhost:{PORT}{BASE}"
 OUT = os.environ.get("QA_OUT", "/tmp")
 fails = []
 def check(name, cond, detail=""):
     print(("PASS " if cond else "FAIL ") + name + (" | " + str(detail)[:300] if detail and not cond else ""))
     if not cond: fails.append(name)
 
-server = subprocess.Popen([sys.executable, os.path.join(ROOT, "qa", "serve_pages.py"), str(PORT), BASE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-time.sleep(1.5)
+server = None if REMOTE else subprocess.Popen([sys.executable, os.path.join(ROOT, "qa", "serve_pages.py"), str(PORT), BASE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(0 if REMOTE else 1.5)
 IGNORE_REQ = re.compile(r"tile\.openstreetmap|tiles?\.|googleapis|gstatic|images\.unsplash|yandex|openstreetmap|nominatim|favicon")
 try:
     with sync_playwright() as p:
@@ -133,6 +136,6 @@ try:
         check("нет JS-ошибок", not errs, errs[:3])
         b.close()
 finally:
-    server.terminate()
+    if server: server.terminate()
 
 print(f"\n{'FAILED: ' + str(len(fails)) if fails else 'ALL PASSED'}"); sys.exit(1 if fails else 0)
