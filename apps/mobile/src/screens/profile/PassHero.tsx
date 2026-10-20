@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import Camera from "lucide-react-native/icons/camera";
@@ -12,11 +12,11 @@ import { PASS_INK, PASS_INK_SOFT, PASS_MINT } from "./PassCard";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const RING = 108;
-const STROKE = 4;
+const RING = 92;
+const STROKE = 2;
 const RADIUS = (RING - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const AVATAR = 88;
+const AVATAR = 76;
 
 /**
  * "сентября 2026" / "September 2026". Месяц берём из полной даты (с днём): без дня русская
@@ -71,8 +71,6 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
     Animated.timing(progress, { toValue: Math.min(1, Math.max(0, levelProgress)), duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [levelProgress, progress]);
   const dashOffset = progress.interpolate({ inputRange: [0, 1], outputRange: [CIRCUMFERENCE, 0] });
-  // Голова дуги: угол от 12 часов по часовой стрелке.
-  const headRotate = progress.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
   const handlePick = async () => {
     if (uploading) return;
@@ -106,8 +104,8 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
   const status = error ?? (uploading ? t("profile.avatarUploading") : null);
 
   return (
-    <View>
-      <View style={styles.row}>
+    <View style={styles.root}>
+      <View style={styles.avatarRow}>
         <Pressable
           onPress={() => void handlePick()}
           accessibilityRole="button"
@@ -115,19 +113,12 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
           style={({ pressed }) => [styles.avatarWrap, { opacity: pressed ? 0.88 : 1, cursor: "pointer" }]}
         >
           <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
-            <Defs>
-              <LinearGradient id="levelRing" x1="0" y1="0" x2={RING} y2={RING} gradientUnits="userSpaceOnUse">
-                <Stop offset="0" stopColor="#99f6e4" />
-                <Stop offset="0.6" stopColor="#5eead4" />
-                <Stop offset="1" stopColor="#ffb45c" />
-              </LinearGradient>
-            </Defs>
-            <Circle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke="rgba(255,255,255,0.2)" strokeWidth={STROKE} fill="none" />
+            <Circle cx={RING / 2} cy={RING / 2} r={RADIUS} stroke="rgba(255,255,255,0.22)" strokeWidth={STROKE} fill="none" />
             <AnimatedCircle
               cx={RING / 2}
               cy={RING / 2}
               r={RADIUS}
-              stroke="url(#levelRing)"
+              stroke={PASS_MINT}
               strokeWidth={STROKE}
               strokeLinecap="round"
               fill="none"
@@ -137,9 +128,6 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
               origin={`${RING / 2}, ${RING / 2}`}
             />
           </Svg>
-          <Animated.View style={[styles.headOrbit, { transform: [{ rotate: headRotate }] }]}>
-            <View style={styles.head} />
-          </Animated.View>
 
           <View style={styles.avatar}>
             {uri && !loadFailed ? (
@@ -154,23 +142,27 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
             ) : null}
           </View>
 
-          <View style={styles.camera}>
-            <Camera size={15} color="#0F766E" strokeWidth={2.4} />
+          <View style={styles.cameraHit} pointerEvents="none">
+            <View style={styles.camera}>
+              <Camera size={14} color="#0F766E" strokeWidth={2.4} />
+            </View>
           </View>
         </Pressable>
-
-        <View style={styles.identity}>
+      </View>
+      <View style={styles.identity}>
+        <Text style={[theme.fonts.bold, styles.name]} numberOfLines={2}>
+          {user?.name}
+        </Text>
+        <View style={styles.metaRow}>
           {levelName ? (
-            <Text style={styles.overline} numberOfLines={1}>
-              {levelName.toUpperCase()}
-            </Text>
+            <>
+              <Text style={styles.overline} numberOfLines={1}>
+                {levelName.toUpperCase()}
+              </Text>
+              <View style={styles.dot} />
+            </>
           ) : null}
-          <Text style={[theme.fonts.bold, styles.name]} numberOfLines={2}>
-            {user?.name}
-          </Text>
-          {user?.createdAt ? (
-            <Text style={styles.since}>{t("profile.memberSince", { date: formatMemberSince(user.createdAt, i18n.language) })}</Text>
-          ) : null}
+          {user?.createdAt ? <Text style={styles.since}>{t("profile.memberSince", { date: formatMemberSince(user.createdAt, i18n.language) })}</Text> : null}
         </View>
       </View>
 
@@ -180,7 +172,8 @@ export function PassHero({ levelName, levelProgress = 0 }: PassHeroProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 16 },
+  root: { alignItems: "center" },
+  avatarRow: { alignItems: "center" },
   avatarWrap: { width: RING, height: RING, alignItems: "center", justifyContent: "center" },
   avatar: {
     width: AVATAR,
@@ -192,27 +185,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarImage: { width: AVATAR, height: AVATAR },
-  initial: { fontSize: 34, color: "#0F766E" },
+  initial: { fontSize: 30, color: "#0F766E" },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.42)", alignItems: "center", justifyContent: "center" },
-  // Орбита искры: слой размером с кольцо вращается, искра сидит на его верхней кромке.
-  headOrbit: { position: "absolute", width: RING, height: RING, alignItems: "center" },
-  head: { width: 9, height: 9, borderRadius: 5, marginTop: STROKE / 2 - 4.5, backgroundColor: "#ffe2b8", boxShadow: "0 0 10px 2px rgba(255,180,92,0.9)" },
-  camera: {
-    position: "absolute",
-    right: 2,
-    bottom: 4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-  },
-  identity: { flex: 1, minWidth: 0 },
-  overline: { fontSize: 11, fontWeight: "800", letterSpacing: 1.6, color: PASS_MINT },
-  name: { fontSize: 20, lineHeight: 26, color: PASS_INK, marginTop: 4, letterSpacing: -0.4 },
-  since: { fontSize: 13, color: PASS_INK_SOFT, marginTop: 6 },
-  status: { fontSize: 13, color: PASS_INK_SOFT, marginTop: 14 },
+  // Камера: маленький белый кружок, но область нажатия 44 px (обёртка прозрачная и выступает за кружок).
+  cameraHit: { position: "absolute", right: -10, bottom: -10, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  camera: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" },
+  identity: { alignItems: "center", marginTop: 14, maxWidth: "100%" },
+  name: { fontSize: 20, lineHeight: 24, color: PASS_INK, letterSpacing: -0.4, textAlign: "center" },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  overline: { fontSize: 10.5, fontWeight: "800", letterSpacing: 1.5, color: PASS_MINT },
+  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: "rgba(255,255,255,0.5)" },
+  since: { fontSize: 12.5, color: "rgba(255,255,255,0.86)" },
+  status: { fontSize: 13, color: PASS_INK_SOFT, marginTop: 14, textAlign: "center" },
   statusError: { color: "#FFD9D2" },
 });

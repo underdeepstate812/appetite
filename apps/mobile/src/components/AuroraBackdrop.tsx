@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { contour } from "../utils/contour";
+import { useUniqueId } from "../hooks/useUniqueId";
 
 const TOPO = [
   ...[22, 44, 68, 94, 124, 158].map((r, i) => ({ d: contour(300, 34, r, 0.6), o: 0.13 - i * 0.015 })),
@@ -28,7 +29,7 @@ const BLOBS: BlobSpec[] = [
   { color: "#5eead4", size: 140, left: 90, top: 70, opacity: 0.16, driftX: 16, driftY: 20, period: 15000 },
 ];
 
-function Blob({ spec, still }: { spec: BlobSpec; still: boolean }) {
+function Blob({ spec, still, uid }: { spec: BlobSpec; still: boolean; uid: string }) {
   const drift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -45,7 +46,7 @@ function Blob({ spec, still }: { spec: BlobSpec; still: boolean }) {
 
   const translateX = drift.interpolate({ inputRange: [0, 1], outputRange: [0, spec.driftX] });
   const translateY = drift.interpolate({ inputRange: [0, 1], outputRange: [0, spec.driftY] });
-  const id = `blob${spec.color.slice(1)}`;
+  const id = `${uid}-blob${spec.color.slice(1)}`;
 
   return (
     <Animated.View
@@ -73,20 +74,21 @@ function Blob({ spec, still }: { spec: BlobSpec; still: boolean }) {
  */
 export function AuroraBackdrop() {
   const reduced = useReducedMotion();
+  const uid = useUniqueId("aurora");
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice">
         <Defs>
-          <LinearGradient id="auroraBase" x1="0" y1="0" x2="360" y2="240" gradientUnits="userSpaceOnUse">
+          <LinearGradient id={`${uid}-base`} x1="0" y1="0" x2="360" y2="240" gradientUnits="userSpaceOnUse">
             <Stop offset="0" stopColor="#0c5a53" />
             <Stop offset="1" stopColor="#052e2b" />
           </LinearGradient>
         </Defs>
-        <Rect x="0" y="0" width="360" height="240" fill="url(#auroraBase)" />
+        <Rect x="0" y="0" width="360" height="240" fill={`url(#${uid}-base)`} />
       </Svg>
       {BLOBS.map((spec) => (
-        <Blob key={spec.color} spec={spec} still={reduced} />
+        <Blob key={spec.color} spec={spec} still={reduced} uid={uid} />
       ))}
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice">
         {TOPO.map((line, index) => (

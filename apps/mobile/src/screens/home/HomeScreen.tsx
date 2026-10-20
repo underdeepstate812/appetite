@@ -1,16 +1,21 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { OfferCategory } from "@apetite/shared";
+import { useIsFocused } from "@react-navigation/native";
+import { OfferCategory, isBreakfastOffer } from "@apetite/shared";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useAuthStore } from "../../store/authStore";
 import { useLocation } from "../../hooks/useLocation";
 import { useLocationLabel } from "../../hooks/useLocationLabel";
+import { useNow } from "../../hooks/useNow";
+import { useBreakfastTime } from "../../hooks/useBreakfastTime";
 import { useNearbyOffers, DEFAULT_RADIUS_KM } from "../../hooks/useNearbyOffers";
 import { Screen } from "../../components/Screen";
 import { HomeHeader } from "../../components/HomeHeader";
 import { HomeMapPreview } from "../../components/HomeMapPreview";
-import { SegmentedControl } from "../../components/SegmentedControl";
+import { OfferRibbon } from "../../components/home/OfferRibbon";
+import { ribbonOffers } from "../../utils/ribbon";
+import { GlassSegmented } from "../../components/kit/GlassSegmented";
 import { CategoryFilterBar } from "../../components/CategoryFilterBar";
 import { OfferList } from "../../components/OfferList";
 import { OfferListSkeleton } from "../../components/OfferListSkeleton";
@@ -20,7 +25,7 @@ import { EmptyView, ErrorView } from "../../components/StateViews";
 import type { MainTabScreenProps } from "../../navigation/types";
 
 type Props = MainTabScreenProps<"Home">;
-type Tab = "now" | "evening";
+type Tab = "breakfast" | "now" | "evening";
 
 const CATEGORY_VALUES: OfferCategory[] = [
   OfferCategory.FOOD,
@@ -54,7 +59,22 @@ export function HomeScreen({ navigation }: Props) {
     };
   }, [offers]);
 
-  const visibleOffers = tab === "now" ? nowOffers : eveningOffers;
+  // «Завтрак» — предложения, самовывоз которых закрывается сегодня не позже 10:00. Вкладка живёт только до 10:00 по времени
+  // пилотного города (BREAKFAST_RULES) и исчезает ровно в 10:00, даже если приложение открыто; выбранная в этот момент — возвращает на «Сейчас».
+  const clock = useNow(30_000);
+  const breakfastTime = useBreakfastTime();
+  const breakfastOffers = useMemo(() => (offers ?? []).filter((offer) => isBreakfastOffer(offer, clock)), [offers, clock]);
+  const activeTab: Tab = tab === "breakfast" && !breakfastTime ? "now" : tab;
+  useEffect(() => {
+    if (tab === "breakfast" && !breakfastTime) setTab("now");
+  }, [tab, breakfastTime]);
+
+  const visibleOffers = activeTab === "breakfast" ? breakfastOffers : activeTab === "now" ? nowOffers : eveningOffers;
+
+  // Лента над картой: что можно забрать прямо сейчас; ближайшие первыми, если позиция человека известна, иначе горящие.
+  const focused = useIsFocused();
+  const located = !!location && !location.isFallback && locationStatus === "granted";
+  const ribbon = useMemo(() => ribbonOffers(offers ?? [], Date.now(), located), [offers, located]);
 
   const categoryOptions = [
     { value: undefined, label: t("home.allCategories") },
@@ -84,6 +104,15 @@ export function HomeScreen({ navigation }: Props) {
 
       <LocationPermissionBanner status={locationStatus} onRequest={requestPermission} onOpenSettings={openSettings} />
 
+      {!isInitialLoading && ribbon.length > 0 ? (
+        <OfferRibbon
+          offers={ribbon}
+          active={focused}
+          bleed={theme.spacing.md}
+          onPressOffer={(offer) => navigation.navigate("OfferDetail", { offerId: offer.id })}
+        />
+      ) : null}
+
       {isInitialLoading || !location ? null : (
         <HomeMapPreview
           center={location}
@@ -94,12 +123,14 @@ export function HomeScreen({ navigation }: Props) {
       )}
 
       <View style={{ marginBottom: theme.spacing.sm }}>
-        <SegmentedControl
-          value={tab}
+        <GlassSegmented
+          accessibilityLabel={t("home.timeGroup")}
+          value={activeTab}
           onChange={setTab}
           options={[
-            { value: "now", label: t("home.now") },
-            { value: "evening", label: t("home.evening") },
+            ...(breakfastTime ? [{ value: "breakfast" as const, label: t("home.breakfast") }] : []),
+            { value: "now" as const, label: t("home.now") },
+            { value: "evening" as const, label: t("home.evening") },
           ]}
         />
       </View>
@@ -117,7 +148,7 @@ export function HomeScreen({ navigation }: Props) {
       ) : isInitialLoading ? (
         <OfferListSkeleton />
       ) : visibleOffers.length === 0 ? (
-        <EmptyView label={tab === "now" ? t("home.emptyNow") : t("home.emptyEvening")} />
+        <EmptyView label={activeTab === "breakfast" ? t("home.emptyBreakfast") : activeTab === "now" ? t("home.emptyNow") : t("home.emptyEvening")} />
       ) : (
         <OfferList
           offers={visibleOffers}

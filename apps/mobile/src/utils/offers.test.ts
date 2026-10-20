@@ -1,4 +1,4 @@
-import { isHotOffer, sortHotFirst } from "./offers";
+import { isHotOffer, sortHotFirst, sortNearestFirst } from "./offers";
 
 const NOW = new Date("2026-01-01T12:00:00.000Z").getTime();
 
@@ -72,5 +72,25 @@ describe("featured offer ('предложение дня')", () => {
     const burning = offer("burning", 20, 70, 0.1);
     const day = featured("day", 24 * 60, 70);
     expect(sortHotFirst([burning, day], NOW).map((o) => o.id)).toEqual(["day", "burning"]);
+  });
+});
+
+describe("sortNearestFirst", () => {
+  const NOW2 = Date.parse("2026-10-06T12:00:00Z");
+  const end2 = (hours: number) => new Date(NOW2 + hours * 3600_000).toISOString();
+  const o = (over: Partial<{ pickupEnd: string; discountPercent: number; distanceKm: number; featured: boolean }> = {}) => ({ pickupEnd: end2(5), discountPercent: 40, distanceKm: 1, ...over });
+
+  it("puts the closest first even if a farther one is hotter or featured", () => {
+    const near = o({ distanceKm: 0.3 });
+    const farHot = o({ distanceKm: 4, discountPercent: 70, pickupEnd: end2(0.5) });
+    const farFeatured = o({ distanceKm: 9, featured: true, pickupEnd: end2(24) });
+    expect(sortNearestFirst([farFeatured, farHot, near], NOW2)).toEqual([near, farHot, farFeatured]);
+  });
+
+  it("treats ~50 m as equal and then prefers the hot / bigger discount; closed go last", () => {
+    const a = o({ distanceKm: 0.5 });
+    const b = o({ distanceKm: 0.52, pickupEnd: end2(0.5) });
+    const closed = o({ distanceKm: 0.1, pickupEnd: end2(-1) });
+    expect(sortNearestFirst([a, closed, b], NOW2)).toEqual([b, a, closed]);
   });
 });

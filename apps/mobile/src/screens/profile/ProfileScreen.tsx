@@ -13,9 +13,12 @@ import { AppetiteMark } from "../../components/icons/AppetiteMark";
 import { PassCard } from "./PassCard";
 import { PassHero } from "./PassHero";
 import { PassStats } from "./PassStats";
+import { PassFooter } from "./PassFooter";
+import { levelProgressRatio } from "../../utils/pass";
 import { PassDetails } from "./PassDetails";
 import { EcoRoute } from "./EcoRoute";
 import { SettingsPanel } from "./SettingsPanel";
+import { SupportLink } from "../../components/support/SupportLink";
 import type { MainTabScreenProps } from "../../navigation/types";
 
 type Props = MainTabScreenProps<"Profile">;
@@ -53,16 +56,14 @@ export function ProfileScreen(_props: Props) {
   );
 
   // Прогресс до следующего уровня — дугой вокруг фото (на максимальном уровне дуга полная).
-  const levelProgress = eco
-    ? eco.nextLevel
-      ? Math.min(1, Math.max(0, (eco.totalPoints - eco.level.minPoints) / (eco.nextLevel.minPoints - eco.level.minPoints)))
-      : 1
-    : 0;
+  const levelProgress = eco ? levelProgressRatio(eco.totalPoints, eco.level, eco.nextLevel) : 0;
+  const user = useAuthStore((state) => state.user);
 
   const pass = (
     <StaggerReveal index={1}>
       <PassCard
         hero={<PassHero levelName={eco ? t(`eco.levelNames.${eco.level.id}`) : undefined} levelProgress={levelProgress} />}
+        footer={<PassFooter userId={user?.id} />}
         stub={
           <>
             <PassStats eco={eco} />
@@ -88,6 +89,9 @@ export function ProfileScreen(_props: Props) {
         </StaggerReveal>
       </View>
       <StaggerReveal index={4}>
+        <SupportLink />
+      </StaggerReveal>
+      <StaggerReveal index={5}>
         <Pressable
           onPress={() => void logout()}
           accessibilityRole="button"

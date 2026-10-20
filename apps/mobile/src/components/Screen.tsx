@@ -1,15 +1,18 @@
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet, View, type RefreshControlProps } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
+import { GlowBackdrop } from "./glass/GlowBackdrop";
 
 interface ScreenProps {
   children: React.ReactNode;
   scroll?: boolean;
   /** Только для scroll: pull-to-refresh всего экрана. */
   refreshControl?: React.ReactElement<RefreshControlProps>;
+  /** Мягкое цветное свечение под контентом — нужно экранам со стеклянными карточками. */
+  ambient?: boolean;
 }
 
-export function Screen({ children, scroll = false, refreshControl }: ScreenProps) {
+export function Screen({ children, scroll = false, refreshControl, ambient = false }: ScreenProps) {
   const theme = useTheme();
   const safeStyle = [styles.safe, { backgroundColor: theme.colors.background }];
   const padding = { padding: theme.spacing.md };
@@ -17,6 +20,7 @@ export function Screen({ children, scroll = false, refreshControl }: ScreenProps
   if (scroll) {
     return (
       <SafeAreaView style={safeStyle}>
+        {ambient ? <GlowBackdrop /> : null}
         <ScrollView
           contentContainerStyle={[styles.grow, padding]}
           refreshControl={refreshControl}

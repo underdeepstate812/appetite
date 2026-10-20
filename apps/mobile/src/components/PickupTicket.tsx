@@ -5,6 +5,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { playHaptic } from "../utils/haptics";
 import { SparkBurst } from "./SparkBurst";
+import { useUniqueId } from "../hooks/useUniqueId";
 
 const NOTCH = 26;
 const FRAME = 244;
@@ -86,6 +87,7 @@ interface PickupTicketProps {
  * он подчёркивает, что код живой, и держится на столько прозрачным, что не мешает сканеру.
  */
 export function PickupTicket({ qrCodeDataUrl, pickupCode, ready, codeLabel, footnote, entrance = false }: PickupTicketProps) {
+  const uid = useUniqueId("pickupTicket");
   const theme = useTheme();
   const reduced = useReducedMotion();
   const animate = entrance && !reduced;
@@ -159,17 +161,17 @@ export function PickupTicket({ qrCodeDataUrl, pickupCode, ready, codeLabel, foot
           </Animated.View>
           <View style={styles.tile}>
             {/* Имя у QR даёт обёртка (role=image): у самой картинки повторная подпись на div без роли нарушает ARIA. */}
-            <Image source={{ uri: qrCodeDataUrl }} style={styles.qr} resizeMode="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+            <Image testID="pickup-qr" source={{ uri: qrCodeDataUrl }} style={styles.qr} resizeMode="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
             <Animated.View pointerEvents="none" style={[styles.sweep, { opacity: sweepOpacity, transform: [{ translateY: sweepY }] }]}>
               <Svg width={TILE} height={60}>
                 <Defs>
-                  <LinearGradient id="qrSweep" x1="0" y1="0" x2="0" y2="60" gradientUnits="userSpaceOnUse">
+                  <LinearGradient id={`${uid}-qrSweep`} x1="0" y1="0" x2="0" y2="60" gradientUnits="userSpaceOnUse">
                     <Stop offset="0" stopColor={bracket} stopOpacity={0} />
                     <Stop offset="0.5" stopColor="#5eead4" stopOpacity={0.5} />
                     <Stop offset="1" stopColor={bracket} stopOpacity={0} />
                   </LinearGradient>
                 </Defs>
-                <Path d={`M0 0 H${TILE} V60 H0 Z`} fill="url(#qrSweep)" />
+                <Path d={`M0 0 H${TILE} V60 H0 Z`} fill="url(#${uid}-qrSweep)" />
               </Svg>
             </Animated.View>
           </View>

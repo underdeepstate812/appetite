@@ -4,7 +4,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { heatBand } from "../theme/heat";
 
 /** Наклейки — физический предмет: цвет один в обеих темах, чернила почти чёрные (≥6:1 на любой). */
-const STICKER_FILL = { warm: "#fbbf24", hot: "#ff8a3d", crit: "#ff5c4d" } as const;
+export const STICKER_FILL = { warm: "#fbbf24", hot: "#ff8a3d", crit: "#ff5c4d" } as const;
 const STICKER_INK = "#1a0b02";
 
 /**

@@ -11,8 +11,9 @@ import CircleCheck from "lucide-react-native/icons/circle-check";
 import PartyPopper from "lucide-react-native/icons/party-popper";
 import Hourglass from "lucide-react-native/icons/hourglass";
 import CircleX from "lucide-react-native/icons/circle-x";
+import TriangleAlert from "lucide-react-native/icons/triangle-alert";
 import { Screen } from "../../components/Screen";
-import { SegmentedControl } from "../../components/SegmentedControl";
+import { GlassSegmented } from "../../components/kit/GlassSegmented";
 import { LoadingView, EmptyView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
@@ -28,6 +29,7 @@ const TYPE_STYLE: Record<NotificationType, { Icon: typeof MapPin; tone: ToneKey 
   [NotificationType.ORDER_COMPLETED]: { Icon: PartyPopper, tone: "success" },
   [NotificationType.ORDER_EXPIRED]: { Icon: Hourglass, tone: "warning" },
   [NotificationType.ORDER_CANCELLED]: { Icon: CircleX, tone: "textMuted" },
+  [NotificationType.RECEIPT_DISPUTED]: { Icon: TriangleAlert, tone: "warning" },
 };
 
 export function NotificationsScreen({ navigation }: Props) {
@@ -77,7 +79,8 @@ export function NotificationsScreen({ navigation }: Props) {
   return (
     <Screen>
       <View style={{ marginBottom: theme.spacing.sm }}>
-        <SegmentedControl
+        <GlassSegmented
+          accessibilityLabel={t("notifications.filterGroup")}
           value={filter}
           onChange={(value) => setFilter(value)}
           options={[

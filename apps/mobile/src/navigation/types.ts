@@ -3,8 +3,12 @@ import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 export type AuthStackParamList = {
+  /** Страница перед входом: одна мысль и две кнопки. */
+  Welcome: undefined;
   Login: undefined;
   Register: undefined;
+  /** Только dev-сборка: тестовый показ новых элементов интерфейса (/ui-lab). */
+  UiLab: undefined;
 };
 
 export type MainTabParamList = {
@@ -24,6 +28,8 @@ export type RootStackParamList = {
   OrderConfirmation: { orderId: string };
   OrderDetail: { orderId: string };
   Notifications: undefined;
+  /** Только dev-сборка: тестовый показ новых элементов интерфейса (/ui-lab). */
+  UiLab: undefined;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<AuthStackParamList, T>;

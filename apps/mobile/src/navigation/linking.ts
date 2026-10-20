@@ -26,8 +26,10 @@ export const linking: LinkingOptions<RootStackParamList> = {
       OrderConfirmation: "orders/:orderId/confirmed",
       OrderDetail: "orders/:orderId",
       Notifications: "notifications",
+      // Тестовый показ (UiLabScreen): в production-сборке экран не регистрируется, путь просто не разрешается.
+      UiLab: "ui-lab",
       // Auth-стек (см. AuthNavigator) — не часть RootStackParamList, но тот же корень.
-      ...({ Login: "login", Register: "register" } as object),
+      ...({ Welcome: "welcome", Login: "login", Register: "register" } as object),
     },
   },
 };

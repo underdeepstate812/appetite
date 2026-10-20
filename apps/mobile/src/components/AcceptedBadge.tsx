@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 import { useTheme } from "../theme/ThemeProvider";
 import { useReducedMotion } from "../hooks/useReducedMotion";
+import { useUniqueId } from "../hooks/useUniqueId";
 
 const SIZE = 64;
 
@@ -12,6 +13,7 @@ const SIZE = 64;
  * CelebrationBurst — живёт на экране подтверждения, пока пользователь смотрит на билет.
  */
 export function AcceptedBadge() {
+  const uid = useUniqueId("accepted");
   const theme = useTheme();
   const reduced = useReducedMotion();
   const wave = useRef(new Animated.Value(0)).current;
@@ -38,12 +40,12 @@ export function AcceptedBadge() {
       <Animated.View style={{ transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}>
         <Svg width={SIZE} height={SIZE} viewBox="0 0 88 88">
           <Defs>
-            <LinearGradient id="acceptedDisc" x1="8" y1="6" x2="80" y2="84" gradientUnits="userSpaceOnUse">
+            <LinearGradient id={`${uid}-acceptedDisc`} x1="8" y1="6" x2="80" y2="84" gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={dark ? "#99f6e4" : "#2dd4bf"} />
               <Stop offset="1" stopColor={dark ? "#2dd4bf" : "#0f766e"} />
             </LinearGradient>
           </Defs>
-          <Circle cx="44" cy="44" r="42" fill="url(#acceptedDisc)" />
+          <Circle cx="44" cy="44" r="42" fill="url(#${uid}-acceptedDisc)" />
           <Circle cx="44" cy="44" r="41" fill="none" stroke="#ffffff" strokeOpacity={0.35} strokeWidth={1.5} />
           <Path d="M27 44 L39 56 L61 32" fill="none" stroke={dark ? "#04211d" : "#ffffff"} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>

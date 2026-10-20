@@ -1,6 +1,5 @@
 import React from "react";
 import Svg, { Circle, Path } from "react-native-svg";
-import { contour } from "../../utils/contour";
 
 export type DockIconName = "now" | "map" | "orders" | "eco" | "profile";
 
@@ -13,13 +12,9 @@ interface DockIconProps {
   active: boolean;
 }
 
-// Изолинии — тот же язык, что топографический фон пропуска и арт миниатюр предложений.
-const MAP_OUTER = contour(12, 12.4, 8.4, 0.6, 0.78, 36);
-const MAP_INNER = contour(12, 12.4, 4.4, 1.9, 0.78, 28);
-
 /**
  * Пять вкладок — пять собственных знаков вместо эмодзи и стандартного набора иконок. У каждой ровно
- * одна "искра" (точка): на "Сейчас" — голова разомкнутой дуги, на "Карте" — центр изолиний, на
+ * одна "искра" (точка): на "Сейчас" — голова разомкнутой дуги, на "Карте" — метка на средней створке сложенной карты, на
  * "Заказах" — корешок билета, на "Эко" — кончик листа, на "Профиле" — слот пропуска. Активная —
  * лёгкая заливка (duotone) и искра с ореолом.
  */
@@ -48,9 +43,10 @@ export function DockIcon({ name, size = 24, color, dot, active }: DockIconProps)
 
       {name === "map" ? (
         <>
-          <Path d={MAP_OUTER} fill={fill} fillOpacity={fillOpacity} stroke={color} strokeWidth={1.75} strokeLinejoin="round" />
-          <Path d={MAP_INNER} {...stroke} strokeWidth={1.5} />
-          {spark(12, 12.4, 1.7)}
+          {/* Простая сложенная карта: три створки и сгибы; метка — на средней. */}
+          <Path d="M3.5 6.8 L9 4.8 L15 6.8 L20.5 4.8 V17.2 L15 19.2 L9 17.2 L3.5 19.2 Z" fill={fill} fillOpacity={fillOpacity} stroke={color} strokeWidth={1.75} strokeLinejoin="round" />
+          <Path d="M9 4.8 V17.2 M15 6.8 V19.2" {...stroke} strokeWidth={1.5} />
+          {spark(12, 11.6, 1.7)}
         </>
       ) : null}
 

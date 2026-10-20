@@ -14,7 +14,7 @@
     "android": {
       "package": "ru.apetite.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#052E2B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,6 +37,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Appetite использует доступ к галерее, чтобы ты мог поставить фото на аватар профиля."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#052E2B",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#052E2B"
+          }
         }
       ]
     ]

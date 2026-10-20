@@ -12,7 +12,8 @@ function pinTierFor(discountPercent: number) {
   return { dot: 14, ringMax: 1.7, duration: 2600 };
 }
 
-export function PulsingMapPin({ discountPercent, pickupEnd }: { discountPercent: number; pickupEnd: string }) {
+/** selected — пин выбранного предложения: крупнее, с кольцом и тёмной плашкой скидки (в паре с карточкой в ленте под картой). */
+export function PulsingMapPin({ discountPercent, pickupEnd, selected = false }: { discountPercent: number; pickupEnd: string; selected?: boolean }) {
   const theme = useTheme();
   const now = useNow();
   const tier = pinTierFor(discountPercent);
@@ -29,6 +30,7 @@ export function PulsingMapPin({ discountPercent, pickupEnd }: { discountPercent:
     return () => loop.stop();
   }, [pulse, tier.duration]);
 
+  const size = selected ? tier.dot + 8 : tier.dot;
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, tier.ringMax] });
   const opacity = pulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.45, 0.08, 0] });
 
@@ -38,9 +40,9 @@ export function PulsingMapPin({ discountPercent, pickupEnd }: { discountPercent:
         style={[
           styles.ring,
           {
-            width: tier.dot,
-            height: tier.dot,
-            borderRadius: tier.dot / 2,
+            width: size,
+            height: size,
+            borderRadius: size / 2,
             backgroundColor: dotColor,
             transform: [{ scale }],
             opacity,
@@ -51,16 +53,17 @@ export function PulsingMapPin({ discountPercent, pickupEnd }: { discountPercent:
         style={[
           styles.dot,
           {
-            width: tier.dot,
-            height: tier.dot,
-            borderRadius: tier.dot / 2,
+            width: size,
+            height: size,
+            borderRadius: size / 2,
             backgroundColor: dotColor,
             borderColor: theme.colors.background,
           },
+          selected && { boxShadow: `0 0 0 4px #ffffff, 0 0 0 7px ${dotColor}, 0 6px 16px rgba(0,0,0,0.35)` },
         ]}
       />
-      <View style={[styles.label, { backgroundColor: theme.colors.surfaceElevated }]}>
-        <Text style={[styles.labelText, { color: theme.colors.text }]}>−{discountPercent}%</Text>
+      <View style={[styles.label, { backgroundColor: selected ? theme.colors.text : theme.colors.surfaceElevated }, selected && styles.labelSelected]}>
+        <Text style={[styles.labelText, { color: selected ? theme.colors.background : theme.colors.text }, selected && styles.labelTextSelected]}>−{discountPercent}%</Text>
       </View>
     </View>
   );
@@ -72,4 +75,6 @@ const styles = StyleSheet.create({
   dot: { borderWidth: 2 },
   label: { marginTop: 2, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
   labelText: { fontSize: 11, fontWeight: "700" },
+  labelSelected: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  labelTextSelected: { fontSize: 13 },
 });

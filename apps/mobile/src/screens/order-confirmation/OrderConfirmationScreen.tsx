@@ -1,9 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { Offer, Order } from "@apetite/shared";
-import { offersApi } from "../../api/offers";
-import { ordersApi } from "../../api/orders";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useNow } from "../../hooks/useNow";
 import { playHaptic } from "../../utils/haptics";
@@ -14,7 +11,12 @@ import { Button } from "../../components/Button";
 import { AcceptedBadge } from "../../components/AcceptedBadge";
 import { OrderStatusTimeline } from "../../components/OrderStatusTimeline";
 import { PickupTicket } from "../../components/PickupTicket";
+import { VenueCard } from "../../components/VenueCard";
+import { SupportLink } from "../../components/support/SupportLink";
+import { OfflineNotice } from "../../components/OfflineNotice";
+import { useTicket } from "../../hooks/useTicket";
 import { LoadingView, ErrorView } from "../../components/StateViews";
+import { OfflineState } from "../../components/kit/EmptyState";
 import type { RootStackScreenProps } from "../../navigation/types";
 
 type Props = RootStackScreenProps<"OrderConfirmation">;
@@ -24,36 +26,11 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const now = useNow(15000);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [offer, setOffer] = useState<Offer | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const ticket = useTicket(orderId);
+  const { order, offer, qrCodeDataUrl } = ticket;
   const reducedMotion = useReducedMotion();
   // Праздник один раз на заказ: при повторном заходе билет просто показывается, без "печати".
   const celebrate = useRef(!hasCelebrated(orderId)).current;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [orderData, qr] = await Promise.all([ordersApi.get(orderId), ordersApi.getQrCode(orderId)]);
-        const offerData = await offersApi.get(orderData.offerId);
-        if (!cancelled) {
-          setOrder(orderData);
-          setQrCodeDataUrl(qr.qrCodeDataUrl);
-          setOffer(offerData);
-        }
-      } catch (loadError) {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : t("common.error"));
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [orderId, t]);
 
   // Заказ принят: "успешно", затем три тика в такт клавишам PIN и мягкое "осело" (см. HAPTIC_SCORES.accepted).
   const ready = !!order && !!offer && !!qrCodeDataUrl;
@@ -72,10 +49,10 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
     });
   };
 
-  if (error) {
+  if (ticket.status === "error") {
     return (
       <Screen>
-        <ErrorView label={error} />
+        {ticket.networkError ? <OfflineState onRetry={ticket.reload} /> : <ErrorView label={ticket.error ?? t("common.error")} onRetry={ticket.reload} />}
       </Screen>
     );
   }
@@ -92,7 +69,8 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
   const endLabel = new Date(offer.pickupEnd).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <Screen scroll>
+    <Screen scroll ambient>
+      {ticket.offline ? <OfflineNotice kind="ticket" savedAt={ticket.savedAt} onRetry={ticket.reload} /> : null}
       <View style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.md }}>
         <AcceptedBadge />
       </View>
@@ -114,8 +92,20 @@ export function OrderConfirmationScreen({ route, navigation }: Props) {
         />
       </View>
 
+      <VenueCard state={ticket.venueState} onRetry={ticket.reload} pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} />
+
+      <SupportLink
+        order={{
+          id: order.id,
+          title: offer.title,
+          venue: ticket.venue?.name,
+          totalPrice: order.totalPrice,
+          createdAt: order.createdAt,
+        }}
+      />
+
       <View style={{ marginTop: theme.spacing.xl }}>
-        <Button title={t("orderConfirmation.doneButton")} onPress={handleDone} />
+        <Button title={t("orderConfirmation.doneButton")} onPress={handleDone} arrow />
       </View>
     </Screen>
   );

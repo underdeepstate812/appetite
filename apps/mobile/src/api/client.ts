@@ -32,6 +32,14 @@ export function isNetworkError(error: unknown): boolean {
   return error instanceof ApiError && error.statusCode === 0;
 }
 
+/**
+ * «Сервер недоступен»: нет сети или он упал (5xx). Только в этих случаях можно показывать сохранённую копию вместо ответа;
+ * 404/403 — это ответ сервера («заказа нет», «чужой заказ»), его копией прикрывать нельзя.
+ */
+export function isServerUnavailable(error: unknown): boolean {
+  return isNetworkError(error) || (error instanceof ApiError && error.statusCode >= 500);
+}
+
 interface BackendErrorBody {
   statusCode?: number;
   message?: string | string[];

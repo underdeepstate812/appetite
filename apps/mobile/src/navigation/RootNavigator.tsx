@@ -9,6 +9,7 @@ import { CheckoutScreen } from "../screens/checkout/CheckoutScreen";
 import { OrderConfirmationScreen } from "../screens/order-confirmation/OrderConfirmationScreen";
 import { OrderDetailScreen } from "../screens/order-detail/OrderDetailScreen";
 import { NotificationsScreen } from "../screens/notifications/NotificationsScreen";
+import { UiLabScreen } from "./devScreens";
 import { LoadingView } from "../components/StateViews";
 import { BackButton } from "../components/BackButton";
 import { useTheme } from "../theme/ThemeProvider";
@@ -54,6 +55,7 @@ export function RootNavigator() {
       />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ title: t("orderDetail.title") }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t("notifications.title") }} />
+      {UiLabScreen ? <Stack.Screen name="UiLab" component={UiLabScreen} options={{ title: "UI Lab" }} /> : null}
     </Stack.Navigator>
   );
 }

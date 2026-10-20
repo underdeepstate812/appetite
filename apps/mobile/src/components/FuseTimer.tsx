@@ -7,6 +7,7 @@ import { useNow } from "../hooks/useNow";
 import { useBreath } from "../hooks/useBreath";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { getTimeLeft, getUrgencyRatio } from "../utils/time";
+import { timeLeftLabel } from "../utils/timeLabel";
 
 /** Доля 3-часового окна, при которой предложение считается "горящим" (совпадает с isHotOffer). */
 const HOT_RATIO = 0.55;
@@ -71,11 +72,7 @@ export function TimeLeftText({ pickupEnd }: { pickupEnd: string }) {
   // Закрытое окно — не "горит", а просто закончилось: приглушённый цвет, не красный.
   const color = timeLeft.isPast ? theme.colors.textMuted : heatInk(getUrgencyRatio(timeLeft), theme.mode, theme.colors.text);
 
-  const label = timeLeft.isPast
-    ? t("offerCard.pickupClosed")
-    : timeLeft.hours > 0
-      ? t("offerCard.timeLeftHours", { hours: timeLeft.hours, minutes: timeLeft.minutes })
-      : t("offerCard.timeLeftMinutes", { minutes: timeLeft.minutes });
+  const label = timeLeftLabel(t, timeLeft);
 
   return <Text style={[theme.fonts.bold, styles.label, { color }]}>{label}</Text>;
 }

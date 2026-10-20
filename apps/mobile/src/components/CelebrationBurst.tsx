@@ -4,6 +4,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop } from "r
 import { useTheme } from "../theme/ThemeProvider";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { SparkBurst } from "./SparkBurst";
+import { useUniqueId } from "../hooks/useUniqueId";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -27,6 +28,7 @@ interface CelebrationBurstProps {
  * При включённом "уменьшении движения" — статичный диск с готовой галочкой.
  */
 export function CelebrationBurst({ size = 240, onDone }: CelebrationBurstProps) {
+  const uid = useUniqueId("celeb");
   const theme = useTheme();
   const reduced = useReducedMotion();
   const ringDraw = useRef(new Animated.Value(reduced ? 1 : 0)).current;
@@ -69,12 +71,12 @@ export function CelebrationBurst({ size = 240, onDone }: CelebrationBurstProps) 
       <Animated.View style={[styles.fill, { opacity: glow }]}>
         <Svg width={size} height={size} viewBox="0 0 100 100">
           <Defs>
-            <RadialGradient id="celebGlow" cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+            <RadialGradient id={`${uid}-celebGlow`} cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={theme.colors.primary} stopOpacity={dark ? 0.3 : 0.2} />
               <Stop offset="1" stopColor={theme.colors.primary} stopOpacity={0} />
             </RadialGradient>
           </Defs>
-          <Circle cx="50" cy="50" r="50" fill="url(#celebGlow)" />
+          <Circle cx="50" cy="50" r="50" fill="url(#${uid}-celebGlow)" />
         </Svg>
       </Animated.View>
 
@@ -92,11 +94,11 @@ export function CelebrationBurst({ size = 240, onDone }: CelebrationBurstProps) 
       <View style={{ position: "absolute", left: center - discSize / 2, top: center - discSize / 2, width: discSize, height: discSize }}>
         <Svg width={discSize} height={discSize} viewBox="0 0 88 88">
           <Defs>
-            <LinearGradient id="celebRing" x1="4" y1="44" x2="84" y2="44" gradientUnits="userSpaceOnUse">
+            <LinearGradient id={`${uid}-celebRing`} x1="4" y1="44" x2="84" y2="44" gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor="#2dd4bf" />
               <Stop offset="1" stopColor="#b8fbef" />
             </LinearGradient>
-            <LinearGradient id="celebDisc" x1="8" y1="6" x2="80" y2="84" gradientUnits="userSpaceOnUse">
+            <LinearGradient id={`${uid}-celebDisc`} x1="8" y1="6" x2="80" y2="84" gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={dark ? "#99f6e4" : "#2dd4bf"} />
               <Stop offset="1" stopColor={dark ? "#2dd4bf" : "#0f766e"} />
             </LinearGradient>
@@ -106,7 +108,7 @@ export function CelebrationBurst({ size = 240, onDone }: CelebrationBurstProps) 
             cy="44"
             r={RING_R}
             fill="none"
-            stroke="url(#celebRing)"
+            stroke="url(#${uid}-celebRing)"
             strokeWidth={4}
             strokeLinecap="round"
             strokeDasharray={RING_LENGTH}
@@ -117,7 +119,7 @@ export function CelebrationBurst({ size = 240, onDone }: CelebrationBurstProps) 
         </Svg>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: disc, transform: [{ scale: disc.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }] }]}>
           <Svg width={discSize} height={discSize} viewBox="0 0 88 88">
-            <Circle cx="44" cy="44" r="38" fill="url(#celebDisc)" />
+            <Circle cx="44" cy="44" r="38" fill="url(#${uid}-celebDisc)" />
             <AnimatedPath
               d={CHECK_PATH}
               fill="none"

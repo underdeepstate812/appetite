@@ -38,3 +38,20 @@ export function sortHotFirst<T extends Sortable>(offers: T[], now: number = Date
     })
     .map(({ offer }) => offer);
 }
+
+/**
+ * Порядок «рядом со мной»: сначала ближайшие (расстояние считает сервер от точки запроса — от человека, когда он
+ * определён). Расстояния в пределах 50 м считаем равными: там важнее, что горит и какая скидка. Закрытые окна — в конец.
+ */
+export function sortNearestFirst<T extends Sortable>(offers: T[], now: number = Date.now()): T[] {
+  return offers
+    .map((offer) => ({ offer, hot: isHotOffer(offer, now), closed: getTimeLeft(offer.pickupEnd, now).isPast, step: Math.round(offer.distanceKm * 20) }))
+    .sort((a, b) => {
+      if (a.closed !== b.closed) return a.closed ? 1 : -1;
+      if (a.step !== b.step) return a.step - b.step;
+      if (a.hot !== b.hot) return a.hot ? -1 : 1;
+      if (a.offer.discountPercent !== b.offer.discountPercent) return b.offer.discountPercent - a.offer.discountPercent;
+      return a.offer.distanceKm - b.offer.distanceKm;
+    })
+    .map(({ offer }) => offer);
+}

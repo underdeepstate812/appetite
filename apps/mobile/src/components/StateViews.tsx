@@ -8,7 +8,8 @@ export function LoadingView({ label }: { label: string }) {
   const theme = useTheme();
   return (
     <View style={styles.center}>
-      <ActivityIndicator color={theme.colors.primary} />
+      {/* RN-web рисует role=progressbar: без имени скринридер читает безымянный индикатор (axe: aria-progressbar-name). */}
+      <ActivityIndicator color={theme.colors.primary} accessibilityLabel={label} />
       <Text style={[styles.text, { color: theme.colors.textMuted }]}>{label}</Text>
     </View>
   );

@@ -3,6 +3,7 @@ import type { LoginRequest, RegisterRequest, User } from "@apetite/shared";
 import { authApi } from "../api/auth";
 import { ApiError, configureApiClient } from "../api/client";
 import { tokenStorage } from "./tokenStorage";
+import { clearOfflineData } from "../utils/offlineCache";
 
 const ACCESS_TOKEN_KEY = "apetite.accessToken";
 const REFRESH_TOKEN_KEY = "apetite.refreshToken";
@@ -128,6 +129,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       }
     }
     await clearTokens();
+    // Билеты и список заказов принадлежат пользователю — после выхода на устройстве они оставаться не должны.
+    await clearOfflineData();
     set({ user: null, accessToken: null, refreshToken: null });
   },
 

@@ -8,7 +8,7 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { useThemeModeStore, type ThemeModeOverride } from "../../store/themeStore";
 import { useLanguageStore } from "../../store/languageStore";
 import type { SupportedLocale } from "../../i18n";
-import { SlideSwitch, type SlideSwitchOption } from "../../components/SlideSwitch";
+import { GlassSegmented, type GlassSegmentedOption } from "../../components/kit/GlassSegmented";
 
 /** Тема и язык — две строки "подпись слева, значковый переключатель справа" вместо двух широких сегментных лент. */
 export function SettingsPanel() {
@@ -24,17 +24,17 @@ export function SettingsPanel() {
     light: t("profile.themeLight"),
     dark: t("profile.themeDark"),
   };
-  const themeOptions: SlideSwitchOption<ThemeModeOverride>[] = [
-    { value: "system", accessibilityLabel: themeLabels.system, render: (color) => <Monitor size={17} color={color} strokeWidth={2.2} /> },
-    { value: "light", accessibilityLabel: themeLabels.light, render: (color) => <Sun size={17} color={color} strokeWidth={2.2} /> },
-    { value: "dark", accessibilityLabel: themeLabels.dark, render: (color) => <Moon size={17} color={color} strokeWidth={2.2} /> },
+  const themeOptions: GlassSegmentedOption<ThemeModeOverride>[] = [
+    { value: "system", label: themeLabels.system, icon: (color) => <Monitor size={17} color={color} strokeWidth={2.2} /> },
+    { value: "light", label: themeLabels.light, icon: (color) => <Sun size={17} color={color} strokeWidth={2.2} /> },
+    { value: "dark", label: themeLabels.dark, icon: (color) => <Moon size={17} color={color} strokeWidth={2.2} /> },
   ];
 
   const languageLabels: Record<SupportedLocale, string> = { ru: t("profile.languageRu"), en: t("profile.languageEn") };
-  const languageOptions: SlideSwitchOption<SupportedLocale>[] = (["ru", "en"] as const).map((value) => ({
+  const languageOptions: GlassSegmentedOption<SupportedLocale>[] = (["ru", "en"] as const).map((value) => ({
     value,
-    accessibilityLabel: languageLabels[value],
-    render: (color: string) => <Text style={[styles.code, { color }]}>{value.toUpperCase()}</Text>,
+    label: value.toUpperCase(),
+    a11yLabel: languageLabels[value],
   }));
 
   return (
@@ -46,7 +46,7 @@ export function SettingsPanel() {
           <Text style={[styles.title, { color: theme.colors.text }]}>{t("profile.themeLabel")}</Text>
           <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>{themeLabels[themeOverride]}</Text>
         </View>
-        <SlideSwitch options={themeOptions} value={themeOverride} onChange={(mode) => void setThemeOverride(mode)} />
+        <GlassSegmented compact accessibilityLabel={t("profile.themeLabel")} options={themeOptions} value={themeOverride} onChange={(mode) => void setThemeOverride(mode)} />
       </View>
 
       <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
@@ -56,7 +56,7 @@ export function SettingsPanel() {
           <Text style={[styles.title, { color: theme.colors.text }]}>{t("profile.languageLabel")}</Text>
           <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>{languageLabels[locale]}</Text>
         </View>
-        <SlideSwitch options={languageOptions} value={locale} onChange={(value) => void setLocale(value)} />
+        <GlassSegmented compact accessibilityLabel={t("profile.languageLabel")} options={languageOptions} value={locale} onChange={(value) => void setLocale(value)} />
       </View>
     </View>
   );
@@ -69,5 +69,4 @@ const styles = StyleSheet.create({
   labels: { flex: 1, minWidth: 0 },
   title: { fontSize: 15, fontWeight: "700" },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
-  code: { fontSize: 13, fontWeight: "800", letterSpacing: 0.6 },
 });

@@ -13,6 +13,12 @@ import { playHaptic } from "../../utils/haptics";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { CookingLoader } from "../../components/icons/CookingLoader";
 import { PaymentMethodSelector, type PaymentMethod } from "../../components/PaymentMethodSelector";
+import { OrderSummaryCard } from "../../components/OrderSummaryCard";
+import { PaymentRule } from "../../components/PaymentRule";
+import { useBusiness } from "../../hooks/useBusiness";
+import { useAuthStore } from "../../store/authStore";
+import { saveTicket } from "../../utils/ticketCache";
+import { upsertOrder } from "../../utils/ordersCache";
 import { LoadingView, ErrorView } from "../../components/StateViews";
 import type { RootStackScreenProps } from "../../navigation/types";
 
@@ -45,6 +51,8 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [paid, setPaid] = useState(false);
   const reducedMotion = useReducedMotion();
+  const venue = useBusiness(offer?.businessId);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -85,7 +93,22 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const [order] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
+      const [created] = await Promise.all([ordersApi.create({ offerId, quantity: QUANTITY }), wait(MIN_COOKING_MS)]);
+      const { qrCodeDataUrl, ...order } = created;
+      // Билет — на устройство сразу, ещё до «праздника»: если приложение закроют или связь пропадёт, код уже сохранён.
+      if (userId && offer) {
+        const venueInfo = venue.state.status === "ready" ? venue.state.business : null;
+        void saveTicket({
+          v: 1,
+          userId,
+          savedAt: new Date().toISOString(),
+          order,
+          qrCodeDataUrl: qrCodeDataUrl ?? null,
+          offer: { id: offer.id, title: offer.title, pickupStart: offer.pickupStart, pickupEnd: offer.pickupEnd },
+          venue: venueInfo,
+        });
+        void upsertOrder(userId, order, { title: offer.title, venue: venueInfo?.name });
+      }
       // Оплата подтверждена: кольцо замыкается ("замок" — rigid на 360 мс) и вспыхивают искры;
       // уже потом — к билету, где заказ "принимается" (см. OrderConfirmationScreen).
       setPaid(true);
@@ -156,28 +179,12 @@ export function CheckoutScreen({ route, navigation }: Props) {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll ambient>
       <Text style={[theme.typography.h1, { color: theme.colors.text, marginBottom: theme.spacing.lg }]}>
         {t("checkout.title")}
       </Text>
 
-      <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radii.lg }]}>
-        <Text style={[theme.typography.bodyBold, { color: theme.colors.text }]}>{offer.title}</Text>
-
-        <View style={styles.row}>
-          <Text style={[theme.typography.body, { color: theme.colors.textMuted }]}>
-            {t("checkout.quantityLabel")}
-          </Text>
-          <Text style={[theme.typography.body, { color: theme.colors.text }]}>{QUANTITY}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[theme.typography.bodyBold, { color: theme.colors.text }]}>{t("checkout.totalLabel")}</Text>
-          <Text style={[theme.fonts.heavy, styles.total, { color: theme.colors.primary }]}>
-            {((offer.discountedPrice * QUANTITY) / 100).toFixed(0)} ₽
-          </Text>
-        </View>
-      </View>
+      <OrderSummaryCard offer={offer} quantity={QUANTITY} venue={venue.state} onRetryVenue={venue.retry} />
 
       <Text
         style={[
@@ -194,6 +201,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
         cardHint={t("checkout.paymentCardHint")}
         sbpLabel={t("checkout.paymentSbp")}
         sbpHint={t("checkout.paymentSbpHint")}
+        groupLabel={t("checkout.paymentMethodLabel")}
       />
 
       {submitError ? (
@@ -202,7 +210,11 @@ export function CheckoutScreen({ route, navigation }: Props) {
         </Text>
       ) : null}
 
-      <View style={{ marginTop: theme.spacing.xl }}>
+      <View style={{ marginTop: theme.spacing.lg }}>
+        <PaymentRule pickupStart={offer.pickupStart} pickupEnd={offer.pickupEnd} />
+      </View>
+
+      <View style={{ marginTop: theme.spacing.sm }}>
         <Button title={t("checkout.payButton")} onPress={handlePay} />
       </View>
     </Screen>
@@ -210,8 +222,5 @@ export function CheckoutScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 18, borderWidth: 1 },
-  total: { fontSize: 20, letterSpacing: -0.4 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
   cookingWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 });

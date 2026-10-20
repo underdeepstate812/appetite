@@ -2,6 +2,7 @@ import { ApiError } from "../api/client";
 import { authApi } from "../api/auth";
 import { tokenStorage } from "./tokenStorage";
 import { useAuthStore } from "./authStore";
+import { clearOfflineData } from "../utils/offlineCache";
 
 jest.mock("../api/auth", () => ({
   authApi: { me: jest.fn(), login: jest.fn(), register: jest.fn(), logout: jest.fn(), refresh: jest.fn() },
@@ -15,6 +16,8 @@ jest.mock("./tokenStorage", () => ({
     removeItem: jest.fn(async (key: string) => void mockMemory.delete(key)),
   },
 }));
+
+jest.mock("../utils/offlineCache", () => ({ clearOfflineData: jest.fn().mockResolvedValue(undefined) }));
 
 const USER = { id: "u1", email: "qa@example.test", name: "QA", role: "USER" } as never;
 const me = authApi.me as jest.Mock;
@@ -97,6 +100,16 @@ describe("authStore session lifecycle", () => {
     expect(useAuthStore.getState().user).toBeNull();
     expect([...mockMemory.keys()]).toEqual([]);
     expect(tokenStorage.removeItem).toHaveBeenCalled();
+  });
+
+  it("wipes saved tickets and the saved orders list on logout: they belong to the user, not to the device", async () => {
+    (authApi.login as jest.Mock).mockResolvedValue({ accessToken: "a", refreshToken: "r", user: USER });
+    (authApi.logout as jest.Mock).mockResolvedValue({ success: true });
+    await useAuthStore.getState().login({ identifier: "x", password: "y" });
+    expect(clearOfflineData).not.toHaveBeenCalled();
+
+    await useAuthStore.getState().logout();
+    expect(clearOfflineData).toHaveBeenCalledTimes(1);
   });
 
   it("updates the cached copy when the profile is edited", () => {

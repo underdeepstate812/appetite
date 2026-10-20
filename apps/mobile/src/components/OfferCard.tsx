@@ -1,33 +1,16 @@
 import React, { useRef, useState } from "react";
-import { Animated, Easing, Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
-import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import { useTranslation } from "react-i18next";
-// Прямые импорты вместо барреля lucide-react-native — package.json объявляет
-// exports["./icons/*"] именно под это: на Metro (без tree-shaking барреля)
-// не бандлим тысячи неиспользуемых иконок ради пяти нужных.
-import UtensilsCrossed from "lucide-react-native/icons/utensils-crossed";
-import Croissant from "lucide-react-native/icons/croissant";
-import Flower2 from "lucide-react-native/icons/flower-2";
-import ShoppingBasket from "lucide-react-native/icons/shopping-basket";
+// Прямой импорт вместо барреля lucide-react-native — package.json объявляет exports["./icons/*"] именно под это.
 import MapPin from "lucide-react-native/icons/map-pin";
-import { OfferCategory, type NearbyOffer } from "@apetite/shared";
+import type { NearbyOffer } from "@apetite/shared";
 import { useTheme } from "../theme/ThemeProvider";
-import { heatColor } from "../theme/heat";
 import { useNow } from "../hooks/useNow";
 import { getTimeLeft } from "../utils/time";
 import { getOfferUrgencyRatio } from "@apetite/shared";
 import { isHotOffer } from "../utils/offers";
-import { contour, hashString } from "../utils/contour";
-import { DiscountStamp } from "./DiscountStamp";
 import { FuseTimer, TimeLeftText } from "./FuseTimer";
-import { resolveAssetUrl } from "../api/client";
-
-const CATEGORY_ICON = {
-  [OfferCategory.FOOD]: UtensilsCrossed,
-  [OfferCategory.BAKERY]: Croissant,
-  [OfferCategory.FLOWERS]: Flower2,
-  [OfferCategory.GROCERIES]: ShoppingBasket,
-} as const;
+import { OfferThumb } from "./OfferThumb";
 
 interface OfferCardProps {
   offer: NearbyOffer;
@@ -55,10 +38,6 @@ export function OfferCard({ offer, onPress }: OfferCardProps) {
   const dark = theme.mode === "dark";
 
   const accent = hot ? theme.colors.ember : theme.colors.primary;
-  const tint = theme.colors.primarySoft;
-  // Изолинии миниатюры: у каждого предложения свой рисунок (фаза из id), тот же язык, что топо-фон пропуска.
-  const phase = hashString(offer.id) * Math.PI * 2;
-  const glowColor = heatColor(ratio, theme.mode);
 
   // Hover (web / десктоп): подъём и лёгкое увеличение через native driver + блик.
   // На тач-устройствах hover не срабатывает — там остаётся pressed-отклик.
@@ -80,7 +59,6 @@ export function OfferCard({ offer, onPress }: OfferCardProps) {
   const grow = hover.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] });
   const sheenX = sheen.interpolate({ inputRange: [0, 1], outputRange: [-90, cardWidth + 60] });
 
-  const Icon = CATEGORY_ICON[offer.category];
   const glow = hot ? (dark ? "rgba(255,138,61,0.30)" : "rgba(194,65,12,0.22)") : dark ? "rgba(45,212,191,0.22)" : "rgba(15,118,110,0.18)";
   const restingShadow = hot ? `0 6px 18px ${glow}` : dark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 3px 12px rgba(22,32,30,0.06)";
   const onLayout = (event: LayoutChangeEvent) => setCardWidth(event.nativeEvent.layout.width);
@@ -111,36 +89,7 @@ export function OfferCard({ offer, onPress }: OfferCardProps) {
             },
           ]}
         >
-          <View style={[styles.thumb, { backgroundColor: tint }]}>
-            <Svg width={THUMB} height={THUMB} style={StyleSheet.absoluteFill}>
-              <Defs>
-                <RadialGradient id={`wash-${offer.id}`} cx="0" cy="0" r={THUMB * 1.25} gradientUnits="userSpaceOnUse">
-                  <Stop offset="0" stopColor={glowColor} stopOpacity={hot ? (dark ? 0.32 : 0.22) : 0} />
-                  <Stop offset="1" stopColor={glowColor} stopOpacity={0} />
-                </RadialGradient>
-              </Defs>
-              <Rect x="0" y="0" width={THUMB} height={THUMB} fill={`url(#wash-${offer.id})`} />
-              {[16, 27, 38].map((radius, index) => (
-                <Path key={radius} d={contour(THUMB * 0.62, THUMB * 0.56, radius, phase + index * 0.7, 0.85)} fill="none" stroke={accent} strokeOpacity={0.36 - index * 0.11} strokeWidth={1.2} />
-              ))}
-            </Svg>
-            {offer.imageUrl ? (
-              <Image source={{ uri: resolveAssetUrl(offer.imageUrl) ?? undefined }} style={styles.thumbImage} resizeMode="cover" />
-            ) : (
-              <Icon size={26} color={accent} strokeWidth={1.7} />
-            )}
-            <View style={[styles.logoBadge, { backgroundColor: theme.colors.surfaceElevated }]}>
-              {offer.businessLogoUrl ? (
-                <Image source={{ uri: offer.businessLogoUrl }} style={styles.logoImage} />
-              ) : (
-                <Text style={[styles.logoInitial, { color: accent }]}>{offer.businessName.charAt(0)}</Text>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.stampSlot} pointerEvents="none">
-            <DiscountStamp percent={offer.discountPercent} ratio={closed ? 0 : ratio} />
-          </View>
+          <OfferThumb offer={offer} size={THUMB} ratio={ratio} hot={hot} closed={closed} />
 
           <View style={styles.body}>
             <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
@@ -178,12 +127,6 @@ const styles = StyleSheet.create({
   pressWrap: { width: "100%", flexGrow: 1 },
   shell: { flexGrow: 1 },
   card: { flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 12, padding: 10, paddingBottom: 18, borderWidth: 1, overflow: "hidden" },
-  thumb: { width: THUMB, height: THUMB, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  thumbImage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-  stampSlot: { position: "absolute", top: 8, left: 6 },
-  logoBadge: { position: "absolute", right: 4, bottom: 4, width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  logoImage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-  logoInitial: { fontSize: 10, fontWeight: "800" },
   body: { flex: 1, minWidth: 0, gap: 2 },
   title: { fontSize: 14.5, lineHeight: 18, fontWeight: "700", letterSpacing: -0.1 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 3 },

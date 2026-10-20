@@ -75,10 +75,14 @@ export function PassDetails() {
     <View style={styles.field}>
       <Text style={[styles.overline, { color: theme.colors.textMuted }]}>{t("profile.phoneLabel").toUpperCase()}</Text>
       <View style={styles.valueRow}>
-        <Text style={[styles.value, { color: editing ? theme.colors.textMuted : theme.colors.text }]}>{user?.phone ?? "—"}</Text>
-        <View style={styles.lock}>
-          <Lock size={14} color={theme.colors.textMuted} strokeWidth={2.2} />
-        </View>
+        <Text style={[styles.value, { color: editing || !user?.phone ? theme.colors.textMuted : theme.colors.text }]}>{user?.phone ?? t("profile.phoneEmpty")}</Text>
+        {/* Замок с подписью: ясно, почему поле не редактируется (номер — часть входа), а не «сломано». Нет номера — нечего «привязывать». */}
+        {user?.phone ? (
+          <View style={[styles.lockChip, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Lock size={11} color={theme.colors.textMuted} strokeWidth={2.4} />
+            <Text style={[styles.lockText, { color: theme.colors.textMuted }]}>{t("profile.phoneKept")}</Text>
+          </View>
+        ) : null}
       </View>
       {editing ? (
         <Text style={[theme.typography.caption, { color: theme.colors.textMuted, marginTop: 4 }]}>{t("profile.phoneLocked")}</Text>
@@ -164,8 +168,9 @@ const styles = StyleSheet.create({
   editLink: { flexDirection: "row", alignItems: "center", gap: 6 },
   editText: { fontSize: 13, fontWeight: "700", textDecorationLine: "underline", textDecorationStyle: "dashed" },
   field: { marginBottom: 14 },
-  valueRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 3 },
+  valueRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 3 },
   value: { fontSize: 16, fontWeight: "600", marginTop: 3, letterSpacing: 0.1 },
-  lock: { marginTop: 3 },
+  lockChip: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  lockText: { fontSize: 10.5, fontWeight: "700", letterSpacing: 0.2 },
   actions: { flexDirection: "row", gap: 12, marginTop: 4 },
 });
