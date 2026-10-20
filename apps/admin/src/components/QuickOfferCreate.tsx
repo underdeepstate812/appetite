@@ -1,14 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { Zap } from "lucide-react";
-import { DISCOUNT_RULES, OfferCategory, type Business } from "@apetite/shared";
+import { DISCOUNT_RULES, DiscountMode, OfferCategory, closingTimeAt, type Business } from "@apetite/shared";
 import { offersApi } from "../api/offers";
 import { ApiError } from "../api/client";
 import { computeNetPayout, isInTrial } from "../utils/commission";
 import { OfferPhotoField } from "./OfferPhotoField";
+import { FoodInfoFields, type FoodInfoSuggestion } from "./FoodInfoFields";
+import { EMPTY_FOOD_INFO, foodInfoError, foodInfoRequest, toLocalInput, type FoodInfoState } from "../utils/foodInfo";
 
 interface QuickOfferCreateProps {
   business: Business;
   onCreated: () => void;
+  foodSuggestions?: FoodInfoSuggestion[];
 }
 
 /**
@@ -17,16 +20,20 @@ interface QuickOfferCreateProps {
  * Остальное — сознательные дефолты (категория "Еда", 1 шт, самовывоз в
  * ближайшие 2 часа) — их всегда можно донастроить через "Изменить" в таблице.
  */
-export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps) {
+export function QuickOfferCreate({ business, onCreated, foodSuggestions }: QuickOfferCreateProps) {
   const [title, setTitle] = useState("");
   const [priceRub, setPriceRub] = useState("");
   const [discountPercent, setDiscountPercent] = useState(String(DISCOUNT_RULES.DEFAULT_BASE_PERCENT));
   const [weightKg, setWeightKg] = useState("");
+  const [discountMode, setDiscountMode] = useState<DiscountMode>(DiscountMode.DYNAMIC);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justCreated, setJustCreated] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  // Быстрое создание = «самовывоз в ближайшие 2 часа»: конец окна один и тот же, от него считается срок годности по умолчанию.
+  const quickPickupEnd = () => toLocalInput(new Date(Date.now() + 2 * 60 * 60 * 1000));
+  const [foodInfo, setFoodInfo] = useState<FoodInfoState>(() => EMPTY_FOOD_INFO(quickPickupEnd()));
 
   // Цена на витрине (то, что платит покупатель) — из неё же считаем, сколько реально
   // упадёт на счёт заведения после удержания комиссии платформы (см. utils/commission.ts).
@@ -37,21 +44,43 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    const foodError = foodInfoError(OfferCategory.FOOD, foodInfo, toLocalInput(new Date(Date.now() + 2 * 60 * 60 * 1000)));
+    if (foodError) {
+      setError(foodError);
+      return;
+    }
+    // «Самовывоз в ближайшие 2 часа», но не позже закрытия: часы работы заведения — жёсткая граница.
+    const nowMs = Date.now();
+    let endMs = nowMs + 2 * 60 * 60 * 1000;
+    if (business.workingHours) {
+      const closing = closingTimeAt(business.workingHours, business.timezone, nowMs);
+      if (closing === null) {
+        setError(`Сейчас заведение закрыто — быстрое предложение «на ближайшие 2 часа» недоступно. Создайте оффер на время работы через «+ Новый оффер».`);
+        return;
+      }
+      endMs = Math.min(endMs, closing);
+      if (endMs - nowMs < 15 * 60_000) {
+        setError("До закрытия меньше 15 минут — предложение не успеют забрать. Создайте оффер на завтра через «+ Новый оффер».");
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {
-      const now = new Date();
-      const pickupEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      const now = new Date(nowMs);
+      const pickupEnd = new Date(endMs);
       await offersApi.create({
         businessId: business.id,
         title,
         category: OfferCategory.FOOD,
         originalPriceRub: Number(priceRub),
         baseDiscountPercent: Number(discountPercent),
+        discountMode,
         weightKg: Number(weightKg),
         quantityTotal: 1,
         pickupStart: now.toISOString(),
         pickupEnd: pickupEnd.toISOString(),
+        ...foodInfoRequest(OfferCategory.FOOD, foodInfo),
         ...(imageUrl ? { imageUrl } : {}),
       });
       setTitle("");
@@ -59,6 +88,7 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
       setDiscountPercent(String(DISCOUNT_RULES.DEFAULT_BASE_PERCENT));
       setWeightKg("");
       setImageUrl(null);
+      setFoodInfo(EMPTY_FOOD_INFO(quickPickupEnd()));
       setJustCreated(true);
       setTimeout(() => setJustCreated(false), 2500);
       onCreated();
@@ -78,7 +108,7 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary)" }}>Быстрое создание</p>
           <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 1 }}>
-            Категория «Еда», 1 шт, самовывоз в ближайшие 2 часа — остальное поменяешь при необходимости
+            Категория «Еда», 1 шт, самовывоз в ближайшие 2 часа — остальное поменяешь при необходимости. Состав и аллергены обязательны: покупатель видит их до оплаты
           </p>
         </div>
       </div>
@@ -119,6 +149,13 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
             required
           />
         </div>
+        <div className="field" style={{ flex: "1 1 150px" }}>
+          <label htmlFor="quick-mode">Как меняется</label>
+          <select id="quick-mode" value={discountMode} onChange={(event) => setDiscountMode(event.target.value as DiscountMode)}>
+            <option value={DiscountMode.DYNAMIC}>Растёт к концу</option>
+            <option value={DiscountMode.FIXED}>Фиксированная</option>
+          </select>
+        </div>
         <div className="field" style={{ flex: "1 1 100px" }}>
           <label htmlFor="quick-weight">Вес, кг</label>
           <input
@@ -135,6 +172,8 @@ export function QuickOfferCreate({ business, onCreated }: QuickOfferCreateProps)
           {saving ? "Публикуем..." : photoBusy ? "Загружаем фото..." : justCreated ? "Готово ✓" : "Опубликовать"}
         </button>
       </div>
+
+      <FoodInfoFields idPrefix="quick" category={OfferCategory.FOOD} value={foodInfo} onChange={setFoodInfo} pickupEnd={quickPickupEnd()} compact suggestions={foodSuggestions} />
 
       <OfferPhotoField value={imageUrl} onChange={setImageUrl} category={OfferCategory.FOOD} title={title} compact onBusyChange={setPhotoBusy} />
 

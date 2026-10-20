@@ -3,6 +3,7 @@ import type { BusinessStats } from "@apetite/shared";
 import { useBusinessStore } from "../store/businessStore";
 import { businessesApi } from "../api/businesses";
 import { StatCard } from "../components/StatCard";
+import { SalesPanel } from "../components/SalesPanel";
 import { LoadingView, ErrorView } from "../components/StateViews";
 
 export function AnalyticsPage() {
@@ -52,6 +53,8 @@ export function AnalyticsPage() {
             <StatCard label="Спасено еды" value={`${stats.weightSavedKg.toFixed(1)} кг`} tone="success" />
           </div>
 
+          <SalesPanel businessId={business.id} />
+
           <div className="card" style={{ padding: 20 }}>
             <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Заказы по статусам</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
@@ -60,6 +63,7 @@ export function AnalyticsPage() {
               <StatRow label="Выдано" value={stats.completedOrders} />
               <StatRow label="Отменено" value={stats.cancelledOrders} />
               <StatRow label="Просрочено" value={stats.expiredOrders} />
+              <StatRow label="Оспорено покупателем" value={stats.disputedOrders} />
             </div>
           </div>
 
