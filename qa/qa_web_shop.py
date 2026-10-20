@@ -12,26 +12,26 @@ def check(name, cond, extra=""):
     if not cond: fails.append(name)
 with sync_playwright() as p:
     b=p.chromium.launch(headless=True)
-    ctx=b.new_context(viewport={"width":1360,"height":860}); page=ctx.new_page()
+    ctx=b.new_context(viewport={"width":1360,"height":860}, reduced_motion="reduce"); page=ctx.new_page()  # лента на витрине крутится сама — без движения по ней можно кликать
     errs=[]; page.on("pageerror", lambda e: errs.append(str(e)))
     page.on("console", lambda m: errs.append(m.text) if m.type=="error" else None)
     # 1. карта
-    page.goto(B+"/map"); page.wait_for_selector(".offer-row", timeout=15000)
-    check("list rows rendered", page.locator(".offer-row").count()>=1, page.locator(".offer-row").count())
-    page.wait_for_selector(".map-pin", timeout=15000)
-    check("map pins rendered", page.locator(".map-pin").count()>=1)
-    check("no footer on map", page.locator("footer.site-footer").count()==0)
-    check("no page scroll on map", page.evaluate("document.documentElement.scrollHeight <= innerHeight+2"))
-    # 2. клик по пину -> шторка
-    page.locator(".map-pin").first.click(force=True); page.wait_for_selector(".offer-sheet")
+    page.goto(B+"/home"); page.wait_for_selector(".show-card", timeout=15000)
+    CARD=".showcase-item:not(.is-clone) .show-card"  # в ленте есть копия карточек для бесшовной петли
+    check("feed cards rendered", page.locator(CARD).count()>=1, page.locator(CARD).count())
+    page.wait_for_selector(".map-pin, .map-pin-photo", timeout=15000)
+    check("map pins rendered", page.locator(".map-pin, .map-pin-photo").count()>=1)
+    # 2. клик по метке (с клавиатуры: метки в центре налезают друг на друга) -> шторка
+    page.locator(".leaflet-marker-icon").first.focus(); page.keyboard.press("Enter"); page.wait_for_selector(".offer-sheet")
     title=page.locator(".offer-sheet-title").inner_text()
     check("sheet opens on pin click", bool(title), title)
-    check("sheet row highlighted", page.locator(".offer-row.is-selected").count()==1)
     page.screenshot(path=OUT+"/shop_map.png")
-    # закрытие кликом по карте/крестику
+    # закрытие кликом по крестику
     page.locator(".offer-sheet-close").click(); check("sheet closes", page.locator(".offer-sheet").count()==0)
-    # выбор из списка
-    page.locator(".offer-row").first.click(); page.wait_for_selector(".offer-sheet")
+    # выбор из ленты: карточка подсвечена, шторка открыта, страница подведена к карте
+    page.locator(".show-card").first.click(); page.wait_for_selector(".offer-sheet")
+    check("feed card highlighted", page.locator(CARD+".is-selected").count()==1)
+    title=page.locator(".offer-sheet-title").inner_text()
     # 3. гость -> вход
     buy=page.locator(".offer-sheet a.btn-primary"); check("guest sees 'Войти и купить'", "Войти" in buy.inner_text(), buy.inner_text())
     buy.click(); page.wait_for_url(re.compile("/login"))
@@ -68,6 +68,8 @@ with sync_playwright() as p:
     page.wait_for_timeout(1600); page.screenshot(path=OUT+"/shop_ticket.png", full_page=True)
     # 6. список заказов
     page.goto(B+"/orders"); page.wait_for_selector(".order-card")
+    # название подгружается отдельными запросами: до этого в строке скелетон, а не заглушка «Заказ»
+    page.wait_for_function("() => !document.querySelector('.order-card-title.is-loading')", timeout=8000)
     check("order listed with title", title in page.locator(".order-card").first.inner_text(), page.locator(".order-card").first.inner_text())
     page.screenshot(path=OUT+"/shop_orders.png")
     page.locator(".order-card").first.click(); page.wait_for_selector(".pickup-code")

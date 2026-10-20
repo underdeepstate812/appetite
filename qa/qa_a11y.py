@@ -25,7 +25,7 @@ with sync_playwright() as p:
     # ---- сайт ----
     for label, vp in [("phone", {"width": 390, "height": 844}), ("desktop", {"width": 1414, "height": 900})]:
         ctx = b.new_context(viewport=vp, reduced_motion="reduce"); page = ctx.new_page()
-        for path in ["/", "/login", "/register", "/for-business", "/legal/oferta", "/no-such-page"]:
+        for path in ["/", "/home", "/login", "/register", "/for-business", "/legal/oferta", "/no-such-page"]:
             page.goto("http://localhost:5174" + path, wait_until="networkidle"); page.wait_for_timeout(700)
             n = scan(page, f"web {label} {path}"); print(f"web {label} {path}: {n} rule(s)")
         ctx.close()

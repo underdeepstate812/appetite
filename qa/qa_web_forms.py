@@ -44,7 +44,7 @@ with sync_playwright() as p:
         btn = page.locator("button[type=submit]").last; check(f"[{label}] login: кнопка активна после заполнения", btn.is_enabled())
         btn.dblclick(); page.wait_for_timeout(1200)
         check(f"[{label}] login: двойной клик отправляет один запрос", len([c for c in calls if c[1] == "/auth/login"]) == 1, str(len(calls)))
-        check(f"[{label}] login: успех ведёт на карту предложений", "/map" in page.url, page.url)
+        check(f"[{label}] login: успех ведёт на витрину", "/home" in page.url, page.url)
         ctx.close()
         mode = {"login_fail": True}; ctx, page, calls, errs = new(b, vp, mode); page.goto(BASE + "/login", wait_until="networkidle")
         page.get_by_label("Email").fill("qa@example.test"); page.get_by_label("Пароль").fill("wrong"); page.locator("button[type=submit]").last.click(); page.wait_for_timeout(900)

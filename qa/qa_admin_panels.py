@@ -76,6 +76,17 @@ def open_panel(b, role, vp, path, st=None):
 D = {"width": 1414, "height": 900}; PH = {"width": 390, "height": 844}
 body = lambda page: page.inner_text("body")
 
+def food(page):
+    """Состав и аллергены обязательны для еды: заполняем минимум, чтобы форма доходила до проверяемой валидации."""
+    page.locator("#offer-ingredients").fill("Мука, вода, соль"); page.locator("#offer-allergens").click()
+    page.get_by_role("checkbox", name="Аллергенов нет", exact=True).check(); page.keyboard.press("Escape")
+
+def best_before_after_end(page):
+    """«Годен до» не раньше конца самовывоза (min у поля): после смены конца сдвигаем срок на сутки позже него."""
+    from datetime import datetime, timedelta
+    end = datetime.strptime(page.locator("#pickupEnd").input_value(), "%Y-%m-%dT%H:%M")
+    page.locator("#offer-best-before").fill((end + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M"))
+
 with sync_playwright() as p:
     b = getattr(p, os.environ.get("QA_BROWSER", "chromium")).launch()
     ctx, page, st, errs, dialogs = open_panel(b, "BUSINESS", D, "/offers")
@@ -88,19 +99,19 @@ with sync_playwright() as p:
     page.keyboard.press("Escape"); page.wait_for_timeout(300)
     check("[biz] Escape закрывает модалку", not page.locator("#title").is_visible())
     page.get_by_role("button", name=re.compile("Новый оффер")).click(); page.wait_for_timeout(400)
-    page.locator("#title").fill("Тестовый оффер"); page.locator("#weight").fill("0.5"); page.locator("#price").fill("0")
+    page.locator("#title").fill("Тестовый оффер"); page.locator("#weight").fill("0.5"); page.locator("#price").fill("0"); food(page)
     page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(500)
     check("[biz] цена 0 не проходит валидацию (POST не ушёл)", ("POST", "/offers") not in st["calls"])
     page.locator("#price").fill("800")
     start = page.locator("#pickupStart").input_value(); page.locator("#pickupEnd").fill(start[:11] + "00:01" if start[11:16] > "00:01" else start)
     page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(700)
     check("[biz] окно самовывоза с концом раньше начала не отправляется, ошибка видна", ("POST", "/offers") not in st["calls"] and "должен быть позже начала" in body(page), "форма отправила оффер с pickupEnd < pickupStart")
-    page.locator("#pickupEnd").fill(start[:11] + "23:59" if start[11:16] < "23:59" else start)
+    page.locator("#pickupEnd").fill(start[:11] + "23:59" if start[11:16] < "23:59" else start); best_before_after_end(page)
     page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(900)
     check("[biz] валидная форма создаёт оффер (POST) и он появляется в списке", ("POST", "/offers") in st["calls"] and "Тестовый оффер" in body(page), str(st["calls"][-4:]))
     st["mode"]["create_fails"] = True
     page.get_by_role("button", name=re.compile("Новый оффер")).click(); page.wait_for_timeout(400)
-    page.locator("#title").fill("Сломанный"); page.locator("#weight").fill("0.5"); page.locator("#price").fill("500"); page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(900)
+    page.locator("#title").fill("Сломанный"); page.locator("#weight").fill("0.5"); page.locator("#price").fill("500"); food(page); page.locator("form").last.evaluate("f => f.requestSubmit()"); page.wait_for_timeout(900)
     check("[biz] ошибка сервера при создании показана в модалке", "Цена должна быть больше нуля" in body(page), body(page)[-160:].replace("\n", " "))
     page.keyboard.press("Escape"); st["mode"]["create_fails"] = False
     # архив / удаление через confirm

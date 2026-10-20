@@ -11,11 +11,16 @@ results = []
 def check(name, cond, detail=""):
     results.append(bool(cond)); print(("[PASS] " if cond else "[FAIL] ") + name + (f"  -- {detail}" if detail and not cond else ""))
 
+# Как у настоящего бэкенда (qrcode.toDataURL) — PNG: RN-web не показывает SVG из data:-ссылки, и проверка «QR на экране» была бы слепой.
+MOCK_QR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
 def offer(i, title, end_in, disc, price=30000, cat="FOOD", dist=0.5, biz="Кафе Тест", left=5, start_in=-90):
     return {"id": f"off-{i}", "businessId": "biz-1", "title": title, "description": "Описание", "category": cat, "originalPrice": price * 100 // (100 - disc) if disc else price,
             "discountedPrice": price, "discountPercent": disc, "baseDiscountPercent": 25, "imageUrl": None, "quantityTotal": 10, "quantityLeft": left, "weightKg": 0.5,
             "pickupStart": iso(start_in), "pickupEnd": iso(end_in), "status": "ACTIVE", "createdAt": iso(-200), "updatedAt": iso(-1),
-            "businessName": biz, "businessAddress": "Невский 1", "businessLat": 59.93, "businessLng": 30.36, "businessLogoUrl": None, "distanceKm": dist}
+            "businessName": biz, "businessAddress": "Невский 1", "businessLat": 59.93, "businessLng": 30.36, "businessLogoUrl": None, "distanceKm": dist,
+            # Состав, аллергены и срок годности — до оплаты; у цветов их нет
+            **({} if cat == "FLOWERS" else {"ingredients": "Мука, вода, сыр, томаты", "allergens": ["gluten", "milk"], "allergensDeclared": True, "bestBefore": iso(end_in + 240)})}
 
 def make_state():
     order = lambda id_, offer_id, qty, total, status, code, age: {"id": id_, "userId": "u1", "offerId": offer_id, "businessId": "biz-1", "quantity": qty, "totalPrice": total, "platformFee": 0, "status": status, "pickupCode": code, "createdAt": iso(age)}
@@ -64,13 +69,27 @@ def install_api(ctx, st):
             if m.get("pay_fail"): return ok({"statusCode": m["pay_fail"], "message": "Товар закончился" if m["pay_fail"] == 409 else "Ошибка платежа"}, m["pay_fail"])
             o = {"id": f"ord-new-{len(st['orders'])}", "userId": "u1", "offerId": "off-1", "businessId": "biz-1", "quantity": 1, "totalPrice": 24000, "platformFee": 6000, "status": "CONFIRMED", "pickupCode": "246810", "createdAt": iso(0)}
             st["orders"].insert(0, o); return ok(o, 201)
+        mr = re.match(r"^/orders/([^/]+)/receipt$", path)
+        if mr and method == "POST":
+            order = next((o for o in st["orders"] if o["id"] == mr.group(1)), None)
+            body = json.loads(request.post_data or "{}")
+            st["receipt_calls"] = st.get("receipt_calls", []) + [body]
+            if m.get("receipt_fail"): return ok({"statusCode": m["receipt_fail"], "message": "Ты уже ответил по этому заказу"}, m["receipt_fail"])
+            if not order or order["status"] != "COMPLETED": return ok({"statusCode": 409, "message": "Заведение ещё не отметило выдачу этого заказа"}, 409)
+            if body.get("received"): order["receiptConfirmedAt"] = iso(0)
+            else: order.update({"receiptDisputedAt": iso(0), "receiptDisputeReason": body.get("reason"), "receiptDisputeNote": body.get("note")})
+            return ok(order, 201)
         mo = re.match(r"^/orders/([^/]+)(/qrcode|/cancel)?$", path)
         if mo:
             oid, tail = mo.group(1), mo.group(2); order = next((o for o in st["orders"] if o["id"] == oid), None)
             if not order: return ok({"statusCode": 404, "message": "Заказ не найден"}, 404)
-            if tail == "/qrcode": return ok({"qrCodeDataUrl": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4'%3E%3Crect width='4' height='4' fill='white'/%3E%3Crect width='2' height='2' fill='black'/%3E%3C/svg%3E"})
+            if tail == "/qrcode": return ok({"qrCodeDataUrl": MOCK_QR})
             if tail == "/cancel": order["status"] = "CANCELLED"
             return ok(order)
+        mb = re.match(r"^/businesses/([^/]+)$", path)
+        if mb:
+            if m.get("business_fail"): return ok({"statusCode": 500, "message": "Внутренняя ошибка сервера"}, 500)
+            return ok({"id": mb.group(1), "ownerUserId": "u9", "name": "Кафе Пушкинъ", "address": "Невский проспект, 40, Санкт-Петербург", "category": "FOOD", "lat": 59.93, "lng": 30.36, "status": "ACTIVE", "commissionPercent": 10, "createdAt": iso(-9999), "updatedAt": iso(-9999)})
         if path == "/notifications":
             unread = "unreadOnly=true" in url; items = [] if m.get("empty") else [n for n in st["notifications"] if (not n["read"] or not unread)]
             return ok({"items": items, "total": len(items), "page": 1, "pageSize": 50})
@@ -107,7 +126,10 @@ def new_page(b, vp, scheme="dark", state=None, geo=True, cached_user=False):
 
 def tab(page, name): page.get_by_role("tab", name=name).click(); page.wait_for_timeout(1300)
 def texts(page): return page.inner_text("body")
-def cards(page): return page.locator("[role=button]").filter(has_text="₽")
+def cards(page):
+    """Карточки СПИСКА предложений. Карточки бегущей ленты над картой (она едет, её копии тоже role=button) сюда не входят —
+    для них есть qa_mobile_ribbon.py; иначе «первая карточка» оказывалась бы уезжающей лентой."""
+    return page.locator("[role=button]:not([data-testid=offer-ribbon] [role=button])").filter(has_text="₽")
 def overflow(page): return page.evaluate("document.documentElement.scrollWidth > innerWidth + 1")
 def unnamed(page):
     return page.evaluate("""() => [...document.querySelectorAll('[role=button],[role=tab],[role=radio],button,a[href]')].filter(e => { const r=e.getBoundingClientRect(); const s=getComputedStyle(e); return r.width>0&&r.height>0&&s.visibility!=='hidden' && !e.closest('.leaflet-container') && !(e.getAttribute('aria-label')||(e.innerText||'').trim()||e.getAttribute('title')); }).slice(0,4).map(e=>e.outerHTML.slice(0,90))""")
@@ -119,7 +141,7 @@ with sync_playwright() as p:
     ctx, page, st, errs = new_page(b, PH); T = texts(page)
     check("сессия из токенов -> Home (приветствие с именем)", "Привет, Тест" in T, T[:80])
     check("Home: нет горизонтального переполнения", not overflow(page))
-    order = page.evaluate("[...document.querySelectorAll('[role=button]')].filter(e=>e.innerText.includes('₽')&&e.getBoundingClientRect().width>0).map(e=>(e.innerText.split('\\n').find(l=>/^[−-]\\d+%$/.test(l.trim()))||'').replace('-','−'))")
+    order = page.evaluate("[...document.querySelectorAll('[role=button]')].filter(e=>!e.closest('[data-testid=offer-ribbon]')&&e.innerText.includes('₽')&&e.getBoundingClientRect().width>0).map(e=>(e.innerText.split('\\n').find(l=>/^[−-]\\d+%$/.test(l.trim()))||'').replace('-','−'))")
     check("Home: сначала горячие, затем по скидке", order[:2] == ["−60%", "−45%"], str(order))
     top4 = " ".join(page.evaluate("[...document.querySelectorAll('[role=button]')].filter(e=>e.innerText.includes('₽')).slice(0,4).map(e=>e.innerText)"))
     check("Home: закрытое предложение не в верхней четвёрке", "Закрытое предложение" not in top4)
@@ -220,7 +242,10 @@ with sync_playwright() as p:
     s2 = make_state(); s2["mode"]["expire_once"] = True; ctx, page, s2, errs = new_page(b, PH, state=s2); tab(page, "Заказы"); page.wait_for_timeout(1200)
     check("401: истёкший токен тихо обновляется и запрос повторяется", ("POST", "/auth/refresh") in s2["calls"] and "Ожидает самовывоза" in texts(page), str(s2["calls"][-6:])); ctx.close()
     s2 = make_state(); s2["mode"].update({"expire_once": True, "refresh_fails": True}); ctx, page, s2, errs = new_page(b, PH, state=s2); tab(page, "Заказы"); page.wait_for_timeout(1500)
-    check("401: провал refresh -> выход на экран входа", page.locator("input[type=password]").count() == 1, texts(page)[:100]); ctx.close()
+    welcome = lambda: page.get_by_role("button", name="Создать аккаунт", exact=True).count() == 1 and page.get_by_role("button", name="Войти", exact=True).count() == 1
+    check("401: провал refresh -> выход на приветственную страницу (оттуда — «Войти»)", welcome(), texts(page)[:100])
+    page.get_by_role("button", name="Войти", exact=True).click(); page.wait_for_timeout(700)
+    check("401: …а «Войти» открывает форму входа", page.locator("input[type=password]:visible").count() == 1); ctx.close()
 
     # ================= URL / кнопка браузера "назад" / перезагрузка =================
     ctx, page, st, errs = new_page(b, PH)
@@ -253,7 +278,9 @@ with sync_playwright() as p:
     # ================= выход =================
     ctx, page, st, errs = new_page(b, PH); tab(page, "Профиль")
     page.get_by_role("button", name="Выйти").click(); page.wait_for_timeout(1500)
-    check("Выход: показан экран входа", page.locator("input[type=password]").count() == 1)
+    check("Выход: показана приветственная страница с «Войти» и «Создать аккаунт»", page.get_by_role("button", name="Создать аккаунт", exact=True).count() == 1 and page.get_by_role("button", name="Войти", exact=True).count() == 1)
+    page.get_by_role("button", name="Войти", exact=True).click(); page.wait_for_timeout(700)
+    check("Выход: «Войти» открывает форму входа", page.locator("input[type=password]:visible").count() == 1)
     check("Выход: токены и кэш профиля стёрты, на сервер ушёл logout", page.evaluate("localStorage.getItem('apetite.accessToken')") is None and page.evaluate("localStorage.getItem('apetite.user')") is None and ("POST", "/auth/logout") in st["calls"])
     ctx.close()
 

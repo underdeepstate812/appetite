@@ -35,6 +35,8 @@ try:
       # ---------- быстрое создание + фото из библиотеки ----------
       title="QA фото-тест "+os.urandom(2).hex()
       page.fill("#quick-title", title); page.fill("#quick-price","500"); page.fill("#quick-weight","0.4")
+      # состав и аллергены обязательны для еды (покупатель видит их до оплаты)
+      page.fill("#quick-ingredients","Говядина, булка, овощи"); page.locator("#quick-allergens").click(); page.get_by_role("checkbox", name="Аллергенов нет", exact=True).check(); page.keyboard.press("Escape")
       page.get_by_role("button", name="Из библиотеки").first.click(); page.wait_for_selector(".photo-library-item")
       check("library shows presets", page.locator(".photo-library-item").count()>=10, page.locator(".photo-library-item").count())
       check("food presets first for FOOD", "Бургер" in page.locator(".photo-library-item").first.inner_text() or "Пицца" in page.locator(".photo-library-item").first.inner_text())
@@ -63,9 +65,11 @@ try:
       check("uploaded file exists on disk", os.path.exists(os.path.join(UPLOADS, os.path.basename(new_url))))
       with urllib.request.urlopen("http://localhost:3000"+new_url) as r: check("uploaded photo is served as an image", r.status==200 and "image" in r.headers.get("content-type",""))
       # ---------- публичная витрина показывает своё фото ----------
-      pg=ctx.new_page(); pg.goto(WEB+"/map"); pg.wait_for_selector(".offer-row"); pg.wait_for_timeout(1500)
-      row=pg.locator(".offer-row", has_text=title); check("customer map lists the offer", row.count()==1)
-      check("customer sees the uploaded photo (not a broken image)", pg.evaluate("(t)=>{const r=[...document.querySelectorAll('.offer-row')].find(x=>x.textContent.includes(t)); const i=r&&r.querySelector('img'); return !!i && i.src.includes('/uploads/offers/') && i.complete && i.naturalWidth>0}", title)); pg.close()
+      # Витрина (/home): в ленте сверху — только самые горячие, поэтому свежий оффер ищем по метке на карте и открываем с клавиатуры.
+      pg=ctx.new_page(); pg.goto(WEB+"/home"); pg.wait_for_selector(".leaflet-marker-icon", timeout=15000); pg.wait_for_timeout(1500)
+      pin=pg.locator(f'.leaflet-marker-icon[title^="{title}"]'); check("customer map has the offer pin", pin.count()==1)
+      pin.first.focus(); pg.keyboard.press("Enter"); pg.wait_for_selector(".offer-sheet"); pg.wait_for_timeout(800)
+      check("customer sees the uploaded photo (not a broken image)", pg.evaluate("()=>{const i=document.querySelector('.offer-sheet img'); return !!i && i.src.includes('/uploads/offers/') && i.complete && i.naturalWidth>0}")); pg.close()
       # ---------- замена на библиотечное: старый файл удаляется ----------
       page.reload(); page.wait_for_selector(f"tr:has-text('{title}')")
       page.locator(f"tr:has-text('{title}')").get_by_role("button", name="Изменить").click(); page.wait_for_selector(".photo-field")

@@ -1,6 +1,33 @@
 import os
 import re, sys
 from playwright.sync_api import sync_playwright
+
+import struct, zlib
+
+def decode_png(data):
+    """Минимальный разбор PNG (8 бит, RGB/RGBA, без интерлейса) → (ширина, высота, байт на пиксель, строки)."""
+    pos, idat = 8, b""
+    while pos < len(data):
+        n, typ = struct.unpack(">I4s", data[pos:pos + 8]); body = data[pos + 8:pos + 8 + n]; pos += 12 + n
+        if typ == b"IHDR": w, h, depth, ctype, _, _, inter = struct.unpack(">IIBBBBB", body); assert depth == 8 and inter == 0 and ctype in (2, 6)
+        elif typ == b"IDAT": idat += body
+    bpp = 4 if ctype == 6 else 3
+    raw = zlib.decompress(idat); stride = w * bpp; rows = []; prev = bytearray(stride); i = 0
+    for _ in range(h):
+        f = raw[i]; line = bytearray(raw[i + 1:i + 1 + stride]); i += 1 + stride
+        for x in range(stride):
+            a = line[x - bpp] if x >= bpp else 0; b = prev[x]; c = prev[x - bpp] if x >= bpp else 0
+            if f == 1: line[x] = (line[x] + a) & 255
+            elif f == 2: line[x] = (line[x] + b) & 255
+            elif f == 3: line[x] = (line[x] + (a + b) // 2) & 255
+            elif f == 4:
+                pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c); pr = a if pa <= pb and pa <= pc else (b if pb <= pc else c)
+                line[x] = (line[x] + pr) & 255
+        rows.append(line); prev = line
+    return w, h, bpp, rows
+
+def pixel(png, x, y):
+    w, h, bpp, rows = decode_png(png); return tuple(rows[y][x * bpp:x * bpp + 3])
 BASE = "http://localhost:5174"
 results = []
 def check(name, cond, detail=""):
@@ -25,12 +52,31 @@ with sync_playwright() as p:
             hs = page.evaluate("[...document.querySelectorAll('.ribbon-filter')].map(e => Math.round(e.getBoundingClientRect().height))")
             check("[phone] чипы фильтров ≥ 44px по высоте (цель касания)", hs and min(hs) >= 44, str(hs))
         page.evaluate("document.querySelector('.ribbon-scroll').scrollIntoView({block:'center'})"); page.wait_for_timeout(400)
-        for i in range(6):
-            like = page.locator(".offer-tile-like").nth(i); bx = like.bounding_box()
-            if bx and 10 < bx["x"] < vp["width"] - 60: break
-        bx = like.bounding_box(); pre = like.get_attribute("aria-pressed")
-        page.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] / 2); page.wait_for_timeout(250)
-        check(f"[{label}] «в избранное» реально переключается по клику мыши", pre == "false" and like.get_attribute("aria-pressed") == "true")
+        check(f"[{label}] на карточках ленты нет кнопки «в избранное» (лайк убран)", page.locator(".offer-tile-like").count() == 0 and page.get_by_role("button", name=re.compile("избранн")).count() == 0)
+        play = page.locator(".ribbon-play"); pb = play.bounding_box()
+        check(f"[{label}] кнопка паузы ленты не видна глазам (1×1 px, обрезана), но есть в дереве доступности", pb is not None and pb["width"] <= 2 and pb["height"] <= 2 and play.get_attribute("aria-label") in ("Остановить движение ленты", "Запустить движение ленты"))
+        # Настоящий Tab (а не .focus() из скрипта): :focus-visible после кликов мышью у программного фокуса не включается
+        page.locator(".ribbon-filter").last.focus(); page.keyboard.press("Tab"); page.wait_for_timeout(200)
+        fb = play.bounding_box()
+        check(f"[{label}] с клавиатуры (Tab/фокус) кнопка паузы проявляется — 44×44 px, фокус виден", fb and fb["width"] >= 43 and fb["height"] >= 43 and page.evaluate("getComputedStyle(document.activeElement).outlineStyle !== 'none'"))
+        page.evaluate("document.activeElement.blur()")
+        # --- наведение на карточку: фото не должно вылезать за скруглённый угол и закрывать рамку ---
+        tile = page.locator(".offer-tile:has(.offer-tile-photo-img)").first
+        page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft = 0"); page.wait_for_timeout(200)
+        page.locator(".ribbon-play").evaluate("e => e.getAttribute('aria-label').startsWith('Остановить') && e.click()")  # лента едет — стоп, чтобы карточка не уезжала
+        inside = "(() => { const t = document.querySelector('.offer-tile:has(.offer-tile-photo-img)'); const ph = t.querySelector('.offer-tile-photo').getBoundingClientRect(); const r = t.getBoundingClientRect(); return ph.right <= r.right - 1 + 0.01 && ph.left >= r.left + 1 - 0.01 && ph.top >= r.top + 1 - 0.01 })()"
+        page.mouse.move(5, 5); page.wait_for_timeout(300)
+        rest_ok = page.evaluate(inside)
+        tb = tile.bounding_box(); page.mouse.move(tb["x"] + tb["width"] / 2, tb["y"] + tb["height"] / 2); page.wait_for_timeout(700)
+        check(f"[{label}] карточка ленты: фото целиком внутри рамки — в покое и при наведении (не вылезает за угол)", rest_ok and page.evaluate(inside))
+        tb = tile.bounding_box()
+        if tb["y"] > 6 and tb["x"] + tb["width"] < vp["width"]:
+            png = page.screenshot(clip={"x": tb["x"] + tb["width"] - 60, "y": tb["y"] - 4, "width": 48, "height": 12})
+            bc = [int(v) for v in re.findall(r"\d+", tile.evaluate("e => getComputedStyle(e).borderTopColor"))[:3]]
+            dist = min(sum(abs(c - d) for c, d in zip(pixel(png, 24, row), bc)) for row in (3, 4, 5))
+            # у закрывающего рамку фото ни одна из строк на уровне верхней рамки не похожа на цвет рамки (серый снимок)
+            check(f"[{label}] при наведении верхняя рамка карточки на месте и не закрыта фото (цвет рамки {bc}, расхождение {dist})", dist < 60, (bc, dist))
+        page.mouse.move(5, 5)
         page.keyboard.press("Tab"); page.keyboard.press("Tab")
         check(f"[{label}] Tab фокусирует элемент с видимым фокусом", page.evaluate("(() => { const a = document.activeElement; if (!a || a === document.body) return false; const s = getComputedStyle(a); return s.outlineStyle !== 'none' || s.boxShadow !== 'none'; })()"))
         if label == "phone":

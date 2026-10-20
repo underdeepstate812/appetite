@@ -19,8 +19,9 @@ with sync_playwright() as p:
     page.mouse.move(5,5); a=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft"); page.wait_for_timeout(2000); c=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft")
     check("ribbon auto-scrolls", c>a+10, (a,c))
     # пауза
-    page.get_by_role("button", name="Остановить движение ленты").click(); a=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft"); page.wait_for_timeout(800); c=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft")
-    check("pause button stops ribbon", abs(c-a)<2, (a,c)); page.get_by_role("button", name="Запустить движение ленты").click()
+    # кнопка паузы скрыта глазам и доступна с клавиатуры: фокус + Enter
+    page.get_by_role("button", name="Остановить движение ленты").focus(); page.keyboard.press("Enter"); page.mouse.move(5,5); a=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft"); page.wait_for_timeout(800); c=page.evaluate("document.querySelector('.ribbon-scroll').scrollLeft")
+    check("pause button (keyboard) stops ribbon", abs(c-a)<2, (a,c)); page.get_by_role("button", name="Запустить движение ленты").focus(); page.keyboard.press("Enter")
     # гость
     check("guest sees 'Войти и заказать'", page.get_by_role("link", name="Войти и заказать").count()>0)
     page.screenshot(path=OUT+"/oc_guest.png")
