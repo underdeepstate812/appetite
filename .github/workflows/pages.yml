@@ -3,7 +3,8 @@ name: Demo (GitHub Pages)
 # Автономное демо: сайт покупателя, кабинет бизнеса и мобильная версия на встроенных данных (packages/demo), без сервера и базы.
 on:
   push:
-    branches: [main]
+    # Ветку фичи держим в списке, пока PR не влит в main: workflow_dispatch работает только для файла из основной ветки.
+    branches: [main, feature/web-shop-map-oneclick]
   workflow_dispatch:
 
 permissions:
