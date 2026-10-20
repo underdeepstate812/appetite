@@ -1,6 +1,6 @@
 import type { Location } from "react-router-dom";
 
-export const DEFAULT_AFTER_AUTH = "/map";
+export const DEFAULT_AFTER_AUTH = "/home";
 
 interface FromState {
   from?: { pathname?: string; search?: string };

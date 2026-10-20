@@ -7,6 +7,7 @@ import { businessesApi } from "../api/businesses";
 import { offersApi } from "../api/offers";
 import { ordersApi } from "../api/orders";
 import { OrderTimeline } from "../components/OrderTimeline";
+import { ReceiptPanel } from "../components/ReceiptPanel";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { formatClock, formatPickupEnd, formatRub } from "../utils/format";
 
@@ -173,14 +174,17 @@ export function OrderTicketPage() {
           <p className="ticket-rule">После оплаты заказ отменить нельзя — если что-то пошло не так, напишите в поддержку.</p>
         </>
       ) : (
-        <StatusNote status={order.status} />
+        <>
+          <StatusNote status={order.status} />
+          <ReceiptPanel order={order} onUpdated={setOrder} />
+        </>
       )}
 
       <div className="ticket-actions">
         <Link to="/orders" className="btn btn-primary">
           К моим заказам
         </Link>
-        <Link to="/map" className="btn btn-secondary">
+        <Link to="/home" className="btn btn-secondary">
           Ещё предложения
         </Link>
       </div>
@@ -190,7 +194,7 @@ export function OrderTicketPage() {
 
 function StatusNote({ status }: { status: OrderStatus }) {
   const map = {
-    [OrderStatus.COMPLETED]: { Icon: CircleCheck, text: "Заказ получен. Приятного аппетита!" },
+    [OrderStatus.COMPLETED]: { Icon: CircleCheck, text: "Заведение отметило, что заказ выдан." },
     [OrderStatus.CANCELLED]: { Icon: CircleX, text: "Заказ отменён поддержкой. Деньги будут возвращены." },
     [OrderStatus.EXPIRED]: { Icon: Hourglass, text: "Окно самовывоза закончилось — заказ просрочен." },
     [OrderStatus.CONFIRMED]: { Icon: CircleCheck, text: "" },

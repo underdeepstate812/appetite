@@ -9,7 +9,7 @@ describe("getReturnPath", () => {
     expect(getReturnPath(withFrom({ pathname: "/orders" }))).toBe("/orders");
   });
 
-  it("falls back to the map when there is no state", () => {
+  it("falls back to the home showcase when there is no state", () => {
     expect(getReturnPath({ state: null })).toBe(DEFAULT_AFTER_AUTH);
     expect(getReturnPath({ state: {} })).toBe(DEFAULT_AFTER_AUTH);
   });

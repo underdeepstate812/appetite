@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { Link } from "react-router-dom";
-import { UtensilsCrossed, Croissant, Flower2, ShoppingBasket, Heart, MapPin, Clock, Zap, Check, Pause, Play } from "lucide-react";
+import { UtensilsCrossed, Croissant, Flower2, ShoppingBasket, MapPin, Clock, Zap, Check, Pause, Play } from "lucide-react";
 import { useReveal } from "../hooks/useReveal";
 import { FireIcon } from "./FireIcon";
 import { OneClickDialog } from "./OneClickDialog";
+import { allergenNames, foodInfoStatus } from "../utils/foodInfo";
 import { useAuth } from "../store/auth";
 import { useShowcaseOffers, type RibbonOffer, type ShowcaseCategory } from "../hooks/useShowcaseOffers";
 import { formatRub } from "../utils/format";
@@ -79,12 +80,10 @@ const DEMO_OFFERS: Offer[] = [
 
 /**
  * Живая лента реальных офферов — тянет драгом/скроллом, фильтруется по
- * категории, карточки можно сохранить (heart). Не декорация: состояние
- * фильтра и лайков реально меняет то, что видно на экране.
+ * категории. Не декорация: состояние фильтра реально меняет то, что видно на экране.
  */
 export function OffersRibbon() {
   const [filter, setFilter] = useState<Category | "all">("all");
-  const [liked, setLiked] = useState<Set<string>>(new Set());
   const { user } = useAuth();
   const live = useShowcaseOffers();
   const source = live ?? DEMO_OFFERS;
@@ -187,15 +186,6 @@ export function OffersRibbon() {
     setConsentFor(null);
   };
 
-  const toggleLike = (id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   // Пауза по наведению — только для мыши. На тач-устройствах pointerenter срабатывает при
   // касании, а парный pointerleave после отпускания пальца не гарантирован — лента иначе
   // замирает навсегда после первого тапа. Тач и так ставит на паузу через dragState (ниже).
@@ -209,7 +199,7 @@ export function OffersRibbon() {
   };
 
   // Драг начинается только после сдвига на DRAG_THRESHOLD px. Раньше setPointerCapture вызывался сразу на
-  // pointerdown: захват уводил pointerup (а с ним и click) на контейнер, и кнопка "в избранное" на
+  // pointerdown: захват уводил pointerup (а с ним и click) на контейнер, и кнопка на
   // карточке никогда не срабатывала.
   const DRAG_THRESHOLD = 5;
 
@@ -273,6 +263,8 @@ export function OffersRibbon() {
               </button>
             ))}
           </div>
+          {/* Глазам кнопку не показываем (см. .ribbon-play): ленту и так останавливают наведение мыши, касание и клавиатурный
+              фокус, а при prefers-reduced-motion она не едет вовсе. Клавиатуре и скринридеру кнопка остаётся (WCAG 2.2.2). */}
           <button
             type="button"
             className="ribbon-play"
@@ -308,8 +300,6 @@ export function OffersRibbon() {
                   key={`${offer.id}-${index}`}
                   offer={offer}
                   index={index % visible.length}
-                  liked={liked.has(offer.id)}
-                  onToggleLike={() => toggleLike(offer.id)}
                   duplicate={isDuplicate}
                   signedIn={!!user}
                   orderState={orders[offer.id]}
@@ -331,6 +321,7 @@ export function OffersRibbon() {
           title={consentFor.title}
           shop={consentFor.shop}
           priceMinor={consentFor.priceMinor}
+          food={consentFor.food}
           onCancel={closeConsent}
           onConfirm={(method) => {
             const offer = consentFor;
@@ -348,8 +339,6 @@ export function OffersRibbon() {
 function OfferTile({
   offer,
   index,
-  liked,
-  onToggleLike,
   duplicate,
   signedIn,
   orderState,
@@ -357,8 +346,6 @@ function OfferTile({
 }: {
   offer: Offer;
   index: number;
-  liked: boolean;
-  onToggleLike: () => void;
   duplicate?: boolean;
   signedIn: boolean;
   orderState?: OrderState;
@@ -366,6 +353,9 @@ function OfferTile({
 }) {
   const meta = CATEGORY_META[offer.category];
   const Icon = meta.icon;
+  // До оплаты человек должен видеть аллергены: на плитке — короткая строка, полный состав — в диалоге согласия и на оформлении.
+  const food = offer.food ? foodInfoStatus(offer.food) : "none";
+  const allergens = allergenNames(offer.food?.allergens).map((name) => name.toLowerCase());
 
   // Тикаем только те офферы, что вообще способны загореться — незачем
   // гонять интервал у карточки со скидкой 40%, она никогда не станет "hot".
@@ -386,17 +376,6 @@ function OfferTile({
           <FireIcon size={13} /> {featured ? "Предложение дня" : "Горит"}
         </span>
       ) : null}
-
-      <button
-        type="button"
-        tabIndex={duplicate ? -1 : undefined}
-        className={`offer-tile-like${liked ? " is-liked" : ""}`}
-        onClick={onToggleLike}
-        aria-pressed={liked}
-        aria-label={liked ? "Убрать из избранного" : "Сохранить в избранное"}
-      >
-        <Heart size={16} strokeWidth={2.2} fill={liked ? "currentColor" : "none"} />
-      </button>
 
       <div className={`offer-tile-photo${hot ? " is-hot" : ""}`}>
         {offer.image ? (
@@ -434,11 +413,25 @@ function OfferTile({
           </span>
         )}
       </div>
+      {food !== "none" && offer.offerId ? (
+        <p className="offer-tile-allergens">
+          {food === "missing"
+            ? "Состав и аллергены не указаны"
+            : allergens.length > 0
+              ? `Аллергены: ${allergens.join(", ")}`
+              : "Аллергенов нет"}
+        </p>
+      ) : null}
       {offer.offerId ? (
         <div className="offer-tile-action">
           {orderState?.status === "done" ? (
             <Link to={`/orders/${orderState.orderId}`} tabIndex={duplicate ? -1 : undefined} className="offer-tile-oneclick is-done">
               <Check size={15} strokeWidth={2.8} aria-hidden="true" /> Заказано · открыть билет
+            </Link>
+          ) : food === "missing" ? (
+            // Состав не указан — «в 1 клик» нельзя: человек не увидит, что покупает. Ведём на оформление, где это написано.
+            <Link to={`/checkout/${offer.offerId}`} tabIndex={duplicate ? -1 : undefined} className="offer-tile-oneclick is-guest">
+              Смотреть и заказать
             </Link>
           ) : signedIn ? (
             <button

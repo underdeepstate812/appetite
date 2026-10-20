@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Clock, MapPin, Store, X } from "lucide-react";
 import { getOfferUrgencyRatio, getTimeLeft, heatColor, heatInk, type NearbyOffer } from "@apetite/shared";
 import { OfferPhoto } from "./OfferPhoto";
+import { FoodInfo } from "./FoodInfo";
 import { FireIcon } from "./FireIcon";
 import { useAuth } from "../store/auth";
 import { useNow } from "../hooks/useNow";
@@ -58,6 +59,8 @@ export function OfferSheet({ offer, onClose }: OfferSheetProps) {
         </p>
         <h2 className="offer-sheet-title">{offer.title}</h2>
         {offer.description ? <p className="offer-sheet-desc">{offer.description}</p> : null}
+
+        <FoodInfo offer={offer} compact />
 
         <dl className="offer-sheet-facts">
           <div>

@@ -29,6 +29,8 @@ export interface RibbonOffer {
   quantityLeft?: number;
   /** «Горячее предложение дня» — горит всегда и стоит в ленте первым. */
   featured?: boolean;
+  /** Состав, аллергены и срок годности — до оплаты; демо-плитки без них (заказать их нельзя). */
+  food?: Pick<NearbyOffer, "category" | "ingredients" | "allergens" | "allergensDeclared" | "bestBefore">;
 }
 
 const CATEGORY_KEY: Record<OfferCategory, ShowcaseCategory> = {
@@ -60,6 +62,7 @@ export function toRibbonOffer(offer: NearbyOffer, now: number = Date.now()): Rib
     image: resolveAssetUrl(offer.imageUrl) ?? undefined,
     quantityLeft: offer.quantityLeft,
     featured: offer.featured,
+    food: { category: offer.category, ingredients: offer.ingredients, allergens: offer.allergens, allergensDeclared: offer.allergensDeclared, bestBefore: offer.bestBefore },
   };
 }
 

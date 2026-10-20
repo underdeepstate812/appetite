@@ -91,9 +91,9 @@ export function LandingPage() {
               Кафе, рестораны и магазины города — со скидкой 25–70% на позиции дня.
               Бронируешь и оплачиваешь на сайте или в приложении, забираешь самовывозом за 1–3 часа.
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
+            <div className="hero-cta">
               <Link
-                to="/map"
+                to="/home#map"
                 className="btn btn-primary"
                 onMouseMove={magneticMove}
                 onMouseLeave={magneticLeave}
@@ -111,7 +111,7 @@ export function LandingPage() {
                 <ArrowUpRight size={17} strokeWidth={2.4} className="btn-arrow" aria-hidden="true" />
               </a>
             </div>
-            <div style={{ display: "flex", gap: 32, marginTop: 48 }}>
+            <div className="hero-stats">
               <Stat value="25–70%" label="скидка на витрине" />
               <Stat value="1–3 ч" label="окно самовывоза" />
               <Stat countTo={4} active={heroInView} label="категории: еда, выпечка, цветы, продукты" />
@@ -262,9 +262,9 @@ function Stat({
   const animated = useCountUp(countTo ?? 0, Boolean(active && countTo !== undefined));
 
   return (
-    <div>
-      <p style={statValueStyle}>{countTo !== undefined ? animated : value}</p>
-      <p style={{ fontSize: 13, color: "var(--color-ink-muted)" }}>{label}</p>
+    <div className="hero-stat">
+      <p className="hero-stat-value">{countTo !== undefined ? animated : value}</p>
+      <p className="hero-stat-label">{label}</p>
     </div>
   );
 }
@@ -390,9 +390,3 @@ const faqIndexStyle: CSSProperties = {
   color: "var(--color-primary)",
 };
 
-const statValueStyle: CSSProperties = {
-  fontFamily: "var(--font-display)",
-  fontSize: 24,
-  fontWeight: 700,
-  color: "var(--color-primary)",
-};

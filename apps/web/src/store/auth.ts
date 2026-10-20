@@ -112,6 +112,12 @@ export const authActions = {
     applyAuthResponse(await authApi.register(input));
   },
 
+  /** Профиль изменился (имя, email, фото): обновляем и стор, и кэш, чтобы шапка и страницы увидели это сразу. */
+  setUser(user: User) {
+    writeStorage(USER_KEY, JSON.stringify(user));
+    setState({ user });
+  },
+
   async logout() {
     if (state.accessToken) {
       try {

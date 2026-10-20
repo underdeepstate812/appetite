@@ -39,7 +39,12 @@ export interface YMaps3 {
   YMapDefaultSatelliteLayer: new (props?: object) => unknown;
   YMapDefaultFeaturesLayer: new (props?: object) => unknown;
   YMapMarker: new (props: YMarkerProps, element?: HTMLElement) => YMarkerInstance;
-  YMapListener: new (props: { layer?: string; onClick?: (object: unknown, event: unknown) => void }) => unknown;
+  YMapListener: new (props: {
+    layer?: string;
+    onClick?: (object: unknown, event: unknown) => void;
+    /** Вызывается при любом движении/зуме карты; location.zoom — текущий зум. */
+    onUpdate?: (event: { location: { zoom: number } }) => void;
+  }) => unknown;
   YMapControls: new (props: { position: string }) => { addChild(child: unknown): unknown };
   import: (moduleName: string) => Promise<Record<string, new (props?: object) => unknown>>;
 }

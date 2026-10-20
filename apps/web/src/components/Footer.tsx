@@ -1,6 +1,7 @@
 import { AppetiteMark } from "./AppetiteMark";
 import { AppQr } from "./AppQr";
 import { AppStoreBadge, GooglePlayBadge } from "./StoreBadges";
+import { useAuth } from "../store/auth";
 
 /**
  * Ссылки на приложение задаются переменными окружения, чтобы подставить их при публикации без правки кода.
@@ -11,10 +12,11 @@ const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL as string | undefined;
 const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL as string | undefined;
 
 function appLink(): string {
-  return (import.meta.env.VITE_APP_DOWNLOAD_URL as string | undefined) || `${window.location.origin}/map`;
+  return (import.meta.env.VITE_APP_DOWNLOAD_URL as string | undefined) || `${window.location.origin}/home`;
 }
 
 export function Footer() {
+  const { user } = useAuth();
   return (
     <footer className="site-footer grain-panel">
       <span className="footer-ghost-mark" aria-hidden="true">
@@ -35,9 +37,12 @@ export function Footer() {
           <a href="#how" className="footer-link">
             Как это работает
           </a>
-          <a href="/for-business" className="footer-link">
-            Для бизнеса
-          </a>
+          {/* Вошедшему покупателю раздел для заведений не нужен (как и в шапке) — гостю остаётся. */}
+          {user ? null : (
+            <a href="/for-business" className="footer-link">
+              Для бизнеса
+            </a>
+          )}
           <a href="#faq" className="footer-link">
             Вопросы
           </a>

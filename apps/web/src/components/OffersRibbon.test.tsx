@@ -31,25 +31,20 @@ function tap(element: HTMLElement) {
   fireEvent.click(element);
 }
 
-describe("OffersRibbon like button", () => {
-  it("toggles the saved state after a real tap (pointerdown/up + click)", () => {
-    render(<OffersRibbon />);
-
-    const like = screen.getAllByRole("button", { name: "Сохранить в избранное" })[0];
-    expect(like).toHaveAttribute("aria-pressed", "false");
-
-    tap(like);
-
-    const pressed = screen.getAllByRole("button", { name: "Убрать из избранного" })[0];
-    expect(pressed).toHaveAttribute("aria-pressed", "true");
+describe("OffersRibbon tiles", () => {
+  it("have no like / favourite button (it was removed from the cards)", () => {
+    const { container } = render(<OffersRibbon />);
+    expect(screen.queryAllByRole("button", { name: /избранн/i })).toHaveLength(0);
+    expect(container.querySelector(".offer-tile-like")).toBeNull();
+    expect(container.querySelector(".offer-tile svg.lucide-heart")).toBeNull();
   });
 
-  it("does not start a drag (no pointer capture) on a plain tap, so the click reaches the button", () => {
-    render(<OffersRibbon />);
+  it("does not start a drag (no pointer capture) on a plain tap", () => {
+    const { container } = render(<OffersRibbon />);
     const setPointerCapture = vi.fn();
     HTMLElement.prototype.setPointerCapture = setPointerCapture;
 
-    tap(screen.getAllByRole("button", { name: "Сохранить в избранное" })[0]);
+    tap(container.querySelector(".offer-tile") as HTMLElement);
 
     expect(setPointerCapture).not.toHaveBeenCalled();
   });
@@ -67,5 +62,17 @@ describe("OffersRibbon like button", () => {
 
     fireEvent.pointerMove(strip, { clientX: 250, pointerId: 1 });
     expect(setPointerCapture).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("OffersRibbon pause control", () => {
+  it("is not shown to the eye, but stays a real, keyboard-operable button for keyboard and screen-reader users (WCAG 2.2.2)", () => {
+    render(<OffersRibbon />);
+    // в тестах prefers-reduced-motion включён → лента стартует остановленной
+    const play = screen.getByRole("button", { name: "Запустить движение ленты" });
+    expect(play).toHaveAttribute("aria-pressed", "true");
+    expect(play).toHaveClass("ribbon-play"); // визуально скрывается стилем .ribbon-play:not(:focus-visible)
+    fireEvent.click(play);
+    expect(screen.getByRole("button", { name: "Остановить движение ленты" })).toHaveAttribute("aria-pressed", "false");
   });
 });

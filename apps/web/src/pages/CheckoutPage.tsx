@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { businessesApi } from "../api/businesses";
 import { offersApi } from "../api/offers";
 import { OfferPhoto } from "../components/OfferPhoto";
+import { FoodInfo } from "../components/FoodInfo";
 import { PaymentMethodSelector, type PaymentMethod } from "../components/PaymentMethodSelector";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { formatPickupWindow, formatRub } from "../utils/format";
@@ -121,8 +122,8 @@ export function CheckoutPage() {
             <button type="button" className="btn btn-secondary" onClick={() => setReloadKey((key) => key + 1)}>
               Повторить
             </button>
-            <Link to="/map" className="btn btn-primary">
-              К карте
+            <Link to="/home" className="btn btn-primary">
+              К витрине
             </Link>
           </div>
         </div>
@@ -183,8 +184,8 @@ export function CheckoutPage() {
 
   return (
     <div className="app-page checkout-page">
-      <Link to="/map" className="app-back">
-        <ArrowLeft size={16} aria-hidden="true" /> К карте
+      <Link to="/home" className="app-back">
+        <ArrowLeft size={16} aria-hidden="true" /> К витрине
       </Link>
       <h1 className="app-title">Оформление заказа</h1>
 
@@ -205,6 +206,8 @@ export function CheckoutPage() {
               </p>
             </div>
           </div>
+
+          <FoodInfo offer={offer} />
 
           <dl className="checkout-lines">
             <div>

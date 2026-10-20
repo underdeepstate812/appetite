@@ -75,11 +75,12 @@ async function request<T>(path: string, options: RequestOptions = {}, isRetry = 
     response = await fetch(`${BASE_URL}${path}`, {
       ...rest,
       headers: {
-        "Content-Type": "application/json",
+        // multipart (загрузка фото) браузер размечает сам, вместе с boundary — свой Content-Type тут сломал бы запрос.
+        ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch {
     // fetch бросает TypeError("Failed to fetch"), когда до сервера не дошли — показываем понятный текст.

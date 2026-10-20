@@ -21,10 +21,13 @@ export function OrdersPage() {
   usePageTitle("Мои заказы — Appetite");
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [titles, setTitles] = useState<Record<string, string>>({});
+  // Пока названия подгружаются, в строке — скелетон, а не «Заказ»: иначе слово «прыгает» на настоящее название, а читатель экрана успевает услышать заглушку.
+  const [titlesReady, setTitlesReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
+    setTitlesReady(false);
     try {
       const data = await ordersApi.list();
       setOrders(data);
@@ -35,6 +38,7 @@ export function OrdersPage() {
         if (result.status === "fulfilled") next[ids[index]] = result.value.title;
       });
       setTitles(next);
+      setTitlesReady(true);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить заказы");
     }
@@ -66,8 +70,8 @@ export function OrdersPage() {
           <h2>Заказов пока нет</h2>
           <p>Найдите предложение на карте и заберите его со скидкой.</p>
           <div className="app-state-actions">
-            <Link to="/map" className="btn btn-primary">
-              Открыть карту
+            <Link to="/home" className="btn btn-primary">
+              Открыть витрину
             </Link>
           </div>
         </div>
@@ -82,8 +86,15 @@ export function OrdersPage() {
                     <meta.Icon size={20} aria-hidden="true" />
                   </span>
                   <span className="order-card-main">
-                    <span className="order-card-title">{titles[order.offerId] ?? "Заказ"}</span>
+                    {titlesReady ? (
+                      <span className="order-card-title">{titles[order.offerId] ?? "Заказ"}</span>
+                    ) : (
+                      <span className="order-card-title is-loading" aria-hidden="true" />
+                    )}
                     <span className="order-card-date">{new Date(order.createdAt).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}</span>
+                    {order.status === OrderStatus.COMPLETED && !order.receiptConfirmedAt && !order.receiptDisputedAt ? (
+                      <span className="order-card-receipt">Подтвердите получение</span>
+                    ) : null}
                   </span>
                   <span className="order-card-side">
                     <strong>{formatRub(order.totalPrice)}</strong>

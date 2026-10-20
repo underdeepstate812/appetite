@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Zap } from "lucide-react";
 import { PaymentMethodSelector, type PaymentMethod } from "./PaymentMethodSelector";
+import { FoodInfo } from "./FoodInfo";
+import type { FoodOffer } from "../utils/foodInfo";
 import { formatRub } from "../utils/format";
 import { readPaymentMethod } from "../utils/paymentPrefs";
 
@@ -8,6 +10,8 @@ interface Props {
   title: string;
   shop: string;
   priceMinor: number;
+  /** Состав и аллергены заказываемого предложения — человек видит их до оплаты. */
+  food?: FoodOffer;
   onConfirm: (method: PaymentMethod) => void;
   onCancel: () => void;
 }
@@ -17,7 +21,7 @@ interface Props {
  * первый раз человек видит, что именно и чем будет оплачено; дальше кнопка на карточках работает с одного нажатия.
  * Диалог модальный: фокус внутри, Esc/клик по фону отменяют, фокус возвращается на кнопку, с которой открыли.
  */
-export function OneClickDialog({ title, shop, priceMinor, onConfirm, onCancel }: Props) {
+export function OneClickDialog({ title, shop, priceMinor, food, onConfirm, onCancel }: Props) {
   const [method, setMethod] = useState<PaymentMethod>(readPaymentMethod);
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -69,6 +73,7 @@ export function OneClickDialog({ title, shop, priceMinor, onConfirm, onCancel }:
           </li>
           <li>Согласие действует, пока вы не выйдете из аккаунта.</li>
         </ul>
+        {food ? <FoodInfo offer={food} compact /> : null}
         <PaymentMethodSelector value={method} onChange={setMethod} />
         <p className="modal-fineprint">Бета: оплата в тестовом режиме — деньги не списываются.</p>
         <div className="modal-actions">

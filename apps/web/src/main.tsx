@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/global.css";
 import "./styles/app.css";
+import "./styles/dark.css";
+import { themeActions } from "./store/theme";
+
+themeActions.init();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

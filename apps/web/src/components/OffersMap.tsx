@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { NearbyOffer } from "@apetite/shared";
-import { pinSpec } from "../utils/mapPins";
+import { createPinNode } from "../utils/mapPinDom";
+import { pinScaleForZoom, pinZIndex } from "../utils/mapPins";
 import { LEAFLET_ATTRIBUTION_PREFIX } from "../utils/leafletAttribution";
+import { offsetFromSheet, readSheetBox } from "../utils/mapGeo";
 
 export type MapStyle = "scheme" | "satellite";
 
@@ -38,6 +40,8 @@ interface OffersMapProps {
   /** Реальная позиция пользователя — точка «Вы здесь». null, пока работаем на центре города по умолчанию. */
   userPosition: { lat: number; lng: number } | null;
   offers: NearbyOffer[];
+  /** Предложения, под которые подгоняется вид при смене набора данных (например, ближайшие к человеку). По умолчанию — все. */
+  focus?: NearbyOffer[];
   selectedId: string | null;
   onSelect: (offerId: string | null) => void;
   /** Ключ набора данных (центр + фильтр), для которого загружены offers: при смене карта заново подгоняется, на тихом автообновлении — нет. */
@@ -46,22 +50,34 @@ interface OffersMapProps {
 
 type LeafletModule = typeof import("leaflet");
 
-function pinIcon(L: LeafletModule, offer: NearbyOffer, selected: boolean) {
-  const { size, color, fontSize, text, featured } = pinSpec(offer, selected);
+function pinIcon(L: LeafletModule, offer: NearbyOffer, selected: boolean, scale: number) {
+  const { node, width, height } = createPinNode(offer, selected, Date.now(), scale);
   return L.divIcon({
     className: "map-pin-host",
-    html: `<div class="map-pin${selected ? " is-selected" : ""}${featured ? " is-featured" : ""}" style="width:${size}px;height:${size}px;background:${color}"><span style="font-size:${fontSize}px">${text}</span></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
+    html: node,
+    iconSize: [width, height],
+    iconAnchor: [width / 2, height],
   });
 }
+
+/** Метки выступают над точкой на свою высоту (+ бейдж скидки), поэтому сверху оставляем больше, чем по бокам и снизу. */
+function fitPadding(width: number): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
+  const narrow = width < 520;
+  const side = narrow ? 40 : 72;
+  return { paddingTopLeft: [side, 84], paddingBottomRight: [side, narrow ? 44 : 56] };
+}
+
+const WHEEL_HINT = /Mac|iPhone|iPad/.test(typeof navigator === "undefined" ? "" : navigator.platform) ? "⌘ + прокрутка — масштаб карты" : "Ctrl + прокрутка — масштаб карты";
+const TOUCH_HINT = "Двигайте карту двумя пальцами";
+const HINT_MS = 1600;
 
 /**
  * Рабочая карта: OpenStreetMap-тайлы через Leaflet (бесплатно, без ключа), кликабельные пины с
  * подсветкой выбранного, точка пользователя. Отдельный компонент от LeafletMapView — тот декоративный
  * (мокап телефона на лендинге, жесты отключены), здесь жесты, зум и клики — основная функция.
  */
-export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, selectedId, onSelect, fitKey }: OffersMapProps) {
+export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, focus, selectedId, onSelect, fitKey }: OffersMapProps) {
+  const shellRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const leafletRef = useRef<LeafletModule | null>(null);
@@ -70,25 +86,60 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
   const tileLayersRef = useRef<import("leaflet").TileLayer[]>([]);
   const onSelectRef = useRef(onSelect);
   const selectedRef = useRef(selectedId);
+  const focusRef = useRef(focus);
+  const scaleRef = useRef(1);
   const lastFitKey = useRef<string | null>(null);
+  const hintTimer = useRef(0);
   const [mapReady, setMapReady] = useState(false);
+  // Текст остаётся, пока подсказка гаснет: иначе при затухании она «схлопывалась» бы в пустую плашку.
+  const [hint, setHint] = useState({ text: "", visible: false });
+
+  const showHint = useCallback((text: string) => {
+    setHint({ text, visible: true });
+    window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHint((previous) => ({ ...previous, visible: false })), HINT_MS);
+  }, []);
 
   onSelectRef.current = onSelect;
   selectedRef.current = selectedId;
+  focusRef.current = focus;
+
+  /** Метки на общем виде города мельче (см. pinScaleForZoom): перерисовываем набор, когда зум перешёл на другую ступень. */
+  const refreshIcons = useCallback(() => {
+    const L = leafletRef.current;
+    if (!L) return;
+    markersRef.current.forEach(({ marker, offer }, id) => {
+      marker.setIcon(pinIcon(L, offer, id === selectedRef.current, scaleRef.current));
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void import("leaflet").then((L) => {
       if (cancelled || !containerRef.current || mapRef.current) return;
       leafletRef.current = L;
-      const map = L.map(containerRef.current, { zoomControl: false, attributionControl: true }).setView(
-        [center.lat, center.lng],
-        13
-      );
+      // Карта лежит внутри прокручиваемой страницы (под лентой), поэтому она не должна «съедать» жесты прокрутки:
+      // на телефоне одним пальцем страница листается, картой двигают двумя (pinch-zoom остаётся), на десктопе
+      // колесо листает страницу, а масштаб — с Ctrl/⌘ (и щипок на трекпаде).
+      const map = L.map(containerRef.current, {
+        zoomControl: false,
+        attributionControl: true,
+        dragging: !L.Browser.mobile,
+        scrollWheelZoom: true,
+        // Дробный зум: подгонка границ не «прыгает» на целый уровень и использует всю площадь карты, а не 40% её.
+        zoomSnap: 0.25,
+      }).setView([center.lat, center.lng], 13);
       L.control.zoom({ position: "bottomright" }).addTo(map);
       map.attributionControl.setPrefix(LEAFLET_ATTRIBUTION_PREFIX);
       // Клик по пустому месту закрывает карточку оффера — привычный жест карт.
       map.on("click", () => onSelectRef.current(null));
+      scaleRef.current = pinScaleForZoom(map.getZoom());
+      map.on("zoomend", () => {
+        const next = pinScaleForZoom(map.getZoom());
+        if (next === scaleRef.current) return;
+        scaleRef.current = next;
+        refreshIcons();
+      });
       mapRef.current = map;
       setMapReady(true);
       requestAnimationFrame(() => map.invalidateSize());
@@ -96,6 +147,7 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
 
     return () => {
       cancelled = true;
+      window.clearTimeout(hintTimer.current);
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current.clear();
@@ -105,6 +157,40 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Подсказки «кооперативных жестов» (см. создание карты). Колесо без Ctrl/⌘ глушим ещё на захвате у оболочки —
+  // до обработчика Leaflet; preventDefault не вызываем, поэтому страница прокручивается как обычно.
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell || !mapReady) return;
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return;
+      event.stopPropagation();
+      showHint(WHEEL_HINT);
+    };
+    let start: { x: number; y: number } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      start = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (!start || event.touches.length !== 1) return;
+      const dx = Math.abs(event.touches[0].clientX - start.x);
+      const dy = Math.abs(event.touches[0].clientY - start.y);
+      // Подсказка — только если палец тянет «вбок»: чисто вертикальный свайп — это обычная прокрутка страницы, ей подсказка не нужна.
+      if (dx > 14 && dx * 2 >= dy) {
+        start = null;
+        if (mapRef.current && !mapRef.current.dragging.enabled()) showHint(TOUCH_HINT);
+      }
+    };
+    shell.addEventListener("wheel", onWheel, { capture: true, passive: true });
+    shell.addEventListener("touchstart", onTouchStart, { passive: true });
+    shell.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      shell.removeEventListener("wheel", onWheel, { capture: true });
+      shell.removeEventListener("touchstart", onTouchStart);
+      shell.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [mapReady, showHint]);
 
   // Подложка: ставится после создания карты и заменяется при переключении «Схема/Спутник».
   useEffect(() => {
@@ -141,15 +227,23 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     offers.forEach((offer) => {
       const selected = offer.id === selectedRef.current;
       const marker = L.marker([offer.businessLat, offer.businessLng], {
-        icon: pinIcon(L, offer, selected),
+        icon: pinIcon(L, offer, selected, scaleRef.current),
         title: `${offer.title} — ${offer.businessName}, −${offer.discountPercent}%`,
         alt: offer.title,
-        zIndexOffset: selected ? 1000 : offer.featured ? 900 : offer.discountPercent,
+        zIndexOffset: pinZIndex(offer, selected),
         keyboard: true,
       }).addTo(map);
       marker.on("click", (event) => {
         L.DomEvent.stopPropagation(event);
         onSelectRef.current(offer.id);
+      });
+      // Метка получает фокус (tabindex, role=button), но Leaflet не превращает Enter/Пробел в клик — с клавиатуры
+      // предложение открыть было нельзя. Иконка (divIcon) при смене вида переиспользуется, так что обработчик остаётся.
+      marker.getElement()?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelectRef.current(offer.id);
+        }
       });
       markersRef.current.set(offer.id, { marker, offer });
     });
@@ -159,9 +253,10 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     if (lastFitKey.current !== fitKey) {
       lastFitKey.current = fitKey;
       if (offers.length > 0) {
-        const points: [number, number][] = offers.map((o) => [o.businessLat, o.businessLng]);
+        const fitOffers = focusRef.current && focusRef.current.length > 0 ? focusRef.current : offers;
+        const points: [number, number][] = fitOffers.map((o) => [o.businessLat, o.businessLng]);
         if (userPosition) points.push([userPosition.lat, userPosition.lng]);
-        map.fitBounds(L.latLngBounds(points), { padding: [70, 70], maxZoom: 15, animate: false });
+        map.fitBounds(L.latLngBounds(points), { ...fitPadding(map.getSize().x), maxZoom: 15, animate: false });
       } else {
         map.setView([center.lat, center.lng], 13, { animate: false });
       }
@@ -175,17 +270,17 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     if (!map || !L || !mapReady) return;
     markersRef.current.forEach(({ marker, offer }, id) => {
       const selected = id === selectedId;
-      marker.setIcon(pinIcon(L, offer, selected));
-      marker.setZIndexOffset(selected ? 1000 : offer.featured ? 900 : offer.discountPercent);
+      marker.setIcon(pinIcon(L, offer, selected, scaleRef.current));
+      marker.setZIndexOffset(pinZIndex(offer, selected));
     });
     const current = selectedId ? markersRef.current.get(selectedId) : undefined;
     if (current) {
       // Карточка оффера закрывает часть карты (слева на десктопе, снизу на телефоне) — сдвигаем центр так,
-      // чтобы выбранный пин оказался в видимой части, а не под карточкой.
+      // чтобы выбранный пин оказался в середине видимой части, а не под карточкой.
       const zoom = Math.max(map.getZoom(), 15);
       const size = map.getSize();
-      const wide = size.x > 700;
-      const target = map.project(current.marker.getLatLng(), zoom).add([wide ? -Math.min(210, size.x * 0.22) : 0, wide ? 0 : size.y * 0.2]);
+      const { dx, dy } = offsetFromSheet(size.x, size.y, readSheetBox(map.getContainer()));
+      const target = map.project(current.marker.getLatLng(), zoom).add([-dx, dy]);
       map.flyTo(map.unproject(target, zoom), zoom, { duration: 0.6 });
     }
   }, [selectedId, mapReady]);
@@ -211,5 +306,12 @@ export function OffersMap({ mapStyle = "scheme", center, userPosition, offers, s
     }).addTo(map);
   }, [userPosition, mapReady]);
 
-  return <div ref={containerRef} className="offers-map" role="application" aria-label="Карта предложений" />;
+  return (
+    <div ref={shellRef} className="offers-map-shell">
+      <div ref={containerRef} className="offers-map" role="application" aria-label="Карта предложений" />
+      <p className={`map-hint${hint.visible ? " is-visible" : ""}`} role="status" aria-live="polite" aria-hidden={!hint.visible}>
+        {hint.text}
+      </p>
+    </div>
+  );
 }

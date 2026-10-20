@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, LogOut, Receipt } from "lucide-react";
-import { authActions, useAuth } from "../store/auth";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { useAuth } from "../store/auth";
+import { useAccountSummary } from "../hooks/useAccountSummary";
+import { attentionCount } from "../utils/accountSummary";
+import { AccountMenu, AccountSheet } from "./AccountMenu";
 import { AppetiteMark } from "./AppetiteMark";
 
-const NAV_LINKS = [
-  { href: "/map", label: "Карта" },
+/** Гостю — лендинг: как это работает, бизнесу, вопросы. */
+const GUEST_LINKS = [
+  { href: "/home", label: "Витрина" },
   { href: "#how", label: "Как это работает" },
   { href: "/for-business", label: "Для бизнеса" },
   { href: "#faq", label: "Вопросы" },
+];
+
+/** Вошедшему лендинг и раздел для бизнеса не нужны (у заведений свой кабинет): только то, чем он пользуется как покупатель. */
+const MEMBER_LINKS = [
+  { href: "/home", label: "Витрина" },
+  { href: "/orders", label: "Мои заказы" },
 ];
 
 function NavLink({
@@ -19,6 +29,7 @@ function NavLink({
   onClick,
   trailingIcon,
   isHome,
+  current,
 }: {
   href: string;
   label: string;
@@ -26,6 +37,8 @@ function NavLink({
   onClick: () => void;
   trailingIcon?: boolean;
   isHome: boolean;
+  /** Текущая страница — для подсветки и aria-current. */
+  current?: boolean;
 }) {
   const content = (
     <>
@@ -54,64 +67,9 @@ function NavLink({
     );
   }
   return (
-    <Link to={href} className={className} onClick={onClick}>
+    <Link to={href} className={`${className}${current ? " is-current" : ""}`} onClick={onClick} aria-current={current ? "page" : undefined}>
       {content}
     </Link>
-  );
-}
-
-/** Меню вошедшего пользователя: имя в шапке открывает «Мои заказы» и «Выйти». */
-function UserMenu({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const initial = name.trim().charAt(0).toUpperCase() || "?";
-
-  return (
-    <div className="user-menu" ref={ref}>
-      <button type="button" className="user-menu-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <span className="user-menu-avatar" aria-hidden="true">
-          {initial}
-        </span>
-        <span className="user-menu-name">{name}</span>
-        <ChevronDown size={15} aria-hidden="true" />
-      </button>
-      {open ? (
-        <div className="user-menu-panel" role="menu">
-          <Link to="/orders" role="menuitem" className="user-menu-item" onClick={() => setOpen(false)}>
-            <Receipt size={16} aria-hidden="true" /> Мои заказы
-          </Link>
-          <button
-            type="button"
-            role="menuitem"
-            className="user-menu-item"
-            onClick={() => {
-              setOpen(false);
-              void authActions.logout().then(() => navigate("/", { replace: true }));
-            }}
-          >
-            <LogOut size={16} aria-hidden="true" /> Выйти
-          </button>
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -119,13 +77,17 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
+  const burgerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const isHome = location.pathname === "/";
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { summary, refresh } = useAccountSummary(user?.id ?? null);
+  const links = user ? MEMBER_LINKS : GUEST_LINKS;
+  const attention = attentionCount(summary);
+  const isCurrent = (href: string) => !href.startsWith("#") && (location.pathname === href || location.pathname.startsWith(`${href}/`));
 
   // Меню — плавающая панель поверх контента, а не аккордеон в потоке страницы,
-  // поэтому как у любого дропдауна должно закрываться кликом вне себя и по Esc.
+  // поэтому как у любого дропдауна должно закрываться кликом вне себя и по Esc (фокус возвращается на кнопку-бургер).
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -136,7 +98,9 @@ export function Header() {
       if (!insideHeader && !insidePanel) setMenuOpen(false);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      burgerRef.current?.focus();
     };
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -147,22 +111,31 @@ export function Header() {
     };
   }, [menuOpen]);
 
+  // Любой переход (ссылка, «назад» в браузере, выход) закрывает панель; пока она открыта на телефоне, страница под ней не прокручивается.
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("menu-open", menuOpen);
+    if (menuOpen && user) refresh();
+    return () => document.documentElement.classList.remove("menu-open");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuOpen]);
+
   return (
     <header ref={headerRef} className="site-header">
       <div className="container site-header-inner">
-        <Link to="/" className="site-logo" onClick={() => setMenuOpen(false)}>
+        <Link to={user ? "/home" : "/"} className="site-logo" onClick={() => setMenuOpen(false)}>
           <AppetiteMark size={26} /> Appetite
         </Link>
 
         <nav className="site-nav-desktop">
-          {NAV_LINKS.map((link) => (
-            <NavLink key={link.href} href={link.href} label={link.label} className="site-nav-link" onClick={() => {}} isHome={isHome} />
+          {links.map((link) => (
+            <NavLink key={link.href} href={link.href} label={link.label} className="site-nav-link" onClick={() => {}} isHome={isHome} current={isCurrent(link.href)} />
           ))}
         </nav>
 
         <div className="site-header-actions">
           {user ? (
-            <UserMenu name={user.name} />
+            <AccountMenu user={user} summary={summary} onOpen={refresh} />
           ) : (
             <>
               <Link to="/login" className="btn btn-ghost btn-sm btn-desktop-only">
@@ -175,7 +148,8 @@ export function Header() {
             </>
           )}
           <button
-            className="hamburger-btn"
+            ref={burgerRef}
+            className={`hamburger-btn${attention > 0 && !menuOpen ? " has-attention" : ""}`}
             aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
@@ -198,41 +172,28 @@ export function Header() {
           стекло меню теряет непрозрачность и текст страницы просвечивает). */}
       {createPortal(
         <div ref={menuPanelRef} className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
-          <nav className="mobile-menu-inner">
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                className="mobile-menu-link"
-                onClick={() => setMenuOpen(false)}
-                trailingIcon
-                isHome={isHome}
-              />
-            ))}
+          <nav className="mobile-menu-inner" aria-label={user ? "Личный кабинет" : "Меню"}>
             {user ? (
+              <AccountSheet user={user} summary={summary} open={menuOpen} onNavigate={() => setMenuOpen(false)} />
+            ) : (
               <>
-                <Link to="/orders" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
-                  <span>Мои заказы</span>
+                {GUEST_LINKS.map((link) => (
+                  <NavLink
+                    key={link.href}
+                    href={link.href}
+                    label={link.label}
+                    className="mobile-menu-link"
+                    onClick={() => setMenuOpen(false)}
+                    trailingIcon
+                    isHome={isHome}
+                    current={isCurrent(link.href)}
+                  />
+                ))}
+                <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+                  <span>Войти</span>
                   <ArrowRight size={15} strokeWidth={2.2} className="mobile-menu-link-arrow" aria-hidden="true" />
                 </Link>
-                <button
-                  type="button"
-                  className="mobile-menu-link"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void authActions.logout().then(() => navigate("/", { replace: true }));
-                  }}
-                >
-                  <span>Выйти</span>
-                  <LogOut size={15} strokeWidth={2.2} className="mobile-menu-link-arrow" aria-hidden="true" />
-                </button>
               </>
-            ) : (
-              <Link to="/login" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
-                <span>Войти</span>
-                <ArrowRight size={15} strokeWidth={2.2} className="mobile-menu-link-arrow" aria-hidden="true" />
-              </Link>
             )}
           </nav>
         </div>,

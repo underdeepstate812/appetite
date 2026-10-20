@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { NearbyOffer } from "@apetite/shared";
 import type { LngLat, YMapInstance, YMaps3, YMarkerInstance } from "../types/ymaps3";
 import type { MapStyle } from "./OffersMap";
-import { shiftedCenter } from "../utils/mapGeo";
-import { pinSpec } from "../utils/mapPins";
+import { offsetFromSheet, readSheetBox, shiftedCenter } from "../utils/mapGeo";
+import { createPinNode } from "../utils/mapPinDom";
+import { pinScaleForZoom, pinZIndex } from "../utils/mapPins";
 
 interface Props {
   api: YMaps3;
@@ -11,50 +12,42 @@ interface Props {
   center: { lat: number; lng: number };
   userPosition: { lat: number; lng: number } | null;
   offers: NearbyOffer[];
+  /** Предложения, под которые подгоняется вид при смене набора данных (например, ближайшие к человеку). По умолчанию — все. */
+  focus?: NearbyOffer[];
   selectedId: string | null;
   onSelect: (offerId: string | null) => void;
   /** Ключ набора данных (центр + фильтр): при смене карта заново подгоняется, на тихом автообновлении — нет. */
   fitKey: string;
 }
 
-interface PinParts {
-  anchor: HTMLDivElement;
-  pin: HTMLDivElement;
-  label: HTMLSpanElement;
+/** Поля карты при подгонке под метки: сверху больше — метки выступают над точкой на свою высоту (+ бейдж скидки). */
+function fitMargin(width: number): [number, number, number, number] {
+  const narrow = width < 520;
+  const side = narrow ? 40 : 72;
+  return [84, side, narrow ? 44 : 56, side];
 }
-
-const MARGIN: [number, number, number, number] = [70, 70, 70, 70];
 const MAX_FIT_ZOOM = 15;
 /** Клик по пину не должен ещё и «закрыть» карточку клик-обработчиком самой карты. */
 const MARKER_CLICK_GUARD_MS = 200;
 
-function buildPin(offer: NearbyOffer, onActivate: () => void): PinParts {
+function buildPin(offer: NearbyOffer, onActivate: () => void): HTMLDivElement {
   const anchor = document.createElement("div");
   anchor.className = "ymap-anchor";
   anchor.setAttribute("role", "button");
   anchor.tabIndex = 0;
   anchor.setAttribute("aria-label", `${offer.title} — ${offer.businessName}, −${offer.discountPercent}%`);
-  const pin = document.createElement("div");
-  const label = document.createElement("span");
-  pin.appendChild(label);
-  anchor.appendChild(pin);
   anchor.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onActivate();
     }
   });
-  return { anchor, pin, label };
+  return anchor;
 }
 
-function applyPin(parts: PinParts, offer: NearbyOffer, selected: boolean) {
-  const { size, color, fontSize, text, featured } = pinSpec(offer, selected);
-  parts.pin.className = `map-pin${selected ? " is-selected" : ""}${featured ? " is-featured" : ""}`;
-  parts.pin.style.width = `${size}px`;
-  parts.pin.style.height = `${size}px`;
-  parts.pin.style.background = color;
-  parts.label.style.fontSize = `${fontSize}px`;
-  parts.label.textContent = text;
+/** Перерисовывает содержимое якоря (капля или кружок с фото); сам якорь с обработчиками остаётся тем же. */
+function applyPin(anchor: HTMLDivElement, offer: NearbyOffer, selected: boolean, scale: number) {
+  anchor.replaceChildren(createPinNode(offer, selected, Date.now(), scale).node);
 }
 
 /**
@@ -62,26 +55,29 @@ function applyPin(parts: PinParts, offer: NearbyOffer, selected: boolean) {
  * спутник. Тот же контракт, что у Leaflet-версии (OffersMap): пины со скидкой и «жаром», подсветка выбранного,
  * точка пользователя. Логотип и копирайт Яндекса рисует сам API — их нельзя скрывать (условия использования).
  */
-export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, selectedId, onSelect, fitKey }: Props) {
+export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, focus, selectedId, onSelect, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<YMapInstance | null>(null);
   const baseLayerRef = useRef<unknown>(null);
-  const markersRef = useRef(new Map<string, { marker: YMarkerInstance; parts: PinParts; offer: NearbyOffer }>());
+  const markersRef = useRef(new Map<string, { marker: YMarkerInstance; anchor: HTMLDivElement; offer: NearbyOffer }>());
   const userMarkerRef = useRef<{ marker: unknown } | null>(null);
   const onSelectRef = useRef(onSelect);
   const selectedRef = useRef(selectedId);
+  const focusRef = useRef(focus);
+  const scaleRef = useRef(1);
   const lastFitKey = useRef<string | null>(null);
   const lastMarkerClick = useRef(0);
   const [mapReady, setMapReady] = useState(false);
 
   onSelectRef.current = onSelect;
   selectedRef.current = selectedId;
+  focusRef.current = focus;
 
   // Создание/уничтожение карты.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const map = new api.YMap(container, { location: { center: [center.lng, center.lat], zoom: 13 }, margin: MARGIN });
+    const map = new api.YMap(container, { location: { center: [center.lng, center.lat], zoom: 13 }, margin: fitMargin(container.clientWidth) });
     map.addChild(new api.YMapDefaultFeaturesLayer({}));
     // Клик по пустому месту закрывает карточку оффера — привычный жест карт.
     map.addChild(
@@ -90,6 +86,13 @@ export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, s
         onClick: (object) => {
           if (object || Date.now() - lastMarkerClick.current < MARKER_CLICK_GUARD_MS) return;
           onSelectRef.current(null);
+        },
+        // На общем виде города метки мельче (см. pinScaleForZoom): перерисовываем, когда зум перешёл на другую ступень.
+        onUpdate: ({ location }) => {
+          const next = pinScaleForZoom(location.zoom);
+          if (next === scaleRef.current) return;
+          scaleRef.current = next;
+          markersRef.current.forEach(({ anchor, offer }, id) => applyPin(anchor, offer, id === selectedRef.current, next));
         },
       })
     );
@@ -143,22 +146,23 @@ export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, s
         lastMarkerClick.current = Date.now();
         onSelectRef.current(offer.id);
       };
-      const parts = buildPin(offer, activate);
+      const anchor = buildPin(offer, activate);
       const selected = offer.id === selectedRef.current;
-      applyPin(parts, offer, selected);
+      applyPin(anchor, offer, selected, scaleRef.current);
       const marker = new api.YMapMarker(
-        { coordinates: [offer.businessLng, offer.businessLat], zIndex: selected ? 1000 : offer.featured ? 900 : offer.discountPercent, onClick: activate },
-        parts.anchor
+        { coordinates: [offer.businessLng, offer.businessLat], zIndex: pinZIndex(offer, selected), onClick: activate },
+        anchor
       );
       map.addChild(marker);
-      markersRef.current.set(offer.id, { marker, parts, offer });
+      markersRef.current.set(offer.id, { marker, anchor, offer });
     });
 
     // Подгоняем границы только при смене набора данных, а не при каждом минутном обновлении:
     // иначе карта «прыгала» бы из-под пальца, пока пользователь её двигает.
     if (lastFitKey.current !== fitKey) {
       lastFitKey.current = fitKey;
-      const points: LngLat[] = offers.map((o) => [o.businessLng, o.businessLat]);
+      const fitOffers = focusRef.current && focusRef.current.length > 0 ? focusRef.current : offers;
+      const points: LngLat[] = fitOffers.map((o) => [o.businessLng, o.businessLat]);
       if (userPosition) points.push([userPosition.lng, userPosition.lat]);
       if (points.length === 0) {
         map.update({ location: { center: [center.lng, center.lat], zoom: 13, duration: 0 } });
@@ -183,24 +187,19 @@ export function YandexOffersMap({ api, mapStyle, center, userPosition, offers, s
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    markersRef.current.forEach(({ marker, parts, offer }, id) => {
+    markersRef.current.forEach(({ marker, anchor, offer }, id) => {
       const selected = id === selectedId;
-      applyPin(parts, offer, selected);
-      marker.update({ zIndex: selected ? 1000 : offer.featured ? 900 : offer.discountPercent });
+      applyPin(anchor, offer, selected, scaleRef.current);
+      marker.update({ zIndex: pinZIndex(offer, selected) });
     });
     const current = selectedId ? markersRef.current.get(selectedId) : undefined;
     const container = containerRef.current;
     if (!current || !container) return;
-    // Карточка закрывает часть карты (слева на десктопе, снизу на телефоне) — центр сдвигаем так, чтобы пин был виден.
+    // Карточка закрывает часть карты (слева на десктопе, снизу на телефоне) — центр сдвигаем так, чтобы пин был
+    // в середине видимой части.
     const zoom = 16;
-    const wide = container.clientWidth > 700;
-    const [lng, lat] = shiftedCenter(
-      current.offer.businessLat,
-      current.offer.businessLng,
-      zoom,
-      wide ? Math.min(210, container.clientWidth * 0.22) : 0,
-      wide ? 0 : container.clientHeight * 0.2
-    );
+    const { dx, dy } = offsetFromSheet(container.clientWidth, container.clientHeight, readSheetBox(container));
+    const [lng, lat] = shiftedCenter(current.offer.businessLat, current.offer.businessLng, zoom, dx, dy);
     map.update({ location: { center: [lng, lat], zoom, duration: 600 } });
   }, [selectedId, mapReady]);
 
