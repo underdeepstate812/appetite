@@ -12,8 +12,11 @@ const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL as string | undefined;
 const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL as string | undefined;
 
 function appLink(): string {
-  return (import.meta.env.VITE_APP_DOWNLOAD_URL as string | undefined) || `${window.location.origin}/home`;
+  return (import.meta.env.VITE_APP_DOWNLOAD_URL as string | undefined) || `${window.location.origin}${BASE}/home`;
 }
+
+/** Приложение может жить не в корне домена (GitHub Pages: /appetite/web/) — обычные <a> обязаны учитывать базовый путь. */
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export function Footer() {
   const { user } = useAuth();
@@ -39,7 +42,7 @@ export function Footer() {
           </a>
           {/* Вошедшему покупателю раздел для заведений не нужен (как и в шапке) — гостю остаётся. */}
           {user ? null : (
-            <a href="/for-business" className="footer-link">
+            <a href={`${BASE}/for-business`} className="footer-link">
               Для бизнеса
             </a>
           )}
@@ -55,10 +58,10 @@ export function Footer() {
         </div>
         <div>
           <p className="footer-col-title">Аккаунт</p>
-          <a href="/login" className="footer-link">
+          <a href={`${BASE}/login`} className="footer-link">
             Войти
           </a>
-          <a href="/register" className="footer-link">
+          <a href={`${BASE}/register`} className="footer-link">
             Регистрация
           </a>
         </div>

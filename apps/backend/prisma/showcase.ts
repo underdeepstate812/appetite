@@ -69,7 +69,7 @@ export const SHOWCASE: ShowcaseItem[] = [
 ];
 
 /** Все предложения витрины: лента на главной (у центра) + городская витрина по районам. */
-function allShowcaseItems(): ShowcaseItem[] {
+export function allShowcaseItems(): ShowcaseItem[] {
   const fromCity: ShowcaseItem[] = CITY_OFFERS.map((o) => ({
     shop: o.shop,
     title: o.title,
@@ -99,7 +99,7 @@ function slugify(name: string): string {
 }
 
 /** Равномерно «рассыпает» заведения вокруг центра (золотой угол), сохраняя заданное расстояние. */
-function placeAround(distanceKm: number, index: number) {
+export function placeAround(distanceKm: number, index: number) {
   const angle = ((index * 137.5) % 360) * (Math.PI / 180);
   const lngKmPerDegree = KM_PER_LAT_DEGREE * Math.cos((SPB_CENTER.lat * Math.PI) / 180);
   return {
@@ -108,7 +108,7 @@ function placeAround(distanceKm: number, index: number) {
   };
 }
 
-function discountFor(item: ShowcaseItem) {
+export function discountFor(item: ShowcaseItem) {
   // Подбираем стартовую скидку так, чтобы вместе с надбавкой за оставшееся время получилось targetDiscount.
   const bonus = computeDiscountPercent(0, item.hoursToEnd);
   const base = Math.max(25, item.targetDiscount - bonus);

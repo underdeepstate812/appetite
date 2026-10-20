@@ -16,7 +16,8 @@
     "prisma:seed": "prisma db seed",
     "prisma:seed:showcase": "ts-node --transpile-only prisma/seed-showcase.ts",
     "prisma:seed:sales-history": "ts-node --transpile-only prisma/seed-sales-history.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "demo:export-seed": "ts-node --transpile-only prisma/export-demo-seed.ts"
   },
   "dependencies": {
     "@apetite/shared": "workspace:*",

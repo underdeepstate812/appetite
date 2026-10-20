@@ -58,3 +58,7 @@ coverage/
 
 # Docker
 docker/volumes/
+
+# Демо для GitHub Pages (scripts/build-demo.sh)
+site/
+apps/*/public/demo/

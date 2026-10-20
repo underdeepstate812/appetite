@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@apetite/demo": "workspace:*",
     "@apetite/shared": "workspace:*",
     "leaflet": "1.9.4",
     "lucide-react": "^1.47.0",

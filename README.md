@@ -8,6 +8,18 @@
 потоков данных и решений/допущений — в [docs/architecture.md](docs/architecture.md).
 Чтобы просто запустить проект — сразу в [docs/SETUP.md](docs/SETUP.md).
 
+## Демо без сервера (GitHub Pages)
+
+Сайт покупателя, мобильная версия (веб-сборка) и кабинет бизнеса можно открыть в браузере без backend и базы: ответы API
+подставляет встроенный слой [`packages/demo`](packages/demo) (те же 59 предложений витрины, демо-покупатель, заведение «Кафе Пушкинъ»
+с историей продаж). Всё хранится только в браузере посетителя.
+
+- Сборка: `bash scripts/build-demo.sh` → `site/` (страница выбора + `web/`, `mobile/`, `admin/`);
+  проверка локально: `python3 qa/qa_demo_pages.py` (поднимает «двойник Pages», открывает три приложения и проходит сценарий заказа).
+- Публикация: workflow [`pages.yml`](.github/workflows/pages.yml) выкладывает `site/` на GitHub Pages при пуше в `main` (или вручную).
+- Данные витрины берутся из сида: `pnpm --filter @apetite/backend demo:export-seed` обновляет `packages/demo/src/seed-data.ts`.
+- Демо-входы: покупатель `user@apetite.ru`, заведение `cafe.pushkin@apetite.ru`, пароль `password123` (только для демо).
+
 ## Стек
 
 | Слой | Технологии |

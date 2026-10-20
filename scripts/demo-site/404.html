@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Appetite — демо</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // GitHub Pages не знает клиентских маршрутов: запоминаем путь и открываем корень нужного приложения —
+  // там демо-слой вернёт адрес на место до старта роутера (см. packages/demo/src/banner.ts).
+  (function () {
+    var base = "__BASE__";
+    var path = location.pathname;
+    var match = path.match(new RegExp("^" + base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "/(web|admin|mobile)(/.*)?$"));
+    if (match) {
+      try { sessionStorage.setItem("apetite.demo.redirect", path + location.search + location.hash); } catch (e) {}
+      location.replace(base + "/" + match[1] + "/");
+    } else {
+      location.replace(base + "/");
+    }
+  })();
+</script>
+</head>
+<body></body>
+</html>

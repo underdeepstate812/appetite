@@ -28,8 +28,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # shared собирается в dist — от него зависят все остальные пакеты; Prisma Client нужен backend для типов.
+      # shared и demo собираются в dist — от них зависят приложения (типы и бандлы); Prisma Client нужен backend для типов.
       - run: pnpm --filter @apetite/shared run build
+      - run: pnpm --filter @apetite/demo run build
       - run: pnpm --filter @apetite/backend run prisma:generate
 
       - name: Typecheck (tsc --noEmit во всех пакетах)
